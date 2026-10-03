@@ -34,8 +34,9 @@ from sklearn.metrics import (
     accuracy_score, average_precision_score, balanced_accuracy_score, confusion_matrix, f1_score,
     fbeta_score, precision_score, recall_score, roc_auc_score,
 )
-from sklearn.model_selection import GridSearchCV, StratifiedKFold, cross_val_predict, cross_val_score, train_test_split
-from sklearn.pipeline import make_pipeline
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, StratifiedKFold, cross_val_predict, cross_val_score, train_test_split
+from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 
@@ -52,6 +53,7 @@ SEED = 42
 CV = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
 MIN_RECALL = 0.80  # catch at least 4 in 5 struggling students...
 COST_FN = 4  # ...because missing one is assumed to cost about 4 false alarms
+RUN_TEST = False  # False: stop before the TEST cell (no test scoring). First test results: results_v1_test.csv
 pd.set_option("display.width", 200, "display.max_columns", 40)
 
 # %% [markdown]
@@ -351,12 +353,97 @@ for m in ["tree_early", "tree_mid"]:
     print(f"[{m}] depth {FIT[m].get_depth()}, {FIT[m].get_n_leaves()} leaves; cutoffs {({k: round(v, 3) for k, v in THR[m].items()})}")
 
 # %% [markdown]
+# ## 11b. Warning-sign count experiment (CV on train only; added AFTER the first test look)
+# The first test scoring (saved in `results_v1_test.csv`) showed the early tree well below logistic
+# regression and boosting, a gap CV had already shown. Risk in this data seems to build up across
+# several habits, and a small tree can only check 3–4 of them per student. This experiment gives the
+# tree one feature that sums them: `warning_signs` (0–4) = how many of on-time rate, exam-prep days,
+# attendance and practice-quiz score fall in the worst q-quantile.
+#
+# - The quantile cutoffs are learned in `fit`, so inside CV they come from each fold's training rows only.
+# - Tuned with the same grid as section 6, plus q ∈ {0.2, 0.25, 0.33}; in the monotone option
+#   `warning_signs` is +1 (more warning signs never lowers predicted risk).
+# - Rule, fixed in advance: keep the feature only if CV PR-AUC improves by more than about 0.03.
+# - Nothing here touches the test set.
+
+# %%
+SIGNS = ("on_time_submission_rate", "avg_days_started_before_exam", "attendance_rate", "avg_practice_quiz_score")
+
+
+class WarningCount(TransformerMixin, BaseEstimator):
+    """Adds `warning_signs`: how many of `features` are at or below their q-quantile (learned in fit)."""
+
+    def __init__(self, q=0.25, features=SIGNS):
+        self.q = q
+        self.features = features
+
+    def fit(self, X, y=None):
+        self.cutoffs_ = {f: float(X[f].quantile(self.q)) for f in self.features}
+        return self
+
+    def transform(self, X):
+        X = X.copy()
+        X["warning_signs"] = sum((X[f] <= c).astype(float) for f, c in self.cutoffs_.items())
+        return X
+
+
+def pipe_leaves(est, X, y):
+    return est[-1].get_n_leaves()
+
+
+def signs_pipe(**params):
+    return Pipeline([("signs", WarningCount()), ("tree", DecisionTreeClassifier(random_state=SEED))]).set_params(**params)
+
+
+signs_grid = {f"tree__{k}": v for k, v in tree_grid(EARLY).items()}
+signs_grid["tree__monotonic_cst"] = [None, [DIRECTION.get(f, 0) for f in EARLY] + [1]]
+signs_grid["signs__q"] = [0.2, 0.25, 0.33]
+gsw = GridSearchCV(signs_pipe(), signs_grid, scoring={"ap": "average_precision", "leaves": pipe_leaves}, refit=False, cv=CV, n_jobs=-1).fit(X_tr[EARLY], y_tr)
+rw = pd.DataFrame(gsw.cv_results_)
+rw["monotone"] = rw.param_tree__monotonic_cst.map(lambda v: v is not None)
+bw = rw.mean_test_ap.idxmax()
+sw = rw.std_test_ap[bw] / np.sqrt(CV.get_n_splits())
+pw = rw[rw.mean_test_ap >= rw.mean_test_ap[bw] - sw].sort_values(["mean_test_leaves", "monotone", "mean_test_ap"], ascending=[True, False, False]).index[0]
+r0 = CV_RESULTS["tree_early"]
+b0 = r0.mean_test_ap.idxmax()
+p0 = next(i for i, p in r0.params.items() if p == TUNED["tree_early"])
+CAND = {
+    "current early tree (1-SE)": (make("tree_early"), r0, p0),
+    "best-scoring setting, no 1-SE": (DecisionTreeClassifier(random_state=SEED, **r0.params[b0]), r0, b0),
+    "warning count (1-SE)": (signs_pipe(**rw.params[pw]), rw, pw),
+    "warning count, best-scoring": (signs_pipe(**rw.params[bw]), rw, bw),
+}
+RCV = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=SEED)
+rows = {}
+for name, (est, r, i) in CAND.items():
+    p = oof_proba(est, X_tr[EARLY], y_tr)
+    s = scores(y_tr, p, pick_thresholds(y_tr, p)["recall80"])
+    rows[name] = {"cv_pr_auc": r.mean_test_ap[i], "se": r.std_test_ap[i] / np.sqrt(CV.get_n_splits()), "cv_leaves": r.mean_test_leaves[i],
+                  "cv_pr_auc_5x5": cross_val_score(est, X_tr[EARLY], y_tr, cv=RCV, scoring="average_precision", n_jobs=-1).mean(),
+                  "oof_recall": s["recall"], "oof_precision": s["precision"]}
+SIGNS_CV = pd.DataFrame(rows).T
+SIGNS_CV["gain"] = SIGNS_CV.cv_pr_auc - SIGNS_CV.cv_pr_auc.iloc[0]
+SIGNS_CV["gain_5x5"] = SIGNS_CV.cv_pr_auc_5x5 - SIGNS_CV.cv_pr_auc_5x5.iloc[0]
+print(SIGNS_CV.round(3).to_string())
+print("  cv_pr_auc: the 5-fold CV used for tuning; cv_pr_auc_5x5: the same settings re-scored on 25 different folds (less noisy)")
+print("  oof_recall / oof_precision: out-of-fold on train at each model's own recall-80 cutoff")
+for name in ["warning count (1-SE)", "warning count, best-scoring"]:
+    est = CAND[name][0]
+    fitted = est.fit(X_tr[EARLY], y_tr)
+    used = len(EARLY) in fitted[-1].tree_.feature  # warning_signs is the last column
+    params = {k.split("__")[1]: ("monotone" if k.endswith("monotonic_cst") and v else v) for k, v in CAND[name][1].params[CAND[name][2]].items()}
+    print(f"[{name}] {params}; on all 480 train rows: {fitted[-1].get_n_leaves()} leaves, splits on warning_signs: {used}, "
+          f"cutoffs {({f: round(c, 3) for f, c in fitted[0].cutoffs_.items()})}")
+
+# %% [markdown]
 # ## 12. TEST: scored once
 # Every model at its recall-80 cutoff (from dev out-of-fold predictions), plus the two trees at their
 # accuracy-optimal cutoff. 95% bootstrap intervals for the trees: the test set holds ~44 at-risk
 # students, so one student moves recall by ~2.3 points.
 
 # %%
+if not RUN_TEST:
+    raise SystemExit("RUN_TEST is False: stopped before the test set. First test results are in notebooks/results_v1_test.csv")
 P_TEST = {m: FIT[m].predict_proba(X_test[FEATS[m]])[:, 1] for m in MODELS}
 TEST = {m: scores(y_test, P_TEST[m], THR[m]["recall80"]) for m in MODELS}
 for m in ["tree_early", "tree_mid"]:

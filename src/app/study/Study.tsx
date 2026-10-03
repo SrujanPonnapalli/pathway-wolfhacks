@@ -2,7 +2,9 @@
 
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Brain, Layers, Mic, Timer, type LucideIcon } from "lucide-react";
+import Link from "next/link";
+import { Brain, Layers, Timer, type LucideIcon } from "lucide-react";
+import { VivaGlyph } from "@/components/Viva";
 import { PageHeader, Pending } from "@/components/ui";
 import { usePathway } from "@/lib/store";
 
@@ -10,7 +12,6 @@ type Tool = { id: string; title: string; icon: LucideIcon; wire: string; action?
 const TOOLS: Tool[] = [
   { id: "quiz", title: "Practice quiz", icon: Brain, wire: "Gemini writes questions from your slides (/api/syllabus).", action: "quiz", actionLabel: "Log a finished quiz" },
   { id: "flashcards", title: "Flashcards", icon: Layers, wire: "Gemini-made deck from your notes.", action: "session", actionLabel: "Log a review session" },
-  { id: "viva", title: "Viva: answer out loud", icon: Mic, wire: "ElevenLabs voice in and out (/api/tts, /api/stt)." },
   { id: "timer", title: "Focus timer", icon: Timer, wire: "Start/stop timer; the Pathway Puck posts here too (/api/events).", action: "session", actionLabel: "Log a 25-minute session" },
 ];
 
@@ -50,6 +51,13 @@ export function Study() {
           </li>
         ))}
       </ul>
+      <Link href="/viva?mode=voice" className="panel mt-4 flex items-center gap-4 p-5 hover:bg-polar">
+        <VivaGlyph size={44} className="shrink-0 text-sky" />
+        <span>
+          <span className="block text-lg font-black">Want to talk it through?</span>
+          <span className="block text-muted">Viva can quiz you, explain your status, or plan your week, by voice or chat.</span>
+        </span>
+      </Link>
     </main>
   );
 }

@@ -8,7 +8,9 @@ import { demo, getProfiles, getTree, type Horizon } from "./data";
 import { ACTIONABLE, meta } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
+import { vivaReply, type Action } from "./viva";
 
+export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
 export type Block = { id: string; course: string; title: string; at: string; done: boolean };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
@@ -19,7 +21,7 @@ type PState = {
   blocks: Block[];
   done: Record<string, boolean>;
   checkedIn: Record<string, boolean>;
-  chat: { role: "you" | "coach"; text: string }[];
+  chat: ChatMsg[];
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
@@ -65,6 +67,7 @@ function useStore() {
     return { profile: "maya", by: {} };
   });
   const [toast, setToast] = useState<{ id: number; text: string }>();
+  const [vivaThinking, setVivaThinking] = useState(false);
 
   useEffect(() => {
     Promise.all([getProfiles(), getTree("early"), getTree("mid")])
@@ -150,11 +153,19 @@ function useStore() {
       update((st) => (st.added.length ? st : { ...st, added: [demo.judgeCourse], addedClasses: [demo.judgeClass] }));
       say("BIO 181 added from your syllabus.");
     },
-    sendChat: (text: string) =>
-      update((st) => ({
-        ...st,
-        chat: [...st.chat, { role: "you", text }, { role: "coach", text: "The coach isn't connected yet. Once it is, it will answer only from your own numbers and the model (POST /api/coach)." }],
-      })),
+    vivaThinking,
+    reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
+    addTurn: (m: ChatMsg) => update((st) => ({ ...st, chat: [...st.chat, m] })),
+    // Chat mode: show the question, "think" briefly, then answer. TODO: POST /api/coach.
+    ask: (text: string) => {
+      const r = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
+      update((st) => ({ ...st, chat: [...st.chat, { role: "you", text }] }));
+      setVivaThinking(true);
+      setTimeout(() => {
+        setVivaThinking(false);
+        update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: r.text, actions: r.actions }] }));
+      }, 900);
+    },
   };
 }
 

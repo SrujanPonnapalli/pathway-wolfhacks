@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowUp, Brain, CalendarPlus, Check, ChevronRight, FileUp, Flag, Layers, Lock, Mic, Sparkles, Timer, Trophy } from "lucide-react";
+import { ArrowUp, Brain, CalendarPlus, Check, ChevronRight, FileUp, Flag, Layers, Lock, Mic, Timer, Trophy } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
+import { VivaAvatar } from "@/components/Viva";
+import { VIVA } from "@/lib/viva";
 import { MiniPath } from "@/components/PathView";
 import { StatusMark } from "@/components/ui";
 import { moveText, reasonFor } from "@/lib/features";
@@ -112,27 +115,34 @@ export function HeadsUp() {
 }
 
 export function AskCard() {
-  const { sendChat } = usePathway();
+  const { ask: askViva } = usePathway();
   const router = useRouter();
   const ask = (q: string) => {
     if (!q.trim()) return;
-    sendChat(q.trim());
-    router.push("/chat");
+    askViva(q.trim());
+    router.push("/viva");
   };
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     ask(new FormData(e.currentTarget).get("q") as string);
   };
-  const suggestions = ["What should I focus on this week?", "Make me a study plan", "Quiz me on my weakest class"];
+  const suggestions = VIVA.suggestions.slice(0, 3);
 
   return (
     <section className="panel border-sky/30 p-5" aria-labelledby="ask">
-      <h2 id="ask" className="flex items-center gap-2 text-lg font-black">
-        <Sparkles size={20} className="text-sky" aria-hidden /> Ask Pathway
-      </h2>
+      <div className="flex items-center gap-3">
+        <VivaAvatar size={56} state="idle" />
+        <div className="min-w-0 flex-1">
+          <h2 id="ask" className="text-lg font-black">Ask Viva</h2>
+          <p className="text-sm text-muted">Your study coach</p>
+        </div>
+        <Link href="/viva?mode=voice" className="btn btn-ghost min-h-10 px-3 text-xs text-sky">
+          <Mic size={16} aria-hidden /> Talk
+        </Link>
+      </div>
       <form onSubmit={submit} className="mt-3 flex items-center gap-2 rounded-2xl border-2 border-line bg-white p-1.5 pl-4 focus-within:border-sky">
         <label htmlFor="q" className="sr-only">Your question</label>
-        <input id="q" name="q" autoComplete="off" placeholder="Ask anything about your classes…" className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted" />
+        <input id="q" name="q" autoComplete="off" placeholder="Ask Viva anything…" className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted" />
         <button className="btn btn-sky min-h-10 px-3" aria-label="Send">
           <ArrowUp size={20} strokeWidth={3} />
         </button>
@@ -146,7 +156,7 @@ export function AskCard() {
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-sm text-muted">AI answers (Gemini) use only your own numbers and the model, and can be wrong.</p>
+      <p className="mt-3 text-sm text-muted">Viva is AI (Gemini). It uses only your own numbers and the model, and can be wrong.</p>
     </section>
   );
 }
@@ -154,8 +164,8 @@ export function AskCard() {
 const TOOLS = [
   { tool: "quiz", title: "Practice quiz", detail: "From your slides", icon: Brain },
   { tool: "flashcards", title: "Flashcards", detail: "Spaced review", icon: Layers },
-  { tool: "viva", title: "Viva", detail: "Answer out loud", icon: Mic },
   { tool: "timer", title: "Focus timer", detail: "Log a session", icon: Timer },
+  { tool: "viva", title: "Talk to Viva", detail: "Voice mode", icon: Mic, href: "/viva?mode=voice" },
 ];
 
 export function UpNext() {
@@ -188,9 +198,9 @@ export function UpNext() {
         </div>
       )}
       <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {TOOLS.map(({ tool, title, detail, icon: Icon }) => (
+        {TOOLS.map(({ tool, title, detail, icon: Icon, href }) => (
           <li key={tool}>
-            <Link href={`/study?tool=${tool}`} className="flex h-full flex-col gap-2 rounded-[var(--radius-tile)] border-2 border-b-[5px] border-line bg-white p-4 transition-transform hover:bg-polar active:translate-y-[3px] active:border-b-2">
+            <Link href={href ?? `/study?tool=${tool}`} className="flex h-full flex-col gap-2 rounded-[var(--radius-tile)] border-2 border-b-[5px] border-line bg-white p-4 transition-transform hover:bg-polar active:translate-y-[3px] active:border-b-2">
               <Icon size={26} strokeWidth={2.4} className="text-teal" aria-hidden />
               <span className="font-black leading-tight">{title}</span>
               <span className="text-sm text-muted">{detail}</span>
@@ -283,7 +293,7 @@ const ACCEPT = [".pdf", ".ppt", ".pptx", ".doc", ".docx", ".txt", ".png", ".jpg"
 export function DropZone() {
   const { courses } = usePathway();
   const [over, setOver] = useState(false);
-  const [files, setFiles] = useState<{ name: string; course: string; confirmed: boolean }[]>([]);
+  const [files, setFiles] = useState<{ name: string; course: string; confirmed: boolean; reading: boolean }[]>([]);
   const [error, setError] = useState("");
 
   // TODO: POST each file to /api/syllabus; Gemini picks the course and pulls out dates for you to confirm.
@@ -292,7 +302,9 @@ export function DropZone() {
     const all = Array.from(list);
     const ok = all.filter((f) => ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext)));
     setError(ok.length < all.length ? `Skipped ${all.length - ok.length} file(s). Pathway reads PDFs, slides, docs, images and .ics calendars.` : "");
-    setFiles((fs) => [...fs, ...ok.map((f) => ({ name: f.name, course: courses[0]?.slug ?? "", confirmed: false }))]);
+    setFiles((fs) => [...fs, ...ok.map((f) => ({ name: f.name, course: courses[0]?.slug ?? "", confirmed: false, reading: true }))]);
+    // Mock parse time; the real one is the Gemini round trip.
+    setTimeout(() => setFiles((fs) => fs.map((f) => ({ ...f, reading: false }))), 1600);
   };
 
   return (
@@ -318,7 +330,11 @@ export function DropZone() {
           {files.map((f, i) => (
             <li key={f.name + i} className="flex flex-wrap items-center gap-2 rounded-xl bg-polar px-3 py-2 text-sm">
               <span className="min-w-0 flex-1 truncate font-bold">{f.name}</span>
-              {f.confirmed ? (
+              {f.reading ? (
+                <span className="flex items-center gap-1.5 font-bold text-muted">
+                  <ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…
+                </span>
+              ) : f.confirmed ? (
                 <span className="flex items-center gap-1 font-extrabold text-teal">
                   <Check size={15} strokeWidth={3} aria-hidden /> Filed to {courses.find((c) => c.slug === f.course)?.code}
                 </span>

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { BorderBeam } from "border-beam";
 import { Check, Lock, RotateCcw, Sparkles } from "lucide-react";
+import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
 import { FEATURES, meta, moveText, reasonFor } from "@/lib/features";
@@ -27,19 +29,24 @@ export function Insights() {
     <main className="mx-auto max-w-[1200px] px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Insights" lead="Why each class has its status, what would help, and how sure the model is." />
 
-      <div role="tablist" aria-label="Courses" className="relative -mx-1 mb-8 flex gap-2 overflow-x-auto px-1 pb-2">
+      <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-2">
+      <LiquidSelect active={c.slug} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="inline-flex rounded-2xl border-2 border-line bg-polar p-1">
+      <div role="tablist" aria-label="Courses" className="flex gap-1">
         {courses.map((x) => (
           <button
             key={x.slug}
             role="tab"
             aria-selected={x.slug === c.slug}
             onClick={() => router.replace(`/insights?course=${x.slug}`, { scroll: false })}
-            className={`flex shrink-0 items-center gap-2 rounded-xl border-2 border-b-4 px-3.5 py-2 font-extrabold ${x.slug === c.slug ? "border-teal/40 bg-teal-soft text-teal-lip" : "border-line bg-white hover:bg-polar"}`}
+            data-liquid-key={x.slug}
+            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 font-extrabold transition-colors duration-300 ${x.slug === c.slug ? "text-teal-lip" : "text-muted hover:text-ink"}`}
           >
             <StatusMark atRisk={x.result.atRisk} label={false} />
             {x.code}
           </button>
         ))}
+      </div>
+      </LiquidSelect>
       </div>
 
       <CourseInsight key={c.slug} c={c} />
@@ -158,9 +165,11 @@ function CourseInsight({ c }: { c: CourseView }) {
                   <Check size={20} strokeWidth={3} aria-hidden /> Added to your week
                 </p>
               ) : (
-                <button onClick={real} disabled={!canPlan} className="btn btn-primary w-full">
-                  Make it real
-                </button>
+                <BorderBeam size="md" colorVariant="ocean" theme="light" active={canPlan} borderRadius={14}>
+                  <button onClick={real} disabled={!canPlan} className="btn btn-primary w-full">
+                    Make it real
+                  </button>
+                </BorderBeam>
               )}
             </div>
             <p className="mt-2 text-sm text-muted" aria-live="polite">
@@ -249,11 +258,11 @@ function Evidence() {
           <h3 className="flex items-center gap-2 font-black"><Sparkles size={18} className="text-sky" aria-hidden /> How AI is used</h3>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
             <li>The status comes from a decision tree, not a chatbot, and runs on this device.</li>
-            <li>Gemini reads syllabi, writes practice questions, and powers the coach.</li>
-            <li>ElevenLabs is the voice of Viva.</li>
+            <li>Gemini reads syllabi, writes practice questions, and powers Viva, the study coach.</li>
+            <li>ElevenLabs gives Viva its voice.</li>
             <li>The team used AI coding assistants to build Pathway; see the README.</li>
           </ul>
-          <Link href="/chat" className="mt-3 inline-block text-sm font-extrabold text-teal underline underline-offset-4">Ask the coach about your path</Link>
+          <Link href="/viva" className="mt-3 inline-block text-sm font-extrabold text-teal underline underline-offset-4">Ask Viva about your path</Link>
         </div>
       </div>
     </section>

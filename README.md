@@ -24,11 +24,15 @@ npm run dev
 | `src/lib/mock.ts` | Demo profiles built from real dataset rows, fixed demo clock |
 | `src/lib/store.tsx` | Client state: profile switcher, live loop (quiz/check-in → re-score on device), study blocks |
 | `public/models/` | `tree_early.json`, `tree_mid.json` (SAMPLE trees on real columns until the notebook export lands), `evidence.json` pending |
-| `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Chat, Study buddies |
+| `src/lib/viva.ts`, `src/lib/voice.ts` | Viva's persona + mock replies (with the causal-language filter), simulated voice session |
+| `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
+| `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
 | `db/schema.sql` | `events` hypertable + `weekly_stats` continuous aggregate |
 | `src/app/api/*` | events (works), syllabus/coach (Gemini), tts/stt (ElevenLabs), calendar: stubs |
 
 Statuses are computed on-device and never stored server-side.
+
+UI libraries (all MIT): [orb-ui](https://orb-ui.com) for Viva's body, and [thinking-orbs](https://libraries.dev/orbs), [border-beam](https://libraries.dev/beam), [voice-glow](https://libraries.dev/voice) and [liquid-gooey](https://libraries.dev/gooey) from Libraries.dev (free npm packages only, no Pro content).
 
 ## Owners
 

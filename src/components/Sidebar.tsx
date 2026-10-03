@@ -2,16 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, House, MessageCircle, RotateCcw, Users } from "lucide-react";
+import type { ComponentType } from "react";
+import { BarChart3, BookOpen, House, RotateCcw, Users } from "lucide-react";
+import { LiquidSelect } from "@/components/LiquidSelect";
+import { VivaGlyph } from "@/components/Viva";
 import { usePathway } from "@/lib/store";
 
-const nav = [
+const VivaIcon = ({ size }: { size?: number; strokeWidth?: number }) => <VivaGlyph size={size} />;
+
+type NavLink = { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> };
+const nav: NavLink[] = [
   { href: "/", label: "Home", icon: House },
   { href: "/study", label: "Study", icon: BookOpen },
   { href: "/insights", label: "Insights", icon: BarChart3 },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/viva", label: "Viva", icon: VivaIcon },
 ];
-const extra = { href: "/buddies", label: "Buddies", icon: Users };
+const extra: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
 
 export function Wordmark() {
   return (
@@ -55,16 +61,17 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, on }: (typeof nav)[number] & { on: boolean }) {
+function NavItem({ href, label, icon: Icon, on }: NavLink & { on: boolean }) {
   return (
     <Link
       href={href}
       aria-current={on ? "page" : undefined}
+      data-liquid-key={href}
       className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1.5 max-md:text-xs max-md:tracking-normal max-md:normal-case ${
-        on ? "border-teal/40 bg-teal-soft text-teal-lip" : "border-transparent text-muted hover:bg-polar"
+        on ? "border-transparent text-teal-lip" : "border-transparent text-muted hover:text-ink"
       }`}
     >
-      <Icon size={26} strokeWidth={2.4} aria-hidden />
+      <Icon size={26} strokeWidth={2.4} />
       {label}
     </Link>
   );
@@ -89,7 +96,8 @@ export function Sidebar() {
         <div className="hidden px-3 pb-8 md:block">
           <Wordmark />
         </div>
-        <ul className="flex flex-1 max-md:justify-around md:flex-col md:gap-1.5">
+        <LiquidSelect active={[...nav, extra].find((n) => on(n.href))?.href ?? ""} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="flex-1">
+        <ul className="flex max-md:justify-around md:flex-col md:gap-1.5">
           {nav.map((n) => (
             <li key={n.href}>
               <NavItem {...n} on={on(n.href)} />
@@ -99,6 +107,7 @@ export function Sidebar() {
             <NavItem {...extra} on={on(extra.href)} />
           </li>
         </ul>
+        </LiquidSelect>
         <div className="hidden md:block">
           <ProfileSwitcher />
         </div>

@@ -1,14 +1,15 @@
 "use client";
 
 // /device — the Raspberry Pi kiosk: a desk-companion screen for a 7" touchscreen
-// (~1024×600, landscape). No app chrome (see components/Chrome). Viva is the
-// centerpiece; the route data sits under her as flat glanceable stats. Display-only
-// for now: tapping Viva or the button opens the normal Viva page; mic/camera
-// hardware hooks come later.
+// (~1024×600, landscape, fullscreen, no browser chrome). No app chrome either (see
+// components/Chrome). Left = the assistant: Viva's face, her read of the route, a
+// voice-state/transcript area, and the Talk button. Right = live student status.
+// Display-only for now: tapping Viva or the button opens the normal Viva page;
+// mic/camera hardware hooks come later.
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookOpen, ChevronDown, Compass, Flag, BarChart3, Mic, Route as RouteIcon, TriangleAlert } from "lucide-react";
+import { BarChart3, BookOpen, Check, ChevronDown, Compass, Flag, Mic, Route as RouteIcon, TriangleAlert } from "lucide-react";
 import { Wordmark } from "@/components/Sidebar";
 import { VivaAvatar } from "@/components/Viva";
 import { goalText } from "@/lib/features";
@@ -35,44 +36,53 @@ const statusTone: Record<RouteStatus, string> = {
   REROUTING: "text-sky",
 };
 
-// Viva's one-liner under the face: short, calm, never alarming.
+// Viva's headline under the face: short, calm, never alarming.
 const vivaLine: Record<RouteStatus, { line: string; sub: string }> = {
   "ON TRACK": { line: "You're on track.", sub: "Keep the streak going." },
   DRIFTING: { line: "You're drifting a little.", sub: "Let's get you back on track." },
-  "OFF TRACK": { line: "You've gone off route.", sub: "The next step below leads back." },
-  REROUTING: { line: "Rerouting you.", sub: "Your new plan is already on the week." },
+  "OFF TRACK": { line: "You've gone off route.", sub: "The next step leads back." },
+  REROUTING: { line: "Rerouting you.", sub: "Your new plan is on the week." },
 };
 
-function Stat({
+function RouteMark({ status }: { status: RouteStatus }) {
+  const s = 26;
+  if (status === "DRIFTING")
+    return <span className="shrink-0 rounded-full border-sun bg-sun-soft" style={{ width: s, height: s, borderWidth: 6 }} aria-hidden />;
+  const Icon = status === "ON TRACK" ? Check : status === "REROUTING" ? RouteIcon : TriangleAlert;
+  const face = status === "ON TRACK" ? "bg-teal text-white" : status === "REROUTING" ? "bg-sky text-white" : "bg-sun text-sun-ink";
+  return (
+    <span className={`grid shrink-0 place-items-center rounded-full ${face}`} style={{ width: s, height: s }} aria-hidden>
+      <Icon size={15} strokeWidth={3.2} />
+    </span>
+  );
+}
+
+function Card({
   icon: Icon,
   label,
-  tone = "text-ink",
-  value,
-  sub,
+  tone = "text-muted",
   children,
+  className = "",
 }: {
   icon: typeof Compass;
   label: string;
   tone?: string;
-  value: string;
-  sub?: string;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0 flex-1 px-4">
+    <section aria-label={label} className={`panel flex min-h-0 flex-col justify-center p-4 ${className}`}>
       <p className="flex items-center gap-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest text-muted">
         <Icon size={14} strokeWidth={2.8} className={tone} aria-hidden />
         {label}
       </p>
-      <p className={`mt-1.5 line-clamp-2 text-[1.05rem] font-black leading-snug ${tone}`}>{value}</p>
-      {sub && <p className="mt-0.5 truncate text-sm font-bold text-muted">{sub}</p>}
       {children}
-    </div>
+    </section>
   );
 }
 
 export function Device() {
-  const { courses, profile, state, now } = usePathway();
+  const { courses, profile, state, now, vivaThinking } = usePathway();
   const params = useSearchParams();
   const router = useRouter();
   const c = courses.find((x) => x.slug === params.get("course")) ?? courses.find((x) => x.result.atRisk) ?? courses[0];
@@ -125,10 +135,11 @@ export function Device() {
   const risk = Math.round(c.result.pRisk * 100);
   const tone = statusTone[status];
   const { line, sub } = vivaLine[status];
+  const last = state.chat.at(-1);
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden">
-      <header className="flex items-center justify-between px-5 pt-4">
+    <main className="flex h-dvh flex-col overflow-hidden bg-polar">
+      <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
         <Wordmark />
         <button
           onClick={() => nextCourse.slug !== c.slug && router.replace(`/device?course=${nextCourse.slug}`, { scroll: false })}
@@ -141,38 +152,79 @@ export function Device() {
         </button>
       </header>
 
-      <section className="relative flex min-h-0 flex-1 flex-col items-center justify-center" aria-label="Viva">
-        {/* Soft halo so the orb reads as a presence, not an image. */}
-        <span
-          aria-hidden
-          className="absolute left-1/2 top-1/2 size-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ background: "radial-gradient(closest-side, var(--color-sky-soft), transparent)" }}
-        />
-        <Link href="/viva" aria-label="Talk to Viva" className="relative block">
-          <VivaAvatar size={150} state="idle" />
-        </Link>
-        <h1 className="relative mt-3 text-center text-2xl font-black tracking-tight text-balance">{line}</h1>
-        <p className="relative mt-0.5 text-center font-bold text-muted">{sub}</p>
-      </section>
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-5 pb-5">
+        {/* Left: the assistant. */}
+        <section aria-label="Viva" className="panel flex min-h-0 flex-col items-center p-4 text-center">
+          <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center">
+            {/* Soft halo so the orb reads as a presence, not an image. */}
+            <span
+              aria-hidden
+              className="absolute left-1/2 top-1/2 size-[240px] -translate-x-1/2 -translate-y-[58%] rounded-full"
+              style={{ background: "radial-gradient(closest-side, var(--color-sky-soft), transparent)" }}
+            />
+            <Link href="/viva" aria-label="Talk to Viva" className="relative block">
+              <VivaAvatar size={132} state={vivaThinking ? "thinking" : "idle"} />
+            </Link>
+            <h1 className={`relative mt-2 text-[1.6rem] font-black leading-tight tracking-tight text-balance ${tone}`}>{line}</h1>
+            <p className="relative mt-0.5 font-bold text-muted">{sub}</p>
+          </div>
 
-      <section aria-label="Your route today" className="flex divide-x-2 divide-line px-5 pb-4">
-        <Stat icon={RouteIcon} label="Route" tone={tone} value={status} sub={c.result.atRisk ? "Worth a check-in" : "On track"} />
-        <Stat icon={TriangleAlert} label="Risk" tone={tone} value={`${risk}%`} sub={`${c.exam.title} in ${c.daysToExam}d`} />
-        <Stat icon={Compass} label="Next action" tone="text-teal" value={action.title} sub={action.when} />
-        <Stat icon={Flag} label="Checkpoint" value={checkpoint.title} sub={checkpoint.when} />
-        <Stat icon={BarChart3} label="Today" tone="text-teal" value={total ? `${todayPct}%` : "—"} sub={total ? `${done} of ${total} done` : "Free day"}>
-          <span className="mt-1.5 block h-2 w-full overflow-hidden rounded-full bg-line" role="presentation">
-            <span className="block h-full rounded-full bg-teal-face" style={{ width: `${total ? todayPct : 0}%` }} />
-          </span>
-        </Stat>
-      </section>
+          {/* Voice state + transcript preview; live once the mic lands. */}
+          <div className="mt-3 w-full rounded-2xl bg-polar px-4 py-2.5 text-left">
+            <p className="flex items-center gap-2 text-[0.68rem] font-extrabold uppercase tracking-widest text-muted">
+              <span className={`size-2 rounded-full ${vivaThinking ? "animate-pulse bg-sky" : "bg-line"}`} aria-hidden />
+              {vivaThinking ? "Viva is thinking" : "Voice idle"}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-bold text-ink/80">
+              {last ? `${last.role === "viva" ? "Viva: " : "You: "}${last.text}` : "Type for now — voice arrives with the mic."}
+            </p>
+          </div>
 
-      <footer className="px-5 pb-5">
-        <Link href="/viva" className="btn btn-sky min-h-[68px] w-full rounded-2xl text-xl tracking-wider">
-          <Mic size={26} strokeWidth={2.6} aria-hidden />
-          Talk to Viva
-        </Link>
-      </footer>
+          <Link href="/viva" className="btn btn-sky mt-3 min-h-[60px] w-full rounded-2xl text-lg tracking-wider">
+            <Mic size={24} strokeWidth={2.6} aria-hidden />
+            Talk to Viva
+          </Link>
+        </section>
+
+        {/* Right: live student status. */}
+        <div className="grid min-h-0 grid-cols-2 grid-rows-3 gap-3">
+          <Card icon={RouteIcon} label="Route" tone={tone}>
+            <p className={`mt-1.5 flex items-center gap-2 text-xl font-black leading-tight ${tone}`}>
+              <RouteMark status={status} />
+              {status}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-bold text-muted">{c.result.atRisk ? "Worth a check-in" : "On track"}</p>
+          </Card>
+
+          <Card icon={TriangleAlert} label="Risk" tone={tone}>
+            <p className={`mt-1 text-3xl font-black leading-none tabular-nums ${tone}`}>
+              {risk}
+              <span className="text-lg">%</span>
+            </p>
+            <p className="mt-1 truncate text-sm font-bold text-muted">
+              {c.exam.title} in {c.daysToExam}d
+            </p>
+          </Card>
+
+          <Card icon={Compass} label="Next action" tone="text-teal" className="col-span-2">
+            <p className="mt-1.5 line-clamp-2 text-xl font-black leading-snug text-balance">{action.title}</p>
+            <p className="mt-0.5 truncate font-bold text-teal">{action.when}</p>
+          </Card>
+
+          <Card icon={Flag} label="Checkpoint">
+            <p className="mt-1.5 line-clamp-2 text-xl font-black leading-snug">{checkpoint.title}</p>
+            <p className="mt-0.5 truncate text-sm font-bold text-muted">{checkpoint.when}</p>
+          </Card>
+
+          <Card icon={BarChart3} label="Today" tone="text-teal">
+            <p className="mt-1 text-3xl font-black leading-none tabular-nums text-teal">{total ? `${todayPct}%` : "—"}</p>
+            <span className="mt-2 block h-2.5 w-full overflow-hidden rounded-full bg-line" role="presentation">
+              <span className="block h-full rounded-full bg-teal-face" style={{ width: `${total ? todayPct : 0}%` }} />
+            </span>
+            <p className="mt-1 truncate text-sm font-bold text-muted">{total ? `${done} of ${total} done` : "Free day"}</p>
+          </Card>
+        </div>
+      </div>
     </main>
   );
 }

@@ -28,7 +28,7 @@ npm run dev
 | `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
 | `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
 | `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
-| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); syllabus/coach (Gemini), tts/stt (ElevenLabs), calendar: stubs |
+| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side); syllabus/coach (Gemini) and calendar: stubs |
 
 Statuses are computed on-device and never stored server-side.
 

@@ -123,7 +123,7 @@ function Chat() {
 const STATE_LABEL: Record<string, string> = {
   idle: "Tap Start to talk with Viva",
   connecting: "Connecting…",
-  listening: "Listening…",
+  listening: "Listening… just talk",
   thinking: "Thinking…",
   speaking: "Viva is speaking",
   error: "Something went wrong. Try again.",
@@ -152,12 +152,14 @@ function Voice() {
   return (
     <section aria-label="Voice conversation with Viva" className="panel flex flex-col items-center px-5 py-8 text-center">
       <VivaAvatar size={260} state={v.state} input={v.input} output={v.output} />
-      <p className="mt-2 text-lg font-black" aria-live="polite">{STATE_LABEL[v.state]}</p>
+      <p className="mt-2 text-lg font-black" aria-live="polite">
+        {v.state === "listening" && !v.micOn ? "Tap a question to ask Viva" : STATE_LABEL[v.state]}
+      </p>
+      {v.notice && <p role="status" className="mt-1 text-sm font-bold text-muted">{v.notice}</p>}
 
-      {/* Glows with the student's voice while they talk. Today it's the simulated level;
-          later pass stream={mic.stream} from voice-glow's useMicrophone() instead of level. */}
+      {/* Glows with the student's microphone level while Viva is listening. */}
       <VoiceBeam
-        level={v.caption?.who === "you" ? v.input : 0}
+        level={v.input}
         active={v.state === "listening"}
         colorVariant="ocean"
         theme="light"
@@ -185,7 +187,7 @@ function Voice() {
 
       {v.active ? (
         <>
-          <p className="mt-5 text-sm font-extrabold text-muted">Try saying</p>
+          <p className="mt-5 text-sm font-extrabold text-muted">{v.micOn ? "Or tap a question" : "Tap a question"}</p>
           <ul className="mt-2 flex flex-wrap justify-center gap-2">
             {VIVA.suggestions.map((s) => (
               <li key={s}>
@@ -208,7 +210,9 @@ function Voice() {
           <Mic size={18} aria-hidden /> Start talking
         </button>
       )}
-      <p className="mt-5 text-sm text-muted">Mockup: voice is simulated and no microphone is used. Your words appear in the Chat transcript too.</p>
+      <p className="mt-5 max-w-xl text-sm text-muted">
+        Voice mode sends what you say and what Viva says to ElevenLabs to turn speech into text and back. Pathway doesn&apos;t keep the audio. Your words also appear in the Chat transcript.
+      </p>
     </section>
   );
 }

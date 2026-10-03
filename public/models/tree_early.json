@@ -1,0 +1,9 @@
+{
+  "feature_names": ["weekly_hours", "late_night_pct"],
+  "class_names": ["on_track", "at_risk"],
+  "children_left": [1, -1, 3, -1, -1],
+  "children_right": [2, -1, 4, -1, -1],
+  "feature": [0, -2, 1, -2, -2],
+  "threshold": [5.0, -2, 0.4, -2, -2],
+  "value": [[50, 50], [5, 25], [45, 25], [40, 5], [5, 20]]
+}

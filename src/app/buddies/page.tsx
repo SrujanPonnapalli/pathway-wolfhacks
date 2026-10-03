@@ -18,7 +18,7 @@ export default function Page() {
 function Buddies() {
   const { state, profile } = usePathway();
   const [buddies, setBuddies] = useState<Buddy[]>([]);
-  useEffect(() => void getBuddies().then(setBuddies), []);
+  useEffect(() => void getBuddies(profile.id).then(setBuddies), [profile.id]);
 
   const me = { name: "You", streak: profile.streakDays, blocksDone: state.blocks.filter((b) => b.done).length, blocksPlanned: state.blocks.length };
   const board = [me, ...buddies].sort((a, b) => b.blocksDone - a.blocksDone);

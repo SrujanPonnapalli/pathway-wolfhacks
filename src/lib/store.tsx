@@ -4,7 +4,7 @@
 // in the browser: the status is computed on this device and never sent anywhere.
 // TODO: also POST each action to /api/events so Tiger has the timeline (inputs only, never the status).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { demo, getProfiles, getTree, type Horizon } from "./data";
+import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from "./data";
 import { ACTIONABLE, meta } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
@@ -81,6 +81,22 @@ function useStore() {
     } catch {}
   }, [saved]);
 
+  // When the database is reachable, it's the source of truth for a profile's logged activity:
+  // pull it on load and on every profile switch (local edits not yet confirmed stay local).
+  const hydrate = useCallback((id: string) => {
+    getState(id).then((r) => {
+      if (!r) return;
+      setSaved((v) => {
+        const cur = v.by[id] ?? empty();
+        return { ...v, by: { ...v.by, [id]: { ...cur, deltas: r.deltas, checkedIn: r.checkedIn, blocks: r.blocks, done: r.done, added: [], addedClasses: [] } } };
+      });
+    });
+  }, []);
+  const activeId = profiles.length ? (profiles.find((p) => p.id === saved.profile) ?? profiles[0]).id : null;
+  useEffect(() => {
+    if (activeId) hydrate(activeId);
+  }, [activeId, hydrate]);
+
   const profile = profiles.find((p) => p.id === saved.profile) ?? profiles[0];
   const s = (profile && saved.by[profile.id]) ?? empty();
 
@@ -95,7 +111,12 @@ function useStore() {
   );
 
   const courses = useMemo(
-    () => (profile ? [...profile.courses, ...s.added].map((c) => view(c, s)).filter((c): c is CourseView => !!c) : []),
+    () =>
+      profile
+        ? [...profile.courses, ...s.added.filter((a) => !profile.courses.some((c) => c.slug === a.slug))]
+            .map((c) => view(c, s))
+            .filter((c): c is CourseView => !!c)
+        : [],
     [profile, s, view],
   );
 
@@ -104,9 +125,10 @@ function useStore() {
     profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn(v.by[profile.id] ?? empty()) } }));
 
   // Apply a change to one course's inputs, then tell the student what moved and what the tree says now.
-  const bump = (slug: string, key: keyof Deltas, label: string, extra: Partial<PState> = {}) => {
+  const bump = (slug: string, key: keyof Deltas, label: string, extra: Partial<PState> = {}, event?: Parameters<typeof sync.event>[2]) => {
     const c = courses.find((x) => x.slug === slug);
     if (!c || !profile) return;
+    if (event) sync.event(profile.id, slug, event);
     const d = s.deltas[slug] ?? { quizzes: 0, checkins: 0, sessions: 0 };
     const next = { ...s, ...extra, deltas: { ...s.deltas, [slug]: { ...d, [key]: d[key] + 1 } } };
     const after = view(c, next)!;
@@ -128,11 +150,19 @@ function useStore() {
     toast,
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
-    reset: () => (setSaved({ profile: saved.profile, by: {} }), say("Demo data reset.")),
-    logQuiz: (slug: string) => bump(slug, "quizzes", "Practice quiz logged"),
-    logSession: (slug: string) => bump(slug, "sessions", "Study session logged"),
+    reset: async () => {
+      setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty() } }));
+      await sync.reset(profile.id);
+      if (isLive()) {
+        setProfiles(await getProfiles());
+        hydrate(profile.id);
+      }
+      say("Demo data reset.");
+    },
+    logQuiz: (slug: string) => bump(slug, "quizzes", "Practice quiz logged", {}, { kind: "quiz", minutes: 5 }),
+    logSession: (slug: string) => bump(slug, "sessions", "Study session logged", {}, { kind: "study", minutes: 25 }),
     checkIn: (slug: string, at: string) => {
-      bump(slug, "checkins", "Checked in", { checkedIn: { ...s.checkedIn, [at]: true } });
+      bump(slug, "checkins", "Checked in", { checkedIn: { ...s.checkedIn, [at]: true } }, { kind: "check_in", meta: { class_at: at } });
     },
     setMidterm: (slug: string, v: number | null) =>
       update((st) => {
@@ -142,16 +172,24 @@ function useStore() {
         return { ...st, midterm };
       }),
     makeReal: (blocks: Omit<Block, "id" | "done">[]) => {
-      update((st) => ({ ...st, blocks: [...st.blocks, ...blocks.map((b, i) => ({ ...b, id: `${Date.now()}-${i}`, done: false }))] }));
+      const made = blocks.map((b, i) => ({ ...b, id: `${Date.now()}-${i}`, done: false }));
+      update((st) => ({ ...st, blocks: [...st.blocks, ...made] }));
+      sync.blocks(profile.id, made);
       say(`${blocks.length} study blocks added to your week.`);
     },
     completeBlock: (b: Block) => {
-      bump(b.course, "sessions", "Study block done", { blocks: s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) });
+      sync.blockDone(profile.id, b.id, true);
+      bump(b.course, "sessions", "Study block done", { blocks: s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) }, { kind: "study", minutes: 45 });
     },
-    toggleTodo: (id: string) => update((st) => ({ ...st, done: { ...st.done, [id]: !st.done[id] } })),
-    addJudgeCourse: () => {
+    toggleTodo: (id: string) => {
+      sync.todo(profile.id, id, !s.done[id]);
+      update((st) => ({ ...st, done: { ...st.done, [id]: !st.done[id] } }));
+    },
+    addJudgeCourse: async () => {
       update((st) => (st.added.length ? st : { ...st, added: [demo.judgeCourse], addedClasses: [demo.judgeClass] }));
       say("BIO 181 added from your syllabus.");
+      await sync.addJudgeCourse();
+      if (isLive()) setProfiles(await getProfiles());
     },
     vivaThinking,
     reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),

@@ -222,7 +222,9 @@ export function WeekPanel() {
     return d;
   });
   const blocksOn = (d: Date) => state.blocks.filter((b) => sameDay(new Date(b.at), d));
-  const classes = [...profile.classes, ...state.addedClasses].filter((c) => sameDay(new Date(c.at), now));
+  // Locally added classes may also arrive from the database; keep one of each.
+  const same = (a: { course: string; at: string }, b: { course: string; at: string }) => a.course === b.course && +new Date(a.at) === +new Date(b.at);
+  const classes = [...profile.classes, ...state.addedClasses.filter((c) => !profile.classes.some((p) => same(p, c)))].filter((c) => sameDay(new Date(c.at), now));
   const today = [
     ...classes.map((c) => ({ at: c.at, kind: "class" as const, title: c.title, course: c.course })),
     ...blocksOn(now).map((b) => ({ at: b.at, kind: "study" as const, title: b.title, course: b.course, done: b.done })),

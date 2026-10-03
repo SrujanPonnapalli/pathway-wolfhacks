@@ -10,7 +10,7 @@ npm install
 npm run dev
 ```
 
-`npm test` checks the in-browser tree walker. Apply `db/schema.sql` to Tiger Cloud once.
+`npm test` runs the unit tests. For the database, put `DATABASE_URL` in `.env.local`, then run `npm run db:setup` and `npm run db:check`; see [docs/database](docs/database/README.md). Without a database the app runs on local demo data.
 
 ## Layout
 
@@ -27,8 +27,8 @@ npm run dev
 | `src/lib/viva.ts`, `src/lib/voice.ts` | Viva's persona + mock replies (with the causal-language filter), simulated voice session |
 | `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
 | `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
-| `db/schema.sql` | `events` hypertable + `weekly_stats` continuous aggregate |
-| `src/app/api/*` | events (works), syllabus/coach (Gemini), tts/stt (ElevenLabs), calendar: stubs |
+| `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
+| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); syllabus/coach (Gemini), tts/stt (ElevenLabs), calendar: stubs |
 
 Statuses are computed on-device and never stored server-side.
 

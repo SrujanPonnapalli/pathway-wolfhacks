@@ -22,7 +22,7 @@ const look: Record<CalEvent["kind"], string> = {
 };
 
 export function Calendar() {
-  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho } = usePathway();
+  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, notices, dismissNotice } = usePathway();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const mon = mondayOf(now);
@@ -68,6 +68,16 @@ export function Calendar() {
       </PageHeader>
       {err && <p role="alert" className="-mt-4 mb-6 text-sm font-bold text-sun-ink">{err}</p>}
 
+      {notices.length > 0 && (
+        <ul className="mb-6 space-y-2" aria-live="polite">
+          {notices.map((n) => (
+            <li key={n.id} className="flex items-start gap-3 rounded-2xl border-2 border-sky/30 bg-sky-soft px-4 py-3 text-sm font-bold">
+              <span className="min-w-0 flex-1">{n.text}</span>
+              <button onClick={() => dismissNotice(n.id)} aria-label="Dismiss" className="text-muted hover:text-ink"><X size={16} /></button>
+            </li>
+          ))}
+        </ul>
+      )}
       {suggestions.length > 0 && (
         <section aria-labelledby="sugg" className="panel mb-8 border-sky/30 p-5">
           <h2 id="sugg" className="font-extrabold">Viva noticed</h2>

@@ -32,11 +32,12 @@ type PState = {
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
+  removed: string[]; // feed events the student deleted in Google Calendar; we stop showing and re-adding them
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
 const KEY = "pathway:v1";
-const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [], sources: [], moved: {}, dismissed: [], gids: {} });
+const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [], sources: [], moved: {}, dismissed: [], gids: {}, removed: [] });
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
 export function featuresFor(c: CourseSeed, s: PState): Features {
@@ -143,9 +144,9 @@ function useStore() {
   const localEvents = useMemo<CalEvent[]>(() => {
     if (!profile) return [];
     const feed = [...demoWeek(demo.now, courses, profile.todos), ...sourceEvents(s.sources, courses, demo.now)];
-    const base = [...feed, ...blocksAsEvents(s.blocks)];
+    const base = [...feed, ...blocksAsEvents(s.blocks)].filter((e) => !s.removed.includes(e.id));
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
-  }, [profile, courses, s.blocks, s.moved, s.sources]);
+  }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
   // Google copies of things we already render locally are skipped (they carry a Pathway tag).
   const events = useMemo<CalEvent[]>(() => [...localEvents, ...googleEvents.filter((g) => !g.localId)], [localEvents, googleEvents]);
   const suggestions = useMemo<Suggestion[]>(
@@ -183,10 +184,67 @@ function useStore() {
     }
     return n;
   };
+  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
+  const seenGids = useRef<Set<string>>(new Set());
+  const fmtWhen = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const notice = (text: string) => {
+    setNotices((n) => [{ id: Date.now() + Math.random(), text }, ...n].slice(0, 5));
+    say(text);
+  };
+  // Compare Google's copy of each Pathway event with ours. Moved in Google -> move here and say so.
+  // Deleted in Google -> drop it here and say so. Changes we made ourselves already match, so they stay quiet.
+  const reconcile = (fromGoogle: CalEvent[]) => {
+    const weekEnd = new Date(monday);
+    weekEnd.setDate(monday.getDate() + 7);
+    const byLocal = new Map(fromGoogle.filter((g) => g.localId).map((g) => [g.localId!, g]));
+    for (const e of localEvents) {
+      const gid = s.gids[e.id] ?? s.blocks.find((b) => b.id === e.id)?.googleId;
+      if (!gid) continue;
+      const g = byLocal.get(e.id);
+      if (g) {
+        seenGids.current.add(gid);
+        if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
+          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
+          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
+          notice(`Heads up: you moved "${e.title}" to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
+        }
+      } else if (seenGids.current.has(gid) && new Date(e.start) >= monday && new Date(e.start) < weekEnd) {
+        seenGids.current.delete(gid);
+        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
+        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
+        update((st) => {
+          const gids = { ...st.gids };
+          delete gids[e.id];
+          return { ...st, gids };
+        });
+        notice(`Heads up: you removed "${e.title}" in Google Calendar. Taking it off your week.`);
+      }
+    }
+  };
   const refreshGoogle = async () => {
     if (!gcal.isConnected()) return;
-    setGoogleEvents(await gcal.listWeek(monday));
+    const list = await gcal.listWeek(monday);
+    setGoogleEvents(list);
+    reconcile(list);
   };
+  // Watch Google while connected: every 45 s and whenever the tab regains focus.
+  const refreshRef = useRef(refreshGoogle);
+  useEffect(() => {
+    refreshRef.current = refreshGoogle;
+  });
+  useEffect(() => {
+    if (!googleOn) return;
+    const tick = () => void refreshRef.current().catch(() => {});
+    const id = setInterval(tick, 45_000);
+    const onFocus = () => document.visibilityState === "visible" && tick();
+    document.addEventListener("visibilitychange", onFocus);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [googleOn]);
   // Keep Google current while connected: whenever local events change, write the new ones.
   const localKey = localEvents.map((e) => e.id).join("|");
   const syncRef = useRef(syncAll);
@@ -270,6 +328,8 @@ function useStore() {
     },
     events,
     suggestions,
+    notices,
+    dismissNotice: (id: number) => setNotices((n) => n.filter((x) => x.id !== id)),
     googleOn,
     googleWho,
     connectGoogle: async () => {

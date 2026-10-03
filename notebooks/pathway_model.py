@@ -35,7 +35,8 @@ from sklearn.metrics import (
     fbeta_score, precision_score, recall_score, roc_auc_score,
 )
 from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn.model_selection import GridSearchCV, RepeatedStratifiedKFold, StratifiedKFold, cross_val_predict, cross_val_score, train_test_split
+from joblib import Parallel, delayed
+from sklearn.model_selection import GridSearchCV, ParameterGrid, RepeatedStratifiedKFold, StratifiedKFold, cross_val_predict, cross_val_score, train_test_split
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeClassifier, plot_tree
@@ -365,84 +366,154 @@ for m in ["tree_early", "tree_mid"]:
 #   `warning_signs` is +1 (more warning signs never lowers predicted risk).
 # - Rule, fixed in advance: keep the feature only if CV PR-AUC improves by more than about 0.03.
 # - Nothing here touches the test set.
+#
+# Result of that first experiment: +0.08 CV PR-AUC, kept as `tree_early_v2` and test-scored once
+# (`results_v2_test.csv`).
+#
+# **Second experiment (after the second test look): wider counts.** Same idea over more habits:
+# all 8 actionable habits, with or without the practice-quiz score. For habits where high is worse
+# (missed deadlines, late-night study) a sign means being in the top q. Same rule: a wider count
+# replaces v2 only if it beats v2 by more than about 0.03 CV PR-AUC on the 25-fold re-score.
+#
+# The search computes the count once per (sign set, q, fold) and reuses it across the tree grid,
+# which gives the same numbers as a pipeline grid search in a fraction of the time.
 
 # %%
 SIGNS = ("on_time_submission_rate", "avg_days_started_before_exam", "attendance_rate", "avg_practice_quiz_score")
 
 
 class WarningCount(TransformerMixin, BaseEstimator):
-    """Adds `warning_signs`: how many of `features` are at or below their q-quantile (learned in fit)."""
+    """Adds `warning_signs`: how many of `features` are in their worst q-quantile (cutoffs learned in fit).
+    Worst = low, except features where DIRECTION is +1 (high is worse), which use the top q."""
 
     def __init__(self, q=0.25, features=SIGNS):
         self.q = q
         self.features = features
 
     def fit(self, X, y=None):
-        self.cutoffs_ = {f: float(X[f].quantile(self.q)) for f in self.features}
+        self.cutoffs_ = {f: float(X[f].quantile(1 - self.q if DIRECTION.get(f) == 1 else self.q)) for f in self.features}
         return self
 
     def transform(self, X):
         X = X.copy()
-        X["warning_signs"] = sum((X[f] <= c).astype(float) for f, c in self.cutoffs_.items())
+        X["warning_signs"] = sum(((X[f] >= c) if DIRECTION.get(f) == 1 else (X[f] <= c)).astype(float) for f, c in self.cutoffs_.items())
         return X
-
-
-def pipe_leaves(est, X, y):
-    return est[-1].get_n_leaves()
 
 
 def signs_pipe(**params):
     return Pipeline([("signs", WarningCount()), ("tree", DecisionTreeClassifier(random_state=SEED))]).set_params(**params)
 
 
-signs_grid = {f"tree__{k}": v for k, v in tree_grid(EARLY).items()}
-signs_grid["tree__monotonic_cst"] = [None, [DIRECTION.get(f, 0) for f in EARLY] + [1]]
-signs_grid["signs__q"] = [0.2, 0.25, 0.33]
-gsw = GridSearchCV(signs_pipe(), signs_grid, scoring={"ap": "average_precision", "leaves": pipe_leaves}, refit=False, cv=CV, n_jobs=-1).fit(X_tr[EARLY], y_tr)
-rw = pd.DataFrame(gsw.cv_results_)
-rw["monotone"] = rw.param_tree__monotonic_cst.map(lambda v: v is not None)
-bw = rw.mean_test_ap.idxmax()
-sw = rw.std_test_ap[bw] / np.sqrt(CV.get_n_splits())
-pw = rw[rw.mean_test_ap >= rw.mean_test_ap[bw] - sw].sort_values(["mean_test_leaves", "monotone", "mean_test_ap"], ascending=[True, False, False]).index[0]
-r0 = CV_RESULTS["tree_early"]
-b0 = r0.mean_test_ap.idxmax()
-p0 = next(i for i, p in r0.params.items() if p == TUNED["tree_early"])
-CAND = {
-    "current early tree (1-SE)": (make("tree_early"), r0, p0),
-    "best-scoring setting, no 1-SE": (DecisionTreeClassifier(random_state=SEED, **r0.params[b0]), r0, b0),
-    "warning count (1-SE)": (signs_pipe(**rw.params[pw]), rw, pw),
-    "warning count, best-scoring": (signs_pipe(**rw.params[bw]), rw, bw),
-}
+SIGN_SETS = {"4 signs": SIGNS, "8 actionable": tuple(ACTIONABLE), "8 actionable + quiz score": (*ACTIONABLE, "avg_practice_quiz_score")}
+QS = [0.2, 0.25, 0.33]
+FOLDS = list(CV.split(X_tr, y_tr))
+
+
+def tune_fold(features, pg, set_name, q, k):
+    tr, va = FOLDS[k]
+    wc = WarningCount(q=q, features=SIGN_SETS[set_name]).fit(X_tr[features].iloc[tr])
+    A, B = wc.transform(X_tr[features].iloc[tr]).to_numpy(), wc.transform(X_tr[features].iloc[va]).to_numpy()
+    out = []
+    for i, p in enumerate(pg):
+        t = DecisionTreeClassifier(random_state=SEED, **p).fit(A, y_tr[tr])
+        out.append((set_name, q, i, average_precision_score(y_tr[va], t.predict_proba(B)[:, 1]), t.get_n_leaves()))
+    return out
+
+
+def signs_search(features, set_names):
+    """CV table for a tree on `features` + warning_signs, over the tree grid × q × sign sets."""
+    pg = list(ParameterGrid({**tree_grid(features), "monotonic_cst": [None, [DIRECTION.get(f, 0) for f in features] + [1]]}))
+    res = Parallel(n_jobs=-1)(delayed(tune_fold)(features, pg, s, q, k) for s in set_names for q in QS for k in range(len(FOLDS)))
+    g = (pd.DataFrame([r for chunk in res for r in chunk], columns=["sset", "q", "i", "ap", "leaves"])
+         .groupby(["sset", "q", "i"], sort=False).agg(cv=("ap", "mean"), sd=("ap", lambda v: v.std(ddof=0)), leaves=("leaves", "mean")).reset_index())
+    g["se"] = g.sd / np.sqrt(len(FOLDS))
+    g["monotone"] = [pg[i]["monotonic_cst"] is not None for i in g.i]
+    return g, pg
+
+
+def pick_1se(g):
+    b = g.cv.idxmax()
+    return g[g.cv >= g.cv[b] - g.se[b]].sort_values(["leaves", "monotone", "cv"], ascending=[True, False, False]).index[0]
+
+
+def pipe_params(row, pg=None):
+    return {"signs__q": row.q, "signs__features": SIGN_SETS[row.sset], **{f"tree__{k}": v for k, v in (pg or PG)[row.i].items()}}
+
+
+def cv_compare(cands, features):
+    """cands: name -> (estimator, 5-fold CV PR-AUC, its SE, mean leaves). Adds the 25-fold re-score and OOF precision."""
+    rows = {}
+    for name, (est, cv, se, leaves) in cands.items():
+        p = oof_proba(est, X_tr[features], y_tr)
+        s = scores(y_tr, p, pick_thresholds(y_tr, p)["recall80"])
+        rows[name] = {"cv_pr_auc": cv, "se": se, "cv_leaves": leaves,
+                      "cv_pr_auc_5x5": cross_val_score(est, X_tr[features], y_tr, cv=RCV, scoring="average_precision", n_jobs=-1).mean(),
+                      "oof_recall": s["recall"], "oof_precision": s["precision"]}
+    return pd.DataFrame(rows).T
+
+
 RCV = RepeatedStratifiedKFold(n_splits=5, n_repeats=5, random_state=SEED)
-rows = {}
-for name, (est, r, i) in CAND.items():
-    p = oof_proba(est, X_tr[EARLY], y_tr)
-    s = scores(y_tr, p, pick_thresholds(y_tr, p)["recall80"])
-    rows[name] = {"cv_pr_auc": r.mean_test_ap[i], "se": r.std_test_ap[i] / np.sqrt(CV.get_n_splits()), "cv_leaves": r.mean_test_leaves[i],
-                  "cv_pr_auc_5x5": cross_val_score(est, X_tr[EARLY], y_tr, cv=RCV, scoring="average_precision", n_jobs=-1).mean(),
-                  "oof_recall": s["recall"], "oof_precision": s["precision"]}
-SIGNS_CV = pd.DataFrame(rows).T
-SIGNS_CV["gain"] = SIGNS_CV.cv_pr_auc - SIGNS_CV.cv_pr_auc.iloc[0]
-SIGNS_CV["gain_5x5"] = SIGNS_CV.cv_pr_auc_5x5 - SIGNS_CV.cv_pr_auc_5x5.iloc[0]
+G, PG = signs_search(EARLY, SIGN_SETS)
+PICK = {s: G.loc[pick_1se(G[G.sset == s])] for s in SIGN_SETS}
+r0 = CV_RESULTS["tree_early"]
+p0 = next(i for i, p in r0.params.items() if p == TUNED["tree_early"])
+CAND = {"v1: no count": (make("tree_early"), r0.mean_test_ap[p0], r0.std_test_ap[p0] / np.sqrt(len(FOLDS)), r0.mean_test_leaves[p0])}
+for s, row in PICK.items():
+    CAND[("v2: " if s == "4 signs" else "") + s] = (signs_pipe(**pipe_params(row)), row.cv, row.se, row.leaves)
+b0 = r0.mean_test_ap.idxmax()
+CAND["v1 grid, best-scoring (no 1-SE)"] = (DecisionTreeClassifier(random_state=SEED, **r0.params[b0]), r0.mean_test_ap[b0],
+                                           r0.std_test_ap[b0] / np.sqrt(len(FOLDS)), r0.mean_test_leaves[b0])
+row_b = G.loc[G[G.sset == "4 signs"].cv.idxmax()]
+CAND["4 signs, best-scoring (no 1-SE)"] = (signs_pipe(**pipe_params(row_b)), row_b.cv, row_b.se, row_b.leaves)
+SIGNS_CV = cv_compare(CAND, EARLY)
+SIGNS_CV["gain_vs_v2"] = SIGNS_CV.cv_pr_auc - SIGNS_CV.cv_pr_auc["v2: 4 signs"]
+SIGNS_CV["gain_vs_v2_5x5"] = SIGNS_CV.cv_pr_auc_5x5 - SIGNS_CV.cv_pr_auc_5x5["v2: 4 signs"]
 print(SIGNS_CV.round(3).to_string())
-print("  cv_pr_auc: the 5-fold CV used for tuning; cv_pr_auc_5x5: the same settings re-scored on 25 different folds (less noisy)")
+SIGNS_CV.to_csv(NB / "results_cv_early.csv", index_label="candidate")
+print("  1-SE picks unless marked. cv_pr_auc: the 5-fold CV used for tuning; cv_pr_auc_5x5: the same settings re-scored on 25 different folds")
 print("  oof_recall / oof_precision: out-of-fold on train at each model's own recall-80 cutoff")
-for name in ["warning count (1-SE)", "warning count, best-scoring"]:
-    est = CAND[name][0]
-    fitted = est.fit(X_tr[EARLY], y_tr)
-    used = len(EARLY) in fitted[-1].tree_.feature  # warning_signs is the last column
-    params = {k.split("__")[1]: ("monotone" if k.endswith("monotonic_cst") and v else v) for k, v in CAND[name][1].params[CAND[name][2]].items()}
-    print(f"[{name}] {params}; on all 480 train rows: {fitted[-1].get_n_leaves()} leaves, splits on warning_signs: {used}, "
-          f"cutoffs {({f: round(c, 3) for f, c in fitted[0].cutoffs_.items()})}")
+for s, row in PICK.items():
+    fitted = signs_pipe(**pipe_params(row)).fit(X_tr[EARLY], y_tr)
+    params = {k: ("monotone" if k == "monotonic_cst" and v else v) for k, v in PG[row.i].items()}
+    print(f"[{s}] q={row.q}, {params}; on all 480 train rows: {fitted[-1].get_n_leaves()} leaves, "
+          f"splits on warning_signs: {len(EARLY) in fitted[-1].tree_.feature}")
 
 # %% [markdown]
-# Decision: the warning count improved CV PR-AUC by about 0.08 (5-fold) and 0.10 (25 fresh folds),
-# well over the 0.03 bar, so it is kept as `tree_early_v2` (the 1-SE setting). It is refit on dev with
-# its cutoff from dev out-of-fold predictions, exactly like the other models in section 11.
+# **Mid tree + the same 4-sign count (CV on train only).** Same grid, q options and 1-SE rule as v2,
+# on the mid-semester features (with `midterm_score`). Compared with the current mid tree.
+
+# %%
+G_MID, PG_MID = signs_search(MID, ["4 signs"])
+row_mid = G_MID.loc[pick_1se(G_MID)]
+rm = CV_RESULTS["tree_mid"]
+pm = next(i for i, p in rm.params.items() if p == TUNED["tree_mid"])
+MID_CV = cv_compare({
+    "current mid tree": (make("tree_mid"), rm.mean_test_ap[pm], rm.std_test_ap[pm] / np.sqrt(len(FOLDS)), rm.mean_test_leaves[pm]),
+    "mid tree + 4 signs": (signs_pipe(**pipe_params(row_mid, PG_MID)), row_mid.cv, row_mid.se, row_mid.leaves),
+}, MID)
+MID_CV["gain"] = MID_CV.cv_pr_auc - MID_CV.cv_pr_auc.iloc[0]
+MID_CV["gain_5x5"] = MID_CV.cv_pr_auc_5x5 - MID_CV.cv_pr_auc_5x5.iloc[0]
+MID_CV.to_csv(NB / "results_cv_mid.csv", index_label="candidate")
+print("MID TREE EXPERIMENT\n" + MID_CV.round(3).to_string())
+fitted = signs_pipe(**pipe_params(row_mid, PG_MID)).fit(X_tr[MID], y_tr)
+print(f"[mid + 4 signs] q={row_mid.q}, {({k: ('monotone' if k == 'monotonic_cst' and v else v) for k, v in PG_MID[row_mid.i].items()})}; "
+      f"on all 480 train rows: {fitted[-1].get_n_leaves()} leaves, splits on warning_signs: {len(MID) in fitted[-1].tree_.feature}, "
+      f"cutoffs {({f: round(c, 3) for f, c in fitted[0].cutoffs_.items()})}")
+
+# %% [markdown]
+# Decisions (CV tables saved in `results_cv_early.csv` and `results_cv_mid.csv`):
+# - **Early tree: keep the 4-sign count** (`tree_early_v2`, the 1-SE setting). It improved CV PR-AUC by
+#   about 0.08 (5-fold) and 0.10 (25 fresh folds), well over the 0.03 bar. Wider counts and dropping
+#   the 1-SE rule did not beat it.
+# - **Mid tree: keep the current tree, without the count.** The count raised CV PR-AUC by about 0.05,
+#   but precision at the ~80%-recall cutoff fell (0.67 → 0.63), and the current mid tree is smaller.
+#
+# `tree_early_v2` is refit on dev with its cutoff from dev out-of-fold predictions, exactly like the
+# other models in section 11.
 
 # %%
 V2 = "tree_early_v2"
-TUNED[V2], FEATS[V2] = rw.params[pw], EARLY
+TUNED[V2], FEATS[V2] = pipe_params(PICK["4 signs"]), EARLY
 est = signs_pipe(**TUNED[V2])
 THR[V2] = pick_thresholds(y_dev, oof_proba(est, X_dev[EARLY], y_dev))
 FIT[V2] = est.fit(X_dev[EARLY], y_dev)
@@ -539,7 +610,7 @@ for m, f in [("tree_early", EARLY), ("tree_mid", MID)]:
 INTS.add("warning_signs")
 Xd = FIT[V2][0].transform(X_dev[EARLY])
 print(f"--- {V2} (cutoff {THR[V2]['recall80']:.3f}); warning_signs = how many of these hold: "
-      + ", ".join(f"{f} ≤ {c:.3g}" for f, c in FIT[V2][0].cutoffs_.items()) + " ---")
+      + ", ".join(f"{f} {'≥' if DIRECTION.get(f) == 1 else '≤'} {c:.3g}" for f, c in FIT[V2][0].cutoffs_.items()) + " ---")
 for line in leaf_rules(FIT[V2][-1], list(Xd.columns), Xd, y_dev, THR[V2]["recall80"]):
     print(" ", line)
 

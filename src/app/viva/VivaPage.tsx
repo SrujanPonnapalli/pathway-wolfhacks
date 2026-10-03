@@ -28,8 +28,8 @@ export function VivaPage() {
             <p className="text-muted">Your study coach. Answers come only from your numbers and the model.</p>
           </div>
         </div>
-        <LiquidSelect active={mode} fill="#1a6fd1" shadow="inset 0 -4px 0 #12509a" className="rounded-2xl border-2 border-line bg-polar p-1">
-        <div role="group" aria-label="Mode" className="flex">
+        <LiquidSelect active={mode} fill="#1a6fd1" shadow="inset 0 -4px 0 #12509a" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">
+        <div role="group" aria-label="Mode" className="flex items-center">
           {(["chat", "voice"] as const).map((m) => (
             <button
               key={m}

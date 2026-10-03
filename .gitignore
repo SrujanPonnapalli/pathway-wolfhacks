@@ -43,3 +43,8 @@ next-env.d.ts
 
 # impeccable session state
 .impeccable/questions/
+
+# python
+.venv/
+__pycache__/
+.ipynb_checkpoints/

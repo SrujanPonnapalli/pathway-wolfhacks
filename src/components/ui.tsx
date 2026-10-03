@@ -1,38 +1,102 @@
-import { Check } from "lucide-react";
-import type { Status } from "@/lib/mock";
+"use client";
 
-// Shape + words, never color alone: filled check = on track, hollow ring = check-in.
-export function StatusMark({ status, label = true }: { status: Status; label?: boolean }) {
-  const on = status === "on_track";
+import { useEffect, type ReactNode } from "react";
+import { Check, X } from "lucide-react";
+import { usePathway } from "@/lib/store";
+
+// Shape + words, never color alone: filled check = on track, hollow ring = worth a check-in.
+export function StatusMark({ atRisk, label = true, size = 20 }: { atRisk: boolean; label?: boolean; size?: number }) {
+  const text = atRisk ? "Worth a check-in" : "On track";
   return (
-    <span className={`inline-flex items-center gap-1.5 font-extrabold ${on ? "text-teal" : "text-sun-ink"}`}>
-      {on ? (
-        <span className="grid size-5 place-items-center rounded-full bg-teal text-white" aria-hidden>
-          <Check size={13} strokeWidth={4} />
-        </span>
+    <span className={`inline-flex items-center gap-1.5 font-extrabold ${atRisk ? "text-sun-ink" : "text-teal"}`}>
+      {atRisk ? (
+        <span className="rounded-full border-sun" style={{ width: size, height: size, borderWidth: size / 4 }} aria-hidden />
       ) : (
-        <span className="size-5 rounded-full border-[5px] border-sun" aria-hidden />
+        <span className="grid place-items-center rounded-full bg-teal text-white" style={{ width: size, height: size }} aria-hidden>
+          <Check size={size * 0.65} strokeWidth={4} />
+        </span>
       )}
-      {label ? (on ? "On track" : "Worth a check-in") : <span className="sr-only">{on ? "On track" : "Worth a check-in"}</span>}
+      {label ? text : <span className="sr-only">{text}</span>}
     </span>
   );
 }
 
-export function PageHeader({ title, lead }: { title: string; lead: string }) {
+export function PageHeader({ title, lead, children }: { title: string; lead: string; children?: ReactNode }) {
   return (
-    <header className="mb-8">
-      <h1 className="text-[2rem] font-black leading-tight tracking-tight text-balance">{title}</h1>
-      <p className="mt-2 max-w-[60ch] text-lg text-muted">{lead}</p>
+    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 className="text-[2rem] font-black leading-tight tracking-tight text-balance md:text-[2.5rem]">{title}</h1>
+        <p className="mt-2 max-w-[60ch] text-lg text-muted">{lead}</p>
+      </div>
+      {children}
     </header>
   );
 }
 
-// Placeholder block for a feature that isn't built yet. Says what will live here and where its data comes from.
-export function Todo({ what, wire }: { what: string; wire: string }) {
+// A feature that isn't built yet: says what will live here and what to wire it to.
+export function Pending({ what, wire, children }: { what: string; wire: string; children?: ReactNode }) {
   return (
-    <div className="rounded-[var(--radius-tile)] border-2 border-dashed border-line bg-polar p-6">
+    <div className="rounded-[var(--radius-tile)] border-2 border-dashed border-line bg-polar p-5">
       <p className="font-extrabold">{what}</p>
-      <p className="mt-1 text-sm text-muted">Wire up: {wire}</p>
+      <p className="mt-1 text-sm text-muted">Not connected yet: {wire}</p>
+      {children}
     </div>
+  );
+}
+
+// Renders children once the model and profiles have loaded; otherwise a loading or error state.
+export function Gate({ children }: { children: ReactNode }) {
+  const { ready, error } = usePathway();
+  if (error)
+    return (
+      <div role="alert" className="panel mx-auto mt-10 max-w-lg border-sun p-6">
+        <p className="text-lg font-black">Couldn&apos;t load the model</p>
+        <p className="mt-1 text-muted">{error}. Check that the tree JSON files exist in public/models, then reload.</p>
+      </div>
+    );
+  if (!ready)
+    return (
+      <p className="mt-10 text-center text-muted" aria-live="polite">
+        Loading your classes…
+      </p>
+    );
+  return <>{children}</>;
+}
+
+export function Toast() {
+  const { toast, dismissToast } = usePathway();
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(dismissToast, 6000);
+    return () => clearTimeout(t);
+  }, [toast, dismissToast]);
+
+  return (
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-24 z-30 flex justify-center md:inset-x-auto md:right-6 md:bottom-6">
+      {toast && (
+        <p key={toast.id} className="pointer-events-auto flex max-w-md animate-[rise_220ms_ease-out] items-start gap-3 rounded-2xl bg-ink px-4 py-3 text-white shadow-[0_8px_24px_rgb(0_0_0/0.18)]">
+          <span className="flex-1">{toast.text}</span>
+          <button onClick={dismissToast} aria-label="Dismiss" className="text-white/70 hover:text-white">
+            <X size={18} />
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
+// A short burst of confetti dots; remount with a new key to replay.
+export function Burst() {
+  const colors = ["bg-teal-face", "bg-sun", "bg-sky", "bg-grape", "bg-flame"];
+  return (
+    <span className="pointer-events-none absolute left-1/2 top-1/2" aria-hidden>
+      {Array.from({ length: 14 }, (_, i) => (
+        <span
+          key={i}
+          className={`absolute size-2.5 rounded-full ${colors[i % colors.length]} animate-[burst_700ms_ease-out_forwards]`}
+          style={{ ["--a" as string]: `${(360 / 14) * i}deg` }}
+        />
+      ))}
+    </span>
   );
 }

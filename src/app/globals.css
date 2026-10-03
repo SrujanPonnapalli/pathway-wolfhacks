@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* One job per color:
+   teal  = actions and "on track"     sun   = "worth a check-in" only
+   sky   = the AI (chat, coach)       flame = streak
+   grape = study buddies              ink/muted/line/polar = everything else */
 @theme {
   --font-sans: var(--font-nunito), ui-rounded, system-ui, sans-serif;
 
@@ -9,19 +13,23 @@
   --color-ink: #33383d;
   --color-muted: #5e646b;
 
-  --color-teal: #0a7f72;
-  --color-teal-lip: #075e55;
+  --color-teal: #0a7f72; /* text and icons on white */
+  --color-teal-ink: #053d36; /* text on bright teal faces */
+  --color-teal-lip: #075e55; /* text on teal-soft, button lips */
+  --color-teal-face: #1cc7b1; /* bright button faces and fills */
   --color-teal-soft: #ddf4ef;
-  --color-teal-bright: #14c2ab;
 
   --color-sun: #ffc531;
-  --color-sun-lip: #d99a00;
-  --color-sun-soft: #fff4d6;
   --color-sun-ink: #6b4500;
+  --color-sun-soft: #fff4d6;
 
   --color-sky: #1a6fd1;
   --color-sky-lip: #12509a;
   --color-sky-soft: #e6f1fd;
+
+  --color-flame: #ff8a1f;
+  --color-flame-ink: #7a3a00;
+  --color-flame-soft: #ffebd6;
 
   --color-grape: #7c4ddb;
   --color-grape-soft: #f0e9fd;
@@ -47,7 +55,7 @@ body {
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-sky);
+  outline: 3px solid var(--color-ink);
   outline-offset: 2px;
   border-radius: 12px;
 }
@@ -62,7 +70,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 46px;
+  min-height: 48px;
   padding: 0 1.25rem;
   border-radius: 14px;
   border: 2px solid transparent;
@@ -77,7 +85,7 @@ body {
     border-bottom-width 80ms ease-out,
     filter 120ms ease-out;
   &:hover {
-    filter: brightness(1.06);
+    filter: brightness(1.05);
   }
   &:active {
     transform: translateY(3px);
@@ -92,9 +100,9 @@ body {
   }
 }
 @utility btn-primary {
-  background: var(--color-teal);
-  border-color: var(--color-teal-lip);
-  color: white;
+  background: var(--color-teal-face);
+  border-color: #109c8a;
+  color: var(--color-teal-ink);
 }
 @utility btn-sky {
   background: var(--color-sky);
@@ -104,7 +112,7 @@ body {
 @utility btn-ghost {
   background: white;
   border-color: var(--color-line);
-  color: var(--color-sky);
+  color: var(--color-teal);
   &:hover {
     filter: none;
     background: var(--color-polar);
@@ -118,10 +126,54 @@ body {
   border-radius: var(--radius-tile);
 }
 
+/* Chunky slider: thick track filled up to the thumb (--fill set inline), raised thumb. */
+.slider {
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--color-teal-face) var(--fill, 50%), var(--color-line) var(--fill, 50%));
+  cursor: pointer;
+}
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: white;
+  border: 2px solid var(--color-line);
+  box-shadow: 0 3px 0 var(--color-line);
+}
+.slider::-moz-range-thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: white;
+  border: 2px solid var(--color-line);
+  box-shadow: 0 3px 0 var(--color-line);
+}
+
 @keyframes pop {
   0% { transform: scale(1); }
   40% { transform: scale(1.25); }
   100% { transform: scale(1); }
+}
+
+/* Path nodes light up one after another. */
+@keyframes light {
+  from { transform: scale(0.6); opacity: 0.2; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Make It Real burst. */
+@keyframes burst {
+  from { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; }
+  to { transform: rotate(var(--a)) translateY(-90px) scale(0.4); opacity: 0; }
+}
+
+@keyframes rise {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {

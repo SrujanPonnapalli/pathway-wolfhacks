@@ -17,17 +17,18 @@ npm run dev
 | Path | What |
 |---|---|
 | `data/` | Student outcomes dataset (800 rows) + data dictionary |
-| `docs/planning/` | Ideation, critiques, decisions, spec — start at `docs/planning/README.md` |
-| `src/lib/tree.ts` | Walks exported sklearn tree JSON; returns path (for D3 highlight) + risk |
-| `public/models/` | `tree_early.json`, `tree_mid.json`, `evidence.json` from the notebook (sample tree checked in) |
-| `notebooks/` | Training + export (`iaa_baseline.py`) |
+| `docs/planning/` | Ideation, critiques, decisions, spec. Start at `docs/planning/README.md` |
+| `src/lib/tree.ts` | `predict`, `explain` (path as steps), `recourse` (cheapest actionable change). Tested in `tree.test.ts` |
+| `src/lib/features.ts` | Every dataset column: label, suggest/context/never role, bounds, plain-English wording |
+| `src/lib/data.ts` | The one file the UI reads data through. Swap its bodies for `/api` calls |
+| `src/lib/mock.ts` | Demo profiles built from real dataset rows, fixed demo clock |
+| `src/lib/store.tsx` | Client state: profile switcher, live loop (quiz/check-in → re-score on device), study blocks |
+| `public/models/` | `tree_early.json`, `tree_mid.json` (SAMPLE trees on real columns until the notebook export lands), `evidence.json` pending |
+| `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Chat, Study buddies |
 | `db/schema.sql` | `events` hypertable + `weekly_stats` continuous aggregate |
-| `src/app/api/events` | Log events (POST) / weekly stats (GET) — also the puck's endpoint |
-| `src/app/api/{syllabus,coach}` | Gemini (stubs) |
-| `src/app/api/{tts,stt}` | ElevenLabs (stubs) |
-| `src/app/api/calendar` | .ics import/export (stub) |
+| `src/app/api/*` | events (works), syllabus/coach (Gemini), tts/stt (ElevenLabs), calendar: stubs |
 
-Risk scores are computed on-device and never stored server-side.
+Statuses are computed on-device and never stored server-side.
 
 ## Owners
 

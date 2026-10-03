@@ -1,0 +1,79 @@
+{
+ "feature_names": [
+  "midterm_score",
+  "attendance_rate",
+  "missed_deadlines"
+ ],
+ "class_names": [
+  "on_track",
+  "at_risk"
+ ],
+ "children_left": [
+  1,
+  2,
+  -1,
+  -1,
+  5,
+  -1,
+  -1
+ ],
+ "children_right": [
+  4,
+  3,
+  -1,
+  -1,
+  6,
+  -1,
+  -1
+ ],
+ "feature": [
+  0,
+  1,
+  -2,
+  -2,
+  2,
+  -2,
+  -2
+ ],
+ "threshold": [
+  62.5,
+  0.85,
+  -2.0,
+  -2.0,
+  3.5,
+  -2.0,
+  -2.0
+ ],
+ "value": [
+  [
+   578,
+   222
+  ],
+  [
+   131,
+   173
+  ],
+  [
+   65,
+   137
+  ],
+  [
+   66,
+   36
+  ],
+  [
+   447,
+   49
+  ],
+  [
+   419,
+   37
+  ],
+  [
+   28,
+   12
+  ]
+ ],
+ "_note": "SAMPLE tree hand-built for the UI scaffold; leaf counts are from data/student_outcomes.csv. Replace with the notebook export.",
+ "risk_threshold": 0.4
+}

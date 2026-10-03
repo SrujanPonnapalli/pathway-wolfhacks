@@ -3,10 +3,10 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Liquid } from "liquid-gooey";
 
-// A "you are here" indicator that flows like liquid between options. Children are the
+// A "you are here" indicator that slides like liquid between options. Children are the
 // options; mark each with data-liquid-key and pass the active key. The (invisible) blob
-// jumps to the active option; liquid-gooey's shape morph then flows the liquid mass there,
-// stretching and settling into the pill instead of sliding a rigid shape with a round tail.
+// glides to the active option with a short CSS transition; liquid-gooey's Move effect makes the
+// surface follow it tightly with a slight stretch. No droplet tail, so it stays a clean pill.
 export function LiquidSelect({
   active,
   fill,
@@ -32,6 +32,8 @@ export function LiquidSelect({
       if (!el) return void (b.style.opacity = "0");
       const r = el.getBoundingClientRect();
       const c = box.getBoundingClientRect();
+      const first = b.style.opacity !== "1";
+      b.style.transition = first ? "none" : "transform 220ms cubic-bezier(.2,.8,.2,1), width 220ms, height 220ms";
       b.style.width = `${r.width}px`;
       b.style.height = `${r.height}px`;
       // Absolute children start inside the border, so subtract its width (clientLeft/Top).
@@ -46,18 +48,8 @@ export function LiquidSelect({
 
   return (
     <Liquid ref={root} fill={fill} shadow={shadow} blur={7} contrast={18} className={`relative ${className}`}>
-      <Liquid.Item
-        morph={{
-          shape: true,
-          bounce: 0.15,
-          contentBlur: 0,
-          // Short lead and stiff, well-damped springs: it slides and stretches a little, then settles
-          // straight back into the exact rounded pill (no long overshoot, no ball shape).
-          advanced: {
-            evolve: { roundness: 0.1, travel: 8, anticipation: 30, massStiffness: 420, massDamping: 30, sizeStiffness: 320, sizeDamping: 28, cornerDuration: 200 },
-          },
-        }}
-      >
+      {/* Stiff, well-damped spring: starts the instant you click and tracks the slide closely. */}
+      <Liquid.Item effect="move" move={{ advanced: { stiffness: 700, damping: 38, stretch: 0.1, tail: 0 } }}>
         <div ref={blob} aria-hidden className="pointer-events-none absolute left-0 top-0 rounded-xl" style={{ opacity: 0 }} />
       </Liquid.Item>
       {children}

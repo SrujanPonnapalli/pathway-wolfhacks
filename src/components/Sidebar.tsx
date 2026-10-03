@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ComponentType } from "react";
+import { useState, type ComponentType } from "react";
 import { BarChart3, BookOpen, House, RotateCcw, Users } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
@@ -61,10 +61,11 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, on }: NavLink & { on: boolean }) {
+function NavItem({ href, label, icon: Icon, on, onPick }: NavLink & { on: boolean; onPick: (href: string) => void }) {
   return (
     <Link
       href={href}
+      onClick={() => onPick(href)}
       aria-current={on ? "page" : undefined}
       data-liquid-key={href}
       className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1.5 max-md:text-xs max-md:tracking-normal max-md:normal-case ${
@@ -79,7 +80,12 @@ function NavItem({ href, label, icon: Icon, on }: NavLink & { on: boolean }) {
 
 export function Sidebar() {
   const path = usePathname();
-  const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  // Move the highlight on click, not when the next page finishes loading. The pick only
+  // counts while we're still on the page it was made from, so it clears itself after navigation.
+  const [picked, setPicked] = useState<{ href: string; from: string } | null>(null);
+  const pending = picked && picked.from === path ? picked.href : null;
+  const on = (href: string) => (pending ? pending === href : href === "/" ? path === "/" : path.startsWith(href));
+  const pick = (href: string) => setPicked({ href, from: path });
 
   return (
     <>
@@ -100,11 +106,11 @@ export function Sidebar() {
         <ul className="flex max-md:justify-around md:flex-col md:gap-1.5">
           {nav.map((n) => (
             <li key={n.href}>
-              <NavItem {...n} on={on(n.href)} />
+              <NavItem {...n} on={on(n.href)} onPick={pick} />
             </li>
           ))}
           <li className="md:mt-4 md:border-t-2 md:border-line md:pt-4">
-            <NavItem {...extra} on={on(extra.href)} />
+            <NavItem {...extra} on={on(extra.href)} onPick={pick} />
           </li>
         </ul>
         </LiquidSelect>

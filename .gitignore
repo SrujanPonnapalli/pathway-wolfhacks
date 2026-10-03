@@ -44,5 +44,7 @@ next-env.d.ts
 # impeccable session state
 .impeccable/questions/
 
-# impeccable engine binary (downloaded on first run; platform-specific)
-.claude/skills/impeccable/scripts/bin/
+# python
+.venv/
+__pycache__/
+.ipynb_checkpoints/

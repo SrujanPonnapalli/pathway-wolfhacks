@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import {
   ExternalLink,
   ShieldCheck,
@@ -172,6 +173,17 @@ function Buddies() {
           </div>
         </div>
 
+        {state.blocks.length === 0 && (
+          <div className="mt-4 rounded-xl border border-sun/40 bg-sun-soft/50 p-3 text-xs text-ink flex items-center justify-between gap-3">
+            <span>
+              <strong>No blocks on your calendar yet:</strong> The pot requires at least 1 planned study block before Monday lock.
+            </span>
+            <Link href="/insights" className="shrink-0 font-extrabold text-teal underline underline-offset-4">
+              Make It Real &rarr;
+            </Link>
+          </div>
+        )}
+
         {/* Member Progress Bars */}
         <div className="mt-6 space-y-4">
           <div className="flex items-center justify-between text-xs font-extrabold text-muted">
@@ -197,7 +209,14 @@ function Buddies() {
                     )}
                   </span>
                   <span className="text-xs font-extrabold text-muted">
-                    {m.backed} of {m.planned} backed blocks ({pct}%)
+                    {m.backed} of {m.planned} backed ({pct}%) &middot;{" "}
+                    {isFinishing ? (
+                      <span className="text-teal font-black">Qualified</span>
+                    ) : (
+                      <span className="text-sun-ink font-bold">
+                        {Math.max(1, Math.ceil(m.planned * 0.8) - m.backed)} more needed
+                      </span>
+                    )}
                   </span>
                 </div>
 

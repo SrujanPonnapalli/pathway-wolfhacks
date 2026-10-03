@@ -7,7 +7,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Brain, Check, FileUp, Layers, Pause, Play, RotateCcw, Timer } from "lucide-react";
+import { Brain, Check, FileUp, Layers, Pause, Play, RotateCcw, Sparkles, Timer } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaGlyph } from "@/components/Viva";
 import { PageHeader } from "@/components/ui";
@@ -85,9 +85,9 @@ export function Study() {
         </section>
       )}
 
-      {focus === "quiz" && <Quiz key={material?.title ?? "none"} material={material} onDone={() => course && logQuiz(course)} />}
-      {focus === "flashcards" && <Flashcards key={material?.title ?? "none"} material={material} onDone={() => course && logSession(course)} />}
-      {focus === "timer" && <FocusTimer onDone={() => course && logSession(course)} />}
+      {focus === "quiz" && <Quiz key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logQuiz(course)} />}
+      {focus === "flashcards" && <Flashcards key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logSession(course)} />}
+      {focus === "timer" && <FocusTimer course={course} onDone={() => course && logSession(course)} />}
 
       <Link href="/viva?mode=voice" className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
         <VivaGlyph size={36} className="shrink-0 text-sky" />
@@ -97,7 +97,7 @@ export function Study() {
   );
 }
 
-function Quiz({ material, onDone }: { material: StudyMaterial | null; onDone: () => void }) {
+function Quiz({ material, course, onDone }: { material: StudyMaterial | null; course: string; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [picked, setPicked] = useState<number | null>(null);
   const [score, setScore] = useState(0);
@@ -106,10 +106,38 @@ function Quiz({ material, onDone }: { material: StudyMaterial | null; onDone: ()
   const q = material.quiz[i];
   if (finished || !q)
     return (
-      <div className="panel p-5">
-        <p className="text-xl font-extrabold">{score} of {material.quiz.length} right</p>
-        <p className="mt-1 text-muted">Logged. Your {material.quiz.length ? "status re-checked on this device." : ""}</p>
-        <button onClick={() => { setI(0); setPicked(null); setScore(0); setFinished(false); }} className="btn btn-ghost mt-4"><RotateCcw size={16} aria-hidden /> Again</button>
+      <div className="panel p-6 border-2 border-teal/40">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-teal text-white">
+            <Check size={20} strokeWidth={3} />
+          </span>
+          <div>
+            <p className="text-xl font-black text-ink">{score} of {material.quiz.length} correct</p>
+            <p className="text-xs text-muted">Practice quiz completed</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-teal/20 bg-teal-soft/60 p-4">
+          <div className="flex items-center gap-1.5 font-black text-xs text-teal-lip">
+            <Sparkles size={14} className="text-teal" />
+            <span>Telemetry Logged &middot; Model Re-evaluated On-Device</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            This quiz was added to your practice count. Your standing and recourse path have updated in real time.
+          </p>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <Link href={`/insights?course=${course}`} className="btn btn-primary text-xs">
+            See Updated Path in Insights &rarr;
+          </Link>
+          <button
+            onClick={() => { setI(0); setPicked(null); setScore(0); setFinished(false); }}
+            className="btn btn-ghost text-xs"
+          >
+            <RotateCcw size={14} aria-hidden /> Again
+          </button>
+        </div>
       </div>
     );
   const answer = (k: number) => {
@@ -153,13 +181,52 @@ function Quiz({ material, onDone }: { material: StudyMaterial | null; onDone: ()
   );
 }
 
-function Flashcards({ material, onDone }: { material: StudyMaterial | null; onDone: () => void }) {
+function Flashcards({ material, course, onDone }: { material: StudyMaterial | null; course: string; onDone: () => void }) {
   const [i, setI] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [finished, setFinished] = useState(false);
   if (!material) return <p className="text-muted">Drop a file above to get a deck.</p>;
   const cards = material.flashcards;
   const c = cards[i];
-  if (!c) return null;
+
+  if (finished || !c) {
+    return (
+      <div className="panel p-6 border-2 border-teal/40">
+        <div className="flex items-center gap-3">
+          <span className="grid size-9 place-items-center rounded-full bg-teal text-white">
+            <Check size={20} strokeWidth={3} />
+          </span>
+          <div>
+            <p className="text-xl font-black text-ink">Deck Completed</p>
+            <p className="text-xs text-muted">Reviewed {cards.length} cards</p>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-teal/20 bg-teal-soft/60 p-4">
+          <div className="flex items-center gap-1.5 font-black text-xs text-teal-lip">
+            <Sparkles size={14} className="text-teal" />
+            <span>Study Session Logged &middot; Model Re-evaluated</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Flashcard review logged to device telemetry. Pace-projected study sessions updated in the decision tree.
+          </p>
+        </div>
+
+        <div className="mt-5 flex flex-wrap gap-2.5">
+          <Link href={`/insights?course=${course}`} className="btn btn-primary text-xs">
+            See Updated Path in Insights &rarr;
+          </Link>
+          <button
+            onClick={() => { setI(0); setFlipped(false); setFinished(false); }}
+            className="btn btn-ghost text-xs"
+          >
+            <RotateCcw size={14} aria-hidden /> Review Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const last = i + 1 >= cards.length;
   return (
     <div className="panel p-5">
@@ -169,16 +236,17 @@ function Flashcards({ material, onDone }: { material: StudyMaterial | null; onDo
       </button>
       <div className="mt-3 flex gap-2">
         <button onClick={() => setFlipped((f) => !f)} className="btn btn-ghost min-h-10 px-4 text-xs">Flip</button>
-        <button onClick={() => { if (last) { onDone(); setI(0); } else setI(i + 1); setFlipped(false); }} className="btn btn-primary min-h-10 px-4 text-xs">{last ? "Finish deck" : "Next"}</button>
+        <button onClick={() => { if (last) { onDone(); setFinished(true); } else setI(i + 1); setFlipped(false); }} className="btn btn-primary min-h-10 px-4 text-xs">{last ? "Finish deck" : "Next"}</button>
       </div>
     </div>
   );
 }
 
-function FocusTimer({ onDone }: { onDone: () => void }) {
+function FocusTimer({ course, onDone }: { course: string; onDone: () => void }) {
   const TOTAL = 25 * 60;
   const [left, setLeft] = useState(TOTAL);
   const [running, setRunning] = useState(false);
+  const [logged, setLogged] = useState(false);
   const ref = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneRef = useRef(onDone);
   useEffect(() => {
@@ -192,6 +260,7 @@ function FocusTimer({ onDone }: { onDone: () => void }) {
           if (ref.current) clearInterval(ref.current);
           setTimeout(() => {
             setRunning(false);
+            setLogged(true);
             doneRef.current();
           }, 0);
           return 0;
@@ -201,6 +270,14 @@ function FocusTimer({ onDone }: { onDone: () => void }) {
     }, 1000);
     return () => { if (ref.current) clearInterval(ref.current); };
   }, [running]);
+
+  const triggerDone = () => {
+    setRunning(false);
+    setLeft(TOTAL);
+    setLogged(true);
+    onDone();
+  };
+
   const mm = String(Math.floor(left / 60)).padStart(2, "0");
   const ss = String(left % 60).padStart(2, "0");
   return (
@@ -209,9 +286,24 @@ function FocusTimer({ onDone }: { onDone: () => void }) {
       <p className="mt-1 text-sm text-muted">25-minute focus block. Logs a session when it ends.</p>
       <div className="mt-4 flex justify-center gap-2">
         <button onClick={() => setRunning((r) => !r)} className="btn btn-primary min-h-10 px-4 text-xs">{running ? <><Pause size={15} aria-hidden /> Pause</> : <><Play size={15} aria-hidden /> Start</>}</button>
-        <button onClick={() => { setRunning(false); setLeft(TOTAL); }} className="btn btn-ghost min-h-10 px-4 text-xs"><RotateCcw size={15} aria-hidden /> Reset</button>
-        <button onClick={() => { setRunning(false); setLeft(TOTAL); onDone(); }} className="btn btn-ghost min-h-10 px-4 text-xs">Log 25 min now</button>
+        <button onClick={() => { setRunning(false); setLeft(TOTAL); setLogged(false); }} className="btn btn-ghost min-h-10 px-4 text-xs"><RotateCcw size={15} aria-hidden /> Reset</button>
+        <button onClick={triggerDone} className="btn btn-ghost min-h-10 px-4 text-xs">Log 25 min now</button>
       </div>
+
+      {logged && (
+        <div className="mt-5 rounded-xl border border-teal/20 bg-teal-soft/60 p-4 text-left">
+          <div className="flex items-center gap-2 font-black text-xs text-teal-lip">
+            <Sparkles size={14} className="text-teal" />
+            <span>25-Minute Focus Session Logged On-Device</span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Logged to study telemetry. Average weekly study hours and session counts updated in your decision tree.
+          </p>
+          <Link href={`/insights?course=${course}`} className="mt-2 inline-block text-xs font-black text-teal underline underline-offset-4">
+            Check your updated standing on Insights &rarr;
+          </Link>
+        </div>
+      )}
     </div>
   );
 }

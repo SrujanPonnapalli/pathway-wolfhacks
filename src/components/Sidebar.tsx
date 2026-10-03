@@ -70,12 +70,12 @@ function NavItem({ href, label, icon: Icon, on, onPick }: NavLink & { on: boolea
       onClick={() => onPick(href)}
       aria-current={on ? "page" : undefined}
       data-liquid-key={href}
-      className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1.5 max-md:text-xs max-md:tracking-normal max-md:normal-case ${
+      className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1 max-md:py-1.5 max-md:text-[11px] max-md:tracking-normal max-md:normal-case ${
         on ? "border-transparent text-teal-lip" : "border-transparent text-muted hover:text-ink"
       }`}
     >
-      <Icon size={26} strokeWidth={2.4} />
-      {label}
+      <Icon size={22} strokeWidth={2.4} />
+      <span>{label}</span>
     </Link>
   );
 }

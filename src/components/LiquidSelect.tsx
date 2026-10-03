@@ -36,8 +36,11 @@ export function LiquidSelect({
       b.style.transition = first ? "none" : "transform 220ms cubic-bezier(.2,.8,.2,1), width 220ms, height 220ms";
       b.style.width = `${r.width}px`;
       b.style.height = `${r.height}px`;
-      // Absolute children start inside the border, so subtract its width (clientLeft/Top).
-      b.style.transform = `translate(${r.left - c.left - box.clientLeft}px, ${r.top - c.top - box.clientTop}px)`;
+      // liquid-gooey renders the SVG layer inside the container's padding box (inset: 0),
+      // but measures target frame offsets relative to the container's border-box (r.top - group.top).
+      // Because the SVG origin is already offset by clientLeft/clientTop, the dummy blob target must be
+      // translated by -2 * clientLeft / -2 * clientTop so the rendered SVG blob lands exactly on `el`.
+      b.style.transform = `translate(${r.left - c.left - 2 * box.clientLeft}px, ${r.top - c.top - 2 * box.clientTop}px)`;
       b.style.opacity = "1";
     };
     place();

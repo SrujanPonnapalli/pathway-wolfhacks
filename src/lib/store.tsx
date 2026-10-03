@@ -9,7 +9,7 @@ import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from
 import { ACTIONABLE, meta } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { soften, vivaReply, type Action, type Reply } from "./viva";
+import { sampleChatSessions, soften, vivaReply, type Action, type ChatSession, type Reply } from "./viva";
 import { askCoach, coachContext } from "./api";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
@@ -17,6 +17,7 @@ import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
 
 export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
+export type { ChatSession };
 export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
@@ -28,6 +29,8 @@ type PState = {
   done: Record<string, boolean>;
   checkedIn: Record<string, boolean>;
   chat: ChatMsg[];
+  chatSessions: ChatSession[];
+  activeChatId: string;
   sources: Source[]; // dropped files, parsed by Gemini, kept on this device
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
@@ -37,7 +40,35 @@ type PState = {
 type Saved = { profile: string; by: Record<string, PState> };
 
 const KEY = "pathway:v1";
-const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [], sources: [], moved: {}, dismissed: [], gids: {}, removed: [] });
+const empty = (profileId: string = "maya"): PState => {
+  const seedSessions = sampleChatSessions(profileId);
+  const activeId = `chat-new-${profileId}`;
+  const newChat: ChatSession = {
+    id: activeId,
+    title: "New conversation",
+    createdAt: demo.now.toISOString(),
+    updatedAt: demo.now.toISOString(),
+    messages: [],
+  };
+  const sessions = [newChat, ...seedSessions];
+  return {
+    added: [],
+    addedClasses: [],
+    deltas: {},
+    midterm: {},
+    blocks: [],
+    done: {},
+    checkedIn: {},
+    chat: [],
+    chatSessions: sessions,
+    activeChatId: activeId,
+    sources: [],
+    moved: {},
+    dismissed: [],
+    gids: {},
+    removed: [],
+  };
+};
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
 export function featuresFor(c: CourseSeed, s: PState): Features {
@@ -98,7 +129,7 @@ function useStore() {
     getState(id).then((r) => {
       if (!r) return;
       setSaved((v) => {
-        const cur = v.by[id] ?? empty();
+        const cur = v.by[id] ?? empty(id);
         return { ...v, by: { ...v.by, [id]: { ...cur, deltas: r.deltas, checkedIn: r.checkedIn, blocks: r.blocks, done: r.done, added: [], addedClasses: [] } } };
       });
     });
@@ -110,7 +141,45 @@ function useStore() {
 
   const profile = profiles.find((p) => p.id === saved.profile) ?? profiles[0];
   // Older saved state (or a database row) may lack newer fields; merge over a blank state. Memoized so `courses` is stable.
-  const s = useMemo<PState>(() => ({ ...empty(), ...((profile && saved.by[profile.id]) ?? {}) }), [profile, saved]);
+  const s = useMemo<PState>(() => {
+    const raw = (profile && saved.by[profile.id]) ?? {};
+    const base = empty(profile?.id ?? "maya");
+
+    let sessions: ChatSession[] = raw.chatSessions && raw.chatSessions.length > 0 ? raw.chatSessions : [];
+    let activeChatId: string = raw.activeChatId ?? "";
+
+    if (sessions.length === 0) {
+      if (raw.chat && raw.chat.length > 0) {
+        const legacy: ChatSession = {
+          id: `chat-legacy-${profile?.id ?? "default"}`,
+          title: raw.chat.find((m: ChatMsg) => m.role === "you")?.text.slice(0, 36) || "Previous check-in",
+          createdAt: demo.now.toISOString(),
+          updatedAt: demo.now.toISOString(),
+          messages: raw.chat,
+        };
+        sessions = [legacy, ...base.chatSessions.filter((x) => x.id !== legacy.id)];
+        activeChatId = legacy.id;
+      } else {
+        sessions = base.chatSessions;
+        activeChatId = sessions[0]?.id ?? `chat-new-${profile?.id ?? "default"}`;
+      }
+    }
+
+    if (!activeChatId || !sessions.some((x) => x.id === activeChatId)) {
+      activeChatId = sessions[0]?.id ?? `chat-new-${profile?.id ?? "default"}`;
+    }
+
+    const activeSession = sessions.find((x) => x.id === activeChatId);
+    const activeMessages = activeSession?.messages ?? (raw.chat ?? []);
+
+    return {
+      ...base,
+      ...raw,
+      chatSessions: sessions,
+      activeChatId,
+      chat: activeMessages,
+    };
+  }, [profile, saved]);
 
   const view = useCallback(
     (c: CourseSeed, st: PState): CourseView | null => {
@@ -137,8 +206,16 @@ function useStore() {
   // local is written there once (tracked in gids), and approved changes are written back.
   const [googleEvents, setGoogleEvents] = useState<CalEvent[]>([]);
   // Lazy init is safe here for the same reason as `saved` above; nothing renders before the trees load.
-  const [googleOn, setGoogleOn] = useState(() => typeof window !== "undefined" && gcal.isConnected());
+  const [googleOn, setGoogleOn] = useState(false);
   const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
+  const [googleShared, setGoogleShared] = useState(false);
+  useEffect(() => {
+    gcal.init().then(async (on) => {
+      setGoogleOn(on);
+      setGoogleShared(gcal.isShared());
+      if (on) setGoogleWho(await gcal.whoAmI().catch(() => null));
+    });
+  }, []);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 
   const localEvents = useMemo<CalEvent[]>(() => {
@@ -148,7 +225,20 @@ function useStore() {
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
   }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
   // Google copies of things we already render locally are skipped (they carry a Pathway tag).
-  const events = useMemo<CalEvent[]>(() => [...localEvents, ...googleEvents.filter((g) => !g.localId)], [localEvents, googleEvents]);
+  const events = useMemo<CalEvent[]>(() => {
+    const localIds = new Set(localEvents.map((e) => e.id));
+    return [...localEvents, ...googleEvents.filter((g) => !g.localId || !localIds.has(g.localId))];
+  }, [localEvents, googleEvents]);
+  /** Study blocks in the shared calendar that this browser did not create: treat them as part of the plan. */
+  const sharedBlocks = useMemo<Block[]>(() => {
+    const local = new Set(s.blocks.map((b) => b.id));
+    return googleEvents
+      .filter((g) => g.localId && g.kind === "study" && !local.has(g.localId))
+      .map((g) => ({ id: g.localId!, course: courses.find((c) => g.title.startsWith(c.code))?.slug ?? "", title: g.title, at: g.start, done: false, googleId: g.id.slice(2) }));
+  }, [googleEvents, s.blocks, courses]);
+  const allBlocks = useMemo<Block[]>(() => [...s.blocks, ...sharedBlocks], [s.blocks, sharedBlocks]);
+  /** Google's id for one of our events: from Google's own tag first (shared calendar, any visitor), then this browser's map. */
+  const gidFor = (localId: string) => googleEvents.find((g) => g.localId === localId)?.id.slice(2) ?? s.gids[localId] ?? s.blocks.find((b) => b.id === localId)?.googleId;
   const suggestions = useMemo<Suggestion[]>(
     () => suggest(events, demo.now, courses.map((c) => ({ slug: c.slug, code: c.code, exam: c.exam, atRisk: c.result.atRisk }))).filter((x) => !s.dismissed.includes(x.id)),
     [events, courses, s.dismissed],
@@ -156,8 +246,76 @@ function useStore() {
 
   const say = (text: string) => setToast({ id: Date.now(), text });
   const update = (fn: (st: PState) => PState) =>
-    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(), ...(v.by[profile.id] ?? {}) }) } }));
+    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(profile.id), ...(v.by[profile.id] ?? {}) }) } }));
 
+  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
+  const prevGoogle = useRef<Map<string, CalEvent> | null>(null);
+  const touched = useRef<Map<string, string>>(new Map()); // google id -> start we wrote; a matching start is our own change, not news
+  const TOUCHED = "pathway:gcal-touched";
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(TOUCHED);
+      if (raw) touched.current = new Map(Object.entries(JSON.parse(raw)));
+    } catch {}
+  }, []);
+  const markTouched = (gid: string, start: string) => {
+    touched.current.set(gid, start.slice(0, 16));
+    try {
+      sessionStorage.setItem(TOUCHED, JSON.stringify(Object.fromEntries(touched.current)));
+    } catch {}
+  };
+  const fmtWhen = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const notice = (text: string) => {
+    setNotices((n) => [{ id: Date.now() + Math.random(), text }, ...n].slice(0, 5));
+    say(text);
+  };
+  const ours = (gid: string, start: string) => touched.current.get(gid) === start.slice(0, 16);
+  // 1. Diff Google against the last poll: anything moved, added or removed there gets a notice.
+  // 2. For our own tagged events, pull Google's version into local state so the week matches.
+  const SEEN = "pathway:gcal-seen";
+  const reconcile = (fromGoogle: CalEvent[]) => {
+    if (!prevGoogle.current) {
+      try {
+        const raw = sessionStorage.getItem(SEEN);
+        if (raw) prevGoogle.current = new Map((JSON.parse(raw) as CalEvent[]).map((g) => [g.id, g]));
+      } catch {}
+    }
+    const prev = prevGoogle.current;
+    const cur = new Map(fromGoogle.map((g) => [g.id, g]));
+    try {
+      sessionStorage.setItem(SEEN, JSON.stringify(fromGoogle));
+    } catch {}
+    if (prev) {
+      for (const [id, g] of cur) {
+        const was = prev.get(id);
+        if (ours(id.slice(2), g.start)) continue;
+        if (!was) notice(`Heads up: "${g.title}" was added in Google Calendar for ${fmtWhen(g.start)}.`);
+        else if (was.start.slice(0, 16) !== g.start.slice(0, 16)) notice(`Heads up: "${g.title}" moved to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
+      }
+      for (const [id, was] of prev) if (!cur.has(id) && !ours(id.slice(2), "")) notice(`Heads up: "${was.title}" was removed in Google Calendar. Taking it off your week.`);
+    }
+    prevGoogle.current = cur;
+    // local state follows Google for our tagged events
+    const byLocal = new Map(fromGoogle.filter((g) => g.localId).map((g) => [g.localId!, g]));
+    for (const e of localEvents) {
+      const g = byLocal.get(e.id);
+      if (g) {
+        if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
+          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
+          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
+        }
+      } else if (prev && [...prev.values()].some((p) => p.localId === e.id)) {
+        // it was in Google last poll and is gone now: someone deleted it there
+        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
+        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
+        update((st) => {
+          const gids = { ...st.gids };
+          delete gids[e.id];
+          return { ...st, gids };
+        });
+      }
+    }
+  };
   // Write every local event Google does not have yet. Idempotent: gids remembers what was written.
   const syncing = useRef(false);
   const syncAll = async (): Promise<number> => {
@@ -165,15 +323,23 @@ function useStore() {
     syncing.current = true;
     let n = 0;
     try {
-      const have = { ...s.gids };
-      // blocks written by the earlier build kept their Google id on the block itself
+      const have: Record<string, string> = { ...s.gids };
       for (const b of s.blocks) if (b.googleId && !have[b.id]) have[b.id] = b.googleId;
+      // what Google already holds (tagged by Pathway), fetched fresh so two visitors never double-write
+      const fresh = await gcal.listWeek(monday);
+      setGoogleEvents(fresh);
+      reconcile(fresh); // keeps the diff baseline current so our own writes below stay silent later
+      for (const g of fresh) if (g.localId) have[g.localId] = g.id.slice(2);
+      const horizon = new Date(monday);
+      horizon.setDate(monday.getDate() + 14);
       for (const e of localEvents) {
         if (have[e.id]) continue;
+        if (new Date(e.start) < monday || new Date(e.start) >= horizon) continue;
         if (e.kind === "study" && s.blocks.find((b) => b.id === e.id)?.done) continue;
         const tag = e.source === "pathway" ? "Planned in Pathway" : "From Moodle via Pathway";
         const id = await gcal.insert({ title: e.title, start: e.start, end: e.end }, `${tag}\nPathway:${e.id}`);
         have[e.id] = id;
+        markTouched(id, e.start);
         n++;
         update((st) => ({ ...st, gids: { ...st.gids, [e.id]: id } }));
       }
@@ -182,44 +348,14 @@ function useStore() {
     } finally {
       syncing.current = false;
     }
-    return n;
-  };
-  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
-  const seenGids = useRef<Set<string>>(new Set());
-  const fmtWhen = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
-  const notice = (text: string) => {
-    setNotices((n) => [{ id: Date.now() + Math.random(), text }, ...n].slice(0, 5));
-    say(text);
-  };
-  // Compare Google's copy of each Pathway event with ours. Moved in Google -> move here and say so.
-  // Deleted in Google -> drop it here and say so. Changes we made ourselves already match, so they stay quiet.
-  const reconcile = (fromGoogle: CalEvent[]) => {
-    const weekEnd = new Date(monday);
-    weekEnd.setDate(monday.getDate() + 7);
-    const byLocal = new Map(fromGoogle.filter((g) => g.localId).map((g) => [g.localId!, g]));
-    for (const e of localEvents) {
-      const gid = s.gids[e.id] ?? s.blocks.find((b) => b.id === e.id)?.googleId;
-      if (!gid) continue;
-      const g = byLocal.get(e.id);
-      if (g) {
-        seenGids.current.add(gid);
-        if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
-          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
-          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
-          notice(`Heads up: you moved "${e.title}" to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
-        }
-      } else if (seenGids.current.has(gid) && new Date(e.start) >= monday && new Date(e.start) < weekEnd) {
-        seenGids.current.delete(gid);
-        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
-        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
-        update((st) => {
-          const gids = { ...st.gids };
-          delete gids[e.id];
-          return { ...st, gids };
-        });
-        notice(`Heads up: you removed "${e.title}" in Google Calendar. Taking it off your week.`);
+    if (n) {
+      const after = await gcal.listWeek(monday).catch(() => null);
+      if (after) {
+        setGoogleEvents(after);
+        reconcile(after);
       }
     }
+    return n;
   };
   const refreshGoogle = async () => {
     if (!gcal.isConnected()) return;
@@ -235,7 +371,8 @@ function useStore() {
   useEffect(() => {
     if (!googleOn) return;
     const tick = () => void refreshRef.current().catch(() => {});
-    const id = setInterval(tick, 45_000);
+    tick(); // first fetch as soon as the calendar is known to be connected
+    const id = setInterval(tick, 20_000);
     const onFocus = () => document.visibilityState === "visible" && tick();
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("focus", onFocus);
@@ -309,13 +446,13 @@ function useStore() {
     now: demo.now,
     profiles,
     profile,
-    state: s,
+    state: { ...s, blocks: allBlocks },
     courses,
     toast,
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
     reset: async () => {
-      setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty() } }));
+      setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
       if (isLive()) {
         setProfiles(await getProfiles());
@@ -343,7 +480,9 @@ function useStore() {
     },
     completeBlock: (b: Block) => {
       sync.blockDone(profile.id, b.id, true);
-      bump(b.course, "sessions", "Study block done", { blocks: s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) }, { kind: "study", minutes: 45 });
+      const mine = s.blocks.some((x) => x.id === b.id);
+      const blocks = mine ? s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) : [...s.blocks, { ...b, done: true }];
+      bump(b.course, "sessions", "Study block done", { blocks }, { kind: "study", minutes: 45 });
     },
     toggleTodo: (id: string) => {
       sync.todo(profile.id, id, !s.done[id]);
@@ -361,6 +500,7 @@ function useStore() {
     dismissNotice: (id: number) => setNotices((n) => n.filter((x) => x.id !== id)),
     googleOn,
     googleWho,
+    googleShared,
     connectGoogle: async () => {
       await gcal.connect();
       setGoogleOn(true);
@@ -384,8 +524,11 @@ function useStore() {
         if (op.op === "move") {
           if (s.blocks.some((b) => b.id === op.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === op.id ? { ...b, at: op.start } : b)) }));
           else update((st) => ({ ...st, moved: { ...st.moved, [op.id]: { start: op.start, end: op.end } } }));
-          const gid = op.id.startsWith("g-") ? op.id.slice(2) : s.gids[op.id];
-          if (gid && gcal.isConnected()) await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
+          const gid = op.id.startsWith("g-") ? op.id.slice(2) : gidFor(op.id);
+          if (gid && gcal.isConnected()) {
+            markTouched(gid, op.start);
+            await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
+          }
         } else {
           const b: Block = { id: op.event.id, course: op.event.course ?? "", title: op.event.title, at: op.event.start, done: false };
           update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
@@ -402,15 +545,150 @@ function useStore() {
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,
     coachTurn,
-    addTurn: (m: ChatMsg) => update((st) => ({ ...st, chat: [...st.chat, m] })),
+    chatSessions: s.chatSessions,
+    activeChatId: s.activeChatId,
+    activeChat: s.chatSessions.find((x) => x.id === s.activeChatId) ?? s.chatSessions[0],
+    startNewChat: () => {
+      const newId = `chat-${Date.now()}`;
+      const newSession: ChatSession = {
+        id: newId,
+        title: "New conversation",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: [],
+      };
+      update((st) => ({
+        ...st,
+        chatSessions: [newSession, ...(st.chatSessions ?? [])],
+        activeChatId: newId,
+        chat: [],
+      }));
+      return newId;
+    },
+    selectChat: (id: string) => {
+      update((st) => {
+        const target = st.chatSessions?.find((x) => x.id === id);
+        if (!target) return st;
+        return {
+          ...st,
+          activeChatId: id,
+          chat: target.messages,
+        };
+      });
+    },
+    deleteChat: (id: string) => {
+      update((st) => {
+        const current = st.chatSessions ?? [];
+        const nextSessions = current.filter((x) => x.id !== id);
+        let nextActiveId = st.activeChatId;
+        let nextMessages = st.chat;
+
+        if (st.activeChatId === id) {
+          if (nextSessions.length > 0) {
+            nextActiveId = nextSessions[0].id;
+            nextMessages = nextSessions[0].messages;
+          } else {
+            const freshId = `chat-${Date.now()}`;
+            const freshSession: ChatSession = {
+              id: freshId,
+              title: "New conversation",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            };
+            nextSessions.push(freshSession);
+            nextActiveId = freshId;
+            nextMessages = [];
+          }
+        }
+
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: nextActiveId,
+          chat: nextMessages,
+        };
+      });
+      say("Conversation deleted.");
+    },
+    reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
+    addTurn: (m: ChatMsg) =>
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId) ?? {
+          id: activeId,
+          title: "New conversation",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+        };
+        const nextMessages = [...active.messages, m];
+        const nextTitle =
+          active.title === "New conversation" && m.role === "you"
+            ? (m.text.slice(0, 36) + (m.text.length > 36 ? "…" : ""))
+            : active.title;
+        const updatedSession: ChatSession = { ...active, title: nextTitle, updatedAt: new Date().toISOString(), messages: nextMessages };
+        const nextSessions = sessions.some((s) => s.id === activeId)
+          ? sessions.map((s) => (s.id === activeId ? updatedSession : s))
+          : [updatedSession, ...sessions];
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: activeId,
+          chat: nextMessages,
+        };
+      }),
     // Chat mode: show the question, run the shared Gemini coach, then append Viva's turn.
     // If the coach route is down the local fallback answers so the page never goes silent.
     ask: async (text: string) => {
-      update((st) => ({ ...st, chat: [...st.chat, { role: "you", text }] }));
+      const local = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
+      const userMsg: ChatMsg = { role: "you", text };
+
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId) ?? {
+          id: activeId,
+          title: "New conversation",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+        };
+        const nextMessages = [...active.messages, userMsg];
+        const nextTitle =
+          active.title === "New conversation"
+            ? (text.slice(0, 36) + (text.length > 36 ? "…" : ""))
+            : active.title;
+        const updatedSession: ChatSession = { ...active, title: nextTitle, updatedAt: new Date().toISOString(), messages: nextMessages };
+        const nextSessions = sessions.some((s) => s.id === activeId)
+          ? sessions.map((s) => (s.id === activeId ? updatedSession : s))
+          : [updatedSession, ...sessions];
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: activeId,
+          chat: nextMessages,
+        };
+      });
+
       setVivaThinking(true);
       const r = await coachTurn(text);
       setVivaThinking(false);
-      update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: r.text, actions: r.actions }] }));
+      const vivaMsg: ChatMsg = { role: "viva", text: r.text, actions: local.actions };
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId);
+        if (!active) return { ...st, chat: [...st.chat, vivaMsg] };
+        const nextMessages = [...active.messages, vivaMsg];
+        const updatedSession: ChatSession = { ...active, updatedAt: new Date().toISOString(), messages: nextMessages };
+        return {
+          ...st,
+          chatSessions: sessions.map((s) => (s.id === activeId ? updatedSession : s)),
+          chat: nextMessages,
+        };
+      });
     },
   };
 }

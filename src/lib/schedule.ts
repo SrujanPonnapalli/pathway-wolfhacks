@@ -133,8 +133,16 @@ export function freeSlot(events: CalEvent[], day: Date, minutes = 50, fromHour =
   return null;
 }
 
-export function suggest(events: CalEvent[], now: Date, courses: { slug: string; code: string; exam: { title: string; date: string }; atRisk: boolean }[]): Suggestion[] {
+export function suggest(allEvents: CalEvent[], now: Date, courses: { slug: string; code: string; exam: { title: string; date: string }; atRisk: boolean }[]): Suggestion[] {
   const out: Suggestion[] = [];
+  // slots already proposed count as taken for the next proposal
+  const taken: CalEvent[] = [];
+  const events = allEvents;
+  const withTaken = () => [...allEvents, ...taken];
+  const claim = (slot: { start: string; end: string } | null) => {
+    if (slot) taken.push({ id: `taken-${taken.length}`, title: "", start: slot.start, end: slot.end, kind: "study", source: "pathway" });
+    return slot;
+  };
   const study = events.filter((e) => e.kind === "study");
   const fmt = (s: string) => new Date(s).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -143,7 +151,7 @@ export function suggest(events: CalEvent[], now: Date, courses: { slug: string; 
     const clash = events.find((e) => e.kind !== "study" && overlaps(e, b));
     if (clash) {
       const day = new Date(b.start);
-      const slot = freeSlot(events, day) ?? freeSlot(events, at(day, 1, 0));
+      const slot = claim(freeSlot(withTaken(), day) ?? freeSlot(withTaken(), at(day, 1, 0)));
       if (slot)
         out.push({
           id: `clash-${b.id}`,
@@ -156,7 +164,7 @@ export function suggest(events: CalEvent[], now: Date, courses: { slug: string; 
     // 2. A study block that starts late at night (late-night share is a model input).
     if (new Date(b.start).getHours() >= 22) {
       const day = new Date(b.start);
-      const slot = freeSlot(events, day, 50, 9, 21) ?? freeSlot(events, at(day, 1, 0));
+      const slot = claim(freeSlot(withTaken(), day, 50, 9, 21) ?? freeSlot(withTaken(), at(day, 1, 0)));
       if (slot)
         out.push({
           id: `late-${b.id}`,
@@ -180,7 +188,7 @@ export function suggest(events: CalEvent[], now: Date, courses: { slug: string; 
     if (early) continue;
     const target = at(exam, -3, 0);
     const day = target < now ? at(now, 0, 0) : target;
-    const slot = freeSlot(events, day) ?? freeSlot(events, at(day, 1, 0));
+    const slot = claim(freeSlot(withTaken(), day) ?? freeSlot(withTaken(), at(day, 1, 0)));
     if (!slot) continue;
     if (out.some((x) => x.id === `exam-${c.slug}-${c.exam.date.slice(0, 10)}`)) continue;
     out.push({
@@ -200,7 +208,7 @@ export function suggest(events: CalEvent[], now: Date, courses: { slug: string; 
     if (busy >= 6 && hasStudy) {
       const b = es.find((e) => e.kind === "study")!;
       const next = at(new Date(day + "T00:00:00"), 1, 0);
-      const slot = freeSlot(events, next);
+      const slot = claim(freeSlot(withTaken(), next));
       const exam = courses.find((c) => c.slug === b.course)?.exam.date;
       const tooLate = exam ? (new Date(exam).getTime() - new Date(slot?.start ?? next).getTime()) / 86_400_000 < 1.5 : false;
       if (slot && !tooLate && !out.some((s) => s.ops.some((o) => o.op === "move" && o.id === b.id)))

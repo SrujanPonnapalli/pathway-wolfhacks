@@ -1,142 +1,83 @@
-// Google Calendar from the browser, no server secret. Google Identity Services hands the
-// page a short-lived access token for the calendar scope; the page calls the Calendar REST
-// API directly. Needs NEXT_PUBLIC_GOOGLE_CLIENT_ID (OAuth 2.0 Web client, with
-// http://localhost:3000 as an authorized JavaScript origin). Without it, connect() throws
-// and the app stays on the demo calendar.
+// One calendar API for the app, two backends:
+//   shared   -> /api/gcal, the demo student's calendar, already connected for every visitor
+//   personal -> the visitor's own Google account via OAuth in the browser (gcalPersonal.ts)
+// init() asks the server which one applies. Everything else is the same shape either way.
 
 import type { CalEvent } from "./schedule";
+import * as personal from "./gcalPersonal";
 
-const SCOPE = "https://www.googleapis.com/auth/calendar.events";
-const API = "https://www.googleapis.com/calendar/v3/calendars/primary/events";
-const KEY = "pathway:gcal-token";
+let mode: "shared" | "personal" | "unknown" = "unknown";
+let sharedId: string | null = null;
 
-type TokenClient = { requestAccessToken: (o?: { prompt?: string }) => void };
-declare global {
-  interface Window {
-    google?: { accounts: { oauth2: { initTokenClient: (c: { client_id: string; scope: string; callback: (r: { access_token?: string; expires_in?: number; error?: string }) => void }) => TokenClient } } };
-  }
-}
-
-let token: { value: string; exp: number } | null = null;
-function load(): { value: string; exp: number } | null {
-  if (token) return token;
+/** Call once on load. Resolves true when a calendar is already connected. */
+export async function init(): Promise<boolean> {
+  if (mode !== "unknown") return isConnected();
   try {
-    const raw = sessionStorage.getItem(KEY);
-    if (raw) token = JSON.parse(raw);
+    const r = await fetch("/api/gcal", { cache: "no-store" });
+    const j = (await r.json()) as { connected: boolean; calendarId: string | null };
+    if (j.connected) {
+      mode = "shared";
+      sharedId = j.calendarId;
+      return true;
+    }
   } catch {}
-  return token;
+  mode = "personal";
+  return personal.isConnected();
 }
+
+export const isShared = () => mode === "shared";
 export function isConnected() {
-  const t = load();
-  return !!t && t.exp > Date.now();
+  return mode === "shared" ? true : personal.isConnected();
+}
+export async function connect() {
+  if (mode === "shared") return;
+  return personal.connect();
 }
 export function disconnect() {
-  token = null;
-  try {
-    sessionStorage.removeItem(KEY);
-  } catch {}
+  if (mode === "shared") return;
+  personal.disconnect();
 }
-
-function script(): Promise<void> {
-  if (window.google?.accounts) return Promise.resolve();
-  return new Promise((res, rej) => {
-    const s = document.createElement("script");
-    s.src = "https://accounts.google.com/gsi/client";
-    s.async = true;
-    s.onload = () => res();
-    s.onerror = () => rej(new Error("Could not load Google sign-in."));
-    document.head.appendChild(s);
-  });
-}
-
-export async function connect(): Promise<void> {
-  const id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  if (!id) throw new Error("No Google client ID yet. Add NEXT_PUBLIC_GOOGLE_CLIENT_ID to .env.local (see README).");
-  await script();
-  await new Promise<void>((res, rej) => {
-    const client = window.google!.accounts.oauth2.initTokenClient({
-      client_id: id,
-      scope: SCOPE,
-      callback: (r) => {
-        if (!r.access_token) return rej(new Error(r.error ?? "Google did not return a token."));
-        token = { value: r.access_token, exp: Date.now() + ((r.expires_in ?? 3600) - 60) * 1000 };
-        try {
-          sessionStorage.setItem(KEY, JSON.stringify(token));
-        } catch {}
-        res();
-      },
-    });
-    client.requestAccessToken({ prompt: "" });
-  });
-}
-
-async function call<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const t = load();
-  if (!t || t.exp < Date.now()) throw new Error("Google Calendar is not connected.");
-  const r = await fetch(`${API}${path}`, { ...init, headers: { authorization: `Bearer ${t.value}`, "content-type": "application/json", ...(init.headers ?? {}) } });
-  if (r.status === 401) {
-    disconnect();
-    throw new Error("Google session expired. Connect again.");
-  }
-  if (!r.ok) throw new Error(`Google Calendar: ${r.status} ${(await r.text()).slice(0, 120)}`);
-  return r.status === 204 ? (undefined as T) : r.json();
-}
-
-type GEvent = { id: string; summary?: string; start?: { dateTime?: string; date?: string }; end?: { dateTime?: string; date?: string }; description?: string; htmlLink?: string };
-
-/** Which Google account's primary calendar we are writing to. */
 export async function whoAmI(): Promise<{ email: string; name: string }> {
-  const t = load();
-  if (!t) throw new Error("Google Calendar is not connected.");
-  const r = await fetch("https://www.googleapis.com/calendar/v3/calendars/primary", { headers: { authorization: `Bearer ${t.value}` } });
-  if (!r.ok) throw new Error(`Google Calendar: ${r.status}`);
-  const j = (await r.json()) as { id: string; summary: string };
-  return { email: j.id, name: j.summary };
+  if (mode === "shared") return { email: sharedId ?? "shared calendar", name: "Maya (demo)" };
+  return personal.whoAmI();
 }
 
-/** Events Pathway wrote in the two weeks around `monday`, straight from Google, with links. */
-export async function listPathway(monday: Date): Promise<{ title: string; start: string; link: string }[]> {
-  const min = new Date(monday); min.setDate(monday.getDate() - 7);
-  const max = new Date(monday); max.setDate(monday.getDate() + 14);
-  const q = new URLSearchParams({ timeMin: min.toISOString(), timeMax: max.toISOString(), singleEvents: "true", orderBy: "startTime", q: "Pathway", maxResults: "100" });
-  const res = await call<{ items: GEvent[] }>(`?${q}`);
-  return (res.items ?? []).map((e) => ({ title: e.summary ?? "", start: e.start?.dateTime ?? e.start?.date ?? "", link: e.htmlLink ?? "" }));
-}
-
-function kindOf(summary: string): CalEvent["kind"] {
+function kindOf(summary: string, description: string): CalEvent["kind"] {
+  if (description.includes("Planned in Pathway")) return "study";
   const s = summary.toLowerCase();
   if (/\b(exam|midterm|final|test)\b/.test(s)) return "exam";
   if (/\b(work|shift)\b/.test(s)) return "work";
-  if (/\b(lecture|lab|class|recitation|[A-Z]{2,4}\s?\d{3})\b/i.test(summary)) return "class";
+  if (/\b(lecture|lab|class|recitation)\b/.test(s) || /[A-Z]{2,4}\s?\d{3}/.test(summary)) return "class";
   if (/\b(study|review|quiz)\b/.test(s)) return "study";
   return "other";
 }
 
-export async function listWeek(monday: Date): Promise<CalEvent[]> {
-  const end = new Date(monday);
-  end.setDate(monday.getDate() + 7);
-  const q = new URLSearchParams({ timeMin: monday.toISOString(), timeMax: end.toISOString(), singleEvents: "true", orderBy: "startTime", maxResults: "250" });
-  const res = await call<{ items: GEvent[] }>(`?${q}`);
-  return (res.items ?? [])
-    .filter((e) => e.start?.dateTime && e.end?.dateTime)
-    .map((e) => {
-      const desc = e.description ?? "";
-      const localId = desc.match(/Pathway:(\S+)/)?.[1];
-      return { id: `g-${e.id}`, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), kind: desc.includes("Planned in Pathway") ? "study" : kindOf(e.summary ?? ""), source: "google" as const, localId };
-    });
+async function post<T>(body: unknown): Promise<T> {
+  const r = await fetch("/api/gcal", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error ?? `${r.status}`);
+  return j as T;
 }
 
-const tz = () => Intl.DateTimeFormat().resolvedOptions().timeZone;
+export async function listWeek(monday: Date): Promise<CalEvent[]> {
+  if (mode !== "shared") return personal.listWeek(monday);
+  const end = new Date(monday);
+  end.setDate(monday.getDate() + 14);
+  const r = await fetch(`/api/gcal?from=${encodeURIComponent(monday.toISOString())}&to=${encodeURIComponent(end.toISOString())}`, { cache: "no-store" });
+  const j = (await r.json()) as { events: { id: string; title: string; start: string; end: string; description: string }[]; error?: string };
+  if (j.error) throw new Error(j.error);
+  return j.events.map((e) => ({ id: `g-${e.id}`, title: e.title, start: e.start, end: e.end, kind: kindOf(e.title, e.description), source: "google" as const, localId: e.description.match(/Pathway:(\S+)/)?.[1] }));
+}
 
 export async function insert(ev: Pick<CalEvent, "title" | "start" | "end">, description = "Planned in Pathway"): Promise<string> {
-  const r = await call<GEvent>("", { method: "POST", body: JSON.stringify({ summary: ev.title, description, start: { dateTime: ev.start, timeZone: tz() }, end: { dateTime: ev.end, timeZone: tz() } }) });
-  return r.id;
+  if (mode !== "shared") return personal.insert(ev, description);
+  return (await post<{ id: string }>({ op: "insert", title: ev.title, start: ev.start, end: ev.end, description })).id;
 }
-
 export async function move(googleId: string, start: string, end: string): Promise<void> {
-  await call(`/${encodeURIComponent(googleId)}`, { method: "PATCH", body: JSON.stringify({ start: { dateTime: start, timeZone: tz() }, end: { dateTime: end, timeZone: tz() } }) });
+  if (mode !== "shared") return personal.move(googleId, start, end);
+  await post({ op: "move", id: googleId, start, end });
 }
-
 export async function remove(googleId: string): Promise<void> {
-  await call(`/${encodeURIComponent(googleId)}`, { method: "DELETE" });
+  if (mode !== "shared") return personal.remove(googleId);
+  await post({ op: "remove", id: googleId });
 }

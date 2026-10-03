@@ -35,10 +35,54 @@ export function VivaPage() {
   const router = useRouter();
   const mode = params.get("mode") === "voice" ? "voice" : "chat";
   const setMode = (m: "chat" | "voice") => router.replace(m === "voice" ? "/viva?mode=voice" : "/viva", { scroll: false });
+  const { chatSessions, activeChatId, startNewChat, selectChat, deleteChat } = usePathway();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const handleStartNew = () => {
+    if (mode !== "chat") setMode("chat");
+    startNewChat();
+    setTimeout(() => {
+      const input = document.getElementById("q") as HTMLInputElement | null;
+      input?.focus();
+    }, 60);
+  };
+
+  const handleSelectChat = (id: string) => {
+    selectChat(id);
+    if (mode !== "chat") setMode("chat");
+  };
 
   return (
     <main className="mx-auto flex max-w-3xl flex-col px-4 py-6 md:px-10 md:py-10">
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      {/* Pinned persistent top-right controls */}
+      <aside
+        aria-label="Viva chat controls"
+        className="fixed top-3 right-3 sm:top-4 sm:right-6 md:top-6 md:right-8 z-40 flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white/95 p-1 shadow-md backdrop-blur-md transition-all hover:bg-white"
+      >
+        <button
+          onClick={handleStartNew}
+          className="btn btn-sky min-h-8 px-2.5 text-xs sm:min-h-9 sm:px-3"
+          title="Start a fresh conversation with Viva"
+        >
+          <Plus size={15} strokeWidth={3} aria-hidden />
+          <span>New<span className="hidden sm:inline"> chat</span></span>
+        </button>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className="btn btn-ghost min-h-8 px-2.5 text-xs sm:min-h-9 sm:px-3"
+          aria-label={`View previous chats (${chatSessions.length})`}
+          title="View previous chats"
+        >
+          <History size={15} strokeWidth={2.5} aria-hidden />
+          <span className="hidden sm:inline">Previous chats</span>
+          <span className="sm:hidden">History</span>
+          <span className="ml-1 rounded-full bg-line/80 px-1.5 py-0.5 text-[10px] sm:text-[11px] font-black text-muted">
+            {chatSessions.length}
+          </span>
+        </button>
+      </aside>
+
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 pr-36 sm:pr-48 md:pr-56">
         <div className="flex items-center gap-3">
           <VivaGlyph size={52} className="text-sky" />
           <div>
@@ -63,10 +107,20 @@ export function VivaPage() {
         </div>
         </LiquidSelect>
       </header>
-      {mode === "chat" ? <Chat /> : <Voice />}
+      {mode === "chat" ? <Chat onStartNew={handleStartNew} /> : <Voice />}
       <p className="mt-4 text-sm text-muted">
         Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven&apos;t logged, and it never stores your status.
       </p>
+
+      <ChatHistoryDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        sessions={chatSessions}
+        activeId={activeChatId}
+        onSelect={handleSelectChat}
+        onDelete={deleteChat}
+        onNewChat={handleStartNew}
+      />
     </main>
   );
 }
@@ -108,7 +162,46 @@ function ChatHistoryDrawer({
   onDelete: (id: string) => void;
   onNewChat: () => void;
 }) {
+  const [closing, setClosing] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
+  const [visible, setVisible] = useState(false);
   const [query, setQuery] = useState("");
+
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (!open && prevOpen) {
+      setClosing(true);
+    }
+  }
+
+  const isMounted = open || closing;
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let frame1: number | undefined;
+    let frame2: number | undefined;
+
+    if (open) {
+      frame1 = requestAnimationFrame(() => {
+        frame2 = requestAnimationFrame(() => {
+          setVisible(true);
+        });
+      });
+    } else {
+      frame1 = requestAnimationFrame(() => {
+        setVisible(false);
+      });
+      timer = setTimeout(() => {
+        setClosing(false);
+      }, 320);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      if (frame1) cancelAnimationFrame(frame1);
+      if (frame2) cancelAnimationFrame(frame2);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -119,7 +212,16 @@ function ChatHistoryDrawer({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!isMounted) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isMounted]);
+
+  if (!isMounted) return null;
 
   const filtered = sessions.filter((s) => {
     if (!query.trim()) return true;
@@ -128,14 +230,38 @@ function ChatHistoryDrawer({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="Previous chats with Viva">
+    <div
+      className={`fixed inset-0 z-50 overflow-hidden ${
+        visible ? "pointer-events-auto" : "pointer-events-none"
+      }`}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Previous chats with Viva"
+    >
+      {/* Animated Backdrop with smooth opacity and blur transitions */}
       <div
-        className="fixed inset-0 bg-ink/30 backdrop-blur-xs transition-opacity duration-200"
+        className={`fixed inset-0 bg-ink/30 ${
+          visible ? "opacity-100" : "opacity-0"
+        }`}
+        style={{
+          backdropFilter: visible ? "blur(10px)" : "blur(0px)",
+          WebkitBackdropFilter: visible ? "blur(10px)" : "blur(0px)",
+          transition: "opacity 300ms cubic-bezier(0.16, 1, 0.3, 1), backdrop-filter 300ms cubic-bezier(0.16, 1, 0.3, 1), -webkit-backdrop-filter 300ms cubic-bezier(0.16, 1, 0.3, 1)",
+          willChange: "opacity, backdrop-filter",
+        }}
         onClick={onClose}
         aria-hidden="true"
       />
 
-      <div className="relative z-10 flex h-full w-full max-w-md flex-col border-l-2 border-line bg-white shadow-2xl transition-transform duration-200">
+      {/* Animated Drawer panel sliding in from right */}
+      <div
+        className={`fixed inset-y-0 right-0 z-10 flex h-full w-full max-w-md flex-col border-l-2 border-line bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          visible ? "translate-x-0" : "translate-x-full"
+        }`}
+        style={{
+          willChange: "transform",
+        }}
+      >
         <div className="flex items-center justify-between border-b-2 border-line px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div className="grid h-9 w-9 place-items-center rounded-xl bg-sky-soft text-sky">
@@ -274,22 +400,14 @@ function ChatHistoryDrawer({
   );
 }
 
-function Chat() {
-  const { state, ask, vivaThinking, profile, chatSessions, activeChatId, activeChat, startNewChat, selectChat, deleteChat } = usePathway();
+function Chat({ onStartNew }: { onStartNew: () => void }) {
+  const { state, ask, vivaThinking, profile, activeChat } = usePathway();
   const end = useRef<HTMLLIElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [state.chat.length, vivaThinking]);
-
-  const handleStartNew = () => {
-    startNewChat();
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 60);
-  };
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -302,33 +420,15 @@ function Chat() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border-2 border-line bg-polar p-2.5 px-4">
+      <div className="mb-4 flex items-center justify-between gap-2.5 rounded-2xl border-2 border-line bg-polar px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <span className="flex h-2.5 w-2.5 shrink-0 rounded-full bg-sky" aria-hidden />
           <span className="truncate text-xs font-extrabold uppercase tracking-wider text-muted">Current chat:</span>
-          <span className="truncate text-sm font-extrabold text-ink">{activeChat?.title || "New conversation"}</span>
+          <span className="truncate text-sm font-black text-ink">{activeChat?.title || "New conversation"}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleStartNew}
-            className="btn btn-sky min-h-9 px-3 text-xs"
-            title="Start a fresh conversation with Viva"
-          >
-            <Plus size={15} strokeWidth={3} aria-hidden />
-            New chat
-          </button>
-          <button
-            onClick={() => setDrawerOpen(true)}
-            className="btn btn-ghost min-h-9 px-3 text-xs"
-            aria-label={`View previous chats (${chatSessions.length})`}
-          >
-            <History size={15} strokeWidth={2.5} aria-hidden />
-            Previous chats
-            <span className="ml-1 rounded-full bg-line px-1.5 py-0.5 text-[11px] font-extrabold text-muted">
-              {chatSessions.length}
-            </span>
-          </button>
-        </div>
+        <span className="shrink-0 text-xs font-bold text-muted">
+          {fmtSessionDate(activeChat?.updatedAt || activeChat?.createdAt || new Date().toISOString())}
+        </span>
       </div>
 
       {isOldChat && (
@@ -338,7 +438,7 @@ function Chat() {
             Viewing past conversation from {fmtSessionDate(activeChat.createdAt)}
           </span>
           <button
-            onClick={handleStartNew}
+            onClick={onStartNew}
             className="font-extrabold text-sky hover:underline"
           >
             + Start new chat
@@ -382,16 +482,6 @@ function Chat() {
           <ArrowUp size={20} strokeWidth={3} />
         </button>
       </form>
-
-      <ChatHistoryDrawer
-        open={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        sessions={chatSessions}
-        activeId={activeChatId}
-        onSelect={selectChat}
-        onDelete={deleteChat}
-        onNewChat={handleStartNew}
-      />
     </>
   );
 }

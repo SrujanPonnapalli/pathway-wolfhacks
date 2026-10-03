@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { BorderBeam } from "border-beam";
-import { Check, Lock, RotateCcw, Sparkles } from "lucide-react";
+import { Check, ChevronDown, Lock, RotateCcw, Sparkles } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
@@ -229,11 +229,26 @@ const EVIDENCE = [
 ];
 
 function Evidence() {
+  // Collapsed by default so the page reads calmly; opens from the "How sure is this?" links.
+  const [open, setOpen] = useState(typeof window !== "undefined" && window.location.hash === "#evidence");
+  useEffect(() => {
+    const onHash = () => window.location.hash === "#evidence" && setOpen(true);
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
   return (
-    <section id="evidence" aria-labelledby="ev" className="scroll-mt-6">
-      <h2 id="ev" className="text-[1.75rem] font-black leading-tight md:text-[2rem]">How sure is this?</h2>
-      <p className="mt-2 max-w-[65ch] text-lg text-muted">
-        Pathway shows its work. 800 synthetic course records, about 28% finished below a C. Each student appears once, so no student is in both training and test data.
+    <section id="evidence" aria-labelledby="ev" className="scroll-mt-6 border-t-2 border-line pt-8">
+      <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full items-center justify-between gap-4 text-left">
+        <span>
+          <span id="ev" className="block text-xl font-extrabold leading-tight">How sure is this?</span>
+          <span className="block text-muted">Pathway shows its work: held-out test, baselines, rule stability, fairness. {open ? "" : "Open to see the evidence."}</span>
+        </span>
+        <ChevronDown size={22} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
+      </button>
+      {!open ? null : (
+      <>
+      <p className="mt-4 max-w-[65ch] text-muted">
+        800 synthetic course records, about 28% finished below a C. Each student appears once, so no student is in both training and test data.
       </p>
       <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {EVIDENCE.map((e) => (
@@ -265,6 +280,8 @@ function Evidence() {
           <Link href="/viva" className="mt-3 inline-block text-sm font-extrabold text-teal underline underline-offset-4">Ask Viva about your path</Link>
         </div>
       </div>
+      </>
+      )}
     </section>
   );
 }

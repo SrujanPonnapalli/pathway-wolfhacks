@@ -1,209 +1,48 @@
 "use client";
 
+// Home is a route, not a dashboard. Like a map: where you are, the next three turns, one
+// button each. Everything else (week, inbox, files) sits below in quiet sections.
+// Every feature from the old Home is still here; it is reordered, not removed.
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { ArrowUp, Brain, CalendarPlus, Check, ChevronRight, FileUp, Flag, Layers, Lock, Mic, Timer, Trophy } from "lucide-react";
+import { ArrowUp, Check, ChevronRight, FileUp, Mail, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar } from "@/components/Viva";
-import { VIVA } from "@/lib/viva";
-import { MiniPath } from "@/components/PathView";
 import { StatusMark } from "@/components/ui";
+import { analyzeFile, toSource, type AnalyzeResult } from "@/lib/api";
+import { googleCalendarUrl } from "@/lib/calendar";
 import { moveText, reasonFor } from "@/lib/features";
-import { fmtDay, fmtTime, usePathway } from "@/lib/store";
+import { inboxFor } from "@/lib/inbox";
+import { planBlocks } from "@/lib/plan";
+import { fmtDay, fmtTime, usePathway, type Block, type CourseView } from "@/lib/store";
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 const greet = (h: number) => (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
 
+// ---- 1. Greeting: one line of status, the course legend, the connection line ----------
+
 export function Greeting() {
-  const { profile, courses, now, state } = usePathway();
+  const { profile, courses, now } = usePathway();
   const checkIns = courses.filter((c) => c.result.atRisk).length;
-  const planned = state.blocks.length;
-  const done = state.blocks.filter((b) => b.done).length;
   return (
     <section>
-      <div className="flex items-start justify-between gap-4">
-        <h1 className="text-[2rem] font-black leading-[1.1] tracking-tight text-balance md:text-[2.5rem]">
-          {greet(now.getHours())}
-          {profile.sample ? `, ${profile.name}` : ""}
-        </h1>
-        <span className="mt-1.5 inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-flame-soft px-3 py-1.5 font-black text-flame-ink">
-          <svg width="18" height="20" viewBox="0 0 18 20" aria-hidden>
-            <path d="M9 0c1 4 7 6 7 12a7 7 0 0 1-14 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3 0-6 2-9z" fill="var(--color-flame)" />
-          </svg>
-          {profile.streakDays}
-          <span className="sr-only">day study streak</span>
-        </span>
-      </div>
-      {courses.length > 0 && (
-        <>
-          <p className="mt-2 text-lg text-muted">
-            {courses.length - checkIns} of {courses.length} {courses.length === 1 ? "class" : "classes"} on track
-            {checkIns > 0 && `, ${checkIns} worth a check-in`}
-            {planned > 0 && ` · plan ${done}/${planned} done`}
-          </p>
-          <ul className="mt-4 flex flex-wrap gap-2">
-            {courses.map((c) => (
-              <li key={c.slug}>
-                <Link href={`/insights?course=${c.slug}`} className="flex items-center gap-2 rounded-xl border-2 border-b-4 border-line bg-white py-1.5 pl-2.5 pr-3.5 font-extrabold transition-colors hover:bg-polar">
-                  <StatusMark atRisk={c.result.atRisk} label={false} />
-                  {c.code}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <p className="mt-3 flex items-center gap-2 text-sm text-muted">
-            <Lock size={15} aria-hidden /> Statuses are calculated on this device and never stored by Pathway.
-          </p>
-        </>
-      )}
-    </section>
-  );
-}
-
-export function HeadsUp() {
-  const { courses } = usePathway();
-  const c = [...courses].filter((x) => x.result.atRisk).sort((a, b) => a.daysToExam - b.daysToExam)[0];
-
-  if (!c)
-    return (
-      <section className="rounded-[20px] border-2 border-teal-face bg-teal-soft p-6" aria-labelledby="heads-up">
-        <div className="flex items-center gap-4">
-          <span className="grid size-14 shrink-0 place-items-center rounded-full border-b-[5px] border-[#109c8a] bg-teal-face text-teal-ink" aria-hidden>
-            <Trophy size={28} />
-          </span>
-          <div>
-            <h2 id="heads-up" className="text-2xl font-black">Every class is on track</h2>
-            <p className="text-teal-lip">Keep the streak going. Insights shows what&apos;s keeping each one there.</p>
-          </div>
-        </div>
-        <Link href="/insights" className="btn btn-primary mt-5">See your paths</Link>
-      </section>
-    );
-
-  return (
-    <section className="rounded-[20px] border-2 border-sun bg-sun-soft p-5 md:p-6" aria-labelledby="heads-up">
-      <div className="flex gap-4">
-        <span className="grid size-14 shrink-0 place-items-center rounded-full border-b-[5px] border-[#d99a00] bg-sun text-sun-ink" aria-hidden>
-          <Flag size={26} strokeWidth={2.4} />
-        </span>
-        <div className="min-w-0">
-          <h2 id="heads-up" className="text-2xl font-black leading-tight">
-            {c.code} is worth a check-in
-          </h2>
-          <p className="mt-1 text-lg">{reasonFor(c.steps)}</p>
-          <p className="mt-1 text-sun-ink">
-            {c.exam.title} in {c.daysToExam} {c.daysToExam === 1 ? "day" : "days"} · {fmtDay(c.exam.date)}
-          </p>
-        </div>
-      </div>
-      <div className="mt-4 rounded-2xl bg-white/70 p-4">
-        <MiniPath steps={c.steps} atRisk />
-        {c.rec && (
-          <p className="mt-3 font-bold">
-            What would help most: <span className="font-black">{c.rec.moves.map(moveText).join(" and ")}</span>. Students with a similar pattern often end up on track.
-          </p>
-        )}
-      </div>
-      <div className="mt-5 flex flex-wrap items-center gap-3">
-        <Link href={`/insights?course=${c.slug}`} className="btn btn-primary">See what would help</Link>
-        <Link href={`/study?tool=quiz&course=${c.slug}`} className="btn btn-ghost">Take a 5-min quiz</Link>
-        <Link href={`/insights?course=${c.slug}#evidence`} className="text-sm font-extrabold text-teal underline underline-offset-4">How sure is this?</Link>
-      </div>
-    </section>
-  );
-}
-
-export function AskCard() {
-  const { ask: askViva } = usePathway();
-  const router = useRouter();
-  const ask = (q: string) => {
-    if (!q.trim()) return;
-    askViva(q.trim());
-    router.push("/viva");
-  };
-  const submit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    ask(new FormData(e.currentTarget).get("q") as string);
-  };
-  const suggestions = VIVA.suggestions.slice(0, 3);
-
-  return (
-    <section className="panel border-sky/30 p-5" aria-labelledby="ask">
-      <div className="flex items-center gap-3">
-        <VivaAvatar size={56} state="idle" />
-        <div className="min-w-0 flex-1">
-          <h2 id="ask" className="text-lg font-black">Ask Viva</h2>
-          <p className="text-sm text-muted">Your study coach</p>
-        </div>
-        <Link href="/viva?mode=voice" className="btn btn-ghost min-h-10 px-3 text-xs text-sky">
-          <Mic size={16} aria-hidden /> Talk
-        </Link>
-      </div>
-      <form onSubmit={submit} className="mt-3 flex items-center gap-2 rounded-2xl border-2 border-line bg-white p-1.5 pl-4 focus-within:border-sky">
-        <label htmlFor="q" className="sr-only">Your question</label>
-        <input id="q" name="q" autoComplete="off" placeholder="Ask Viva anything…" className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted" />
-        <button className="btn btn-sky min-h-10 px-3" aria-label="Send">
-          <ArrowUp size={20} strokeWidth={3} />
-        </button>
-      </form>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {suggestions.map((s) => (
-          <li key={s}>
-            <button onClick={() => ask(s)} className="rounded-full border-2 border-line bg-white px-3 py-1 text-sm font-bold text-sky hover:border-sky/40">
-              {s}
-            </button>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-sm text-muted">Viva is AI (Gemini). It uses only your own numbers and the model, and can be wrong.</p>
-    </section>
-  );
-}
-
-const TOOLS = [
-  { tool: "quiz", title: "Practice quiz", detail: "From your slides", icon: Brain },
-  { tool: "flashcards", title: "Flashcards", detail: "Spaced review", icon: Layers },
-  { tool: "timer", title: "Focus timer", detail: "Log a session", icon: Timer },
-  { tool: "viva", title: "Talk to Viva", detail: "Voice mode", icon: Mic, href: "/viva?mode=voice" },
-];
-
-export function UpNext() {
-  const { state, completeBlock, courses } = usePathway();
-  const next = state.blocks.filter((b) => !b.done).sort((a, b) => a.at.localeCompare(b.at))[0];
-  const code = (slug: string) => courses.find((c) => c.slug === slug)?.code ?? slug;
-
-  return (
-    <section aria-labelledby="up-next">
-      <h2 id="up-next" className="mb-4 text-2xl font-black">Up next</h2>
-      {next ? (
-        <div className="panel flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
-          <span className="grid size-14 shrink-0 place-items-center rounded-2xl bg-teal-soft text-teal" aria-hidden>
-            <CalendarPlus size={28} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xl font-black leading-snug">{next.title}</p>
-            <p className="text-muted">
-              {fmtDay(next.at)}, {fmtTime(next.at)} · from your {code(next.course)} plan
-            </p>
-          </div>
-          <button onClick={() => completeBlock(next)} className="btn btn-primary">
-            <Check size={18} strokeWidth={3} /> Done
-          </button>
-        </div>
-      ) : (
-        <div className="panel flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
-          <p className="flex-1 text-muted">No study blocks planned yet. Pick what would help in Insights and press Make it real.</p>
-          <Link href="/insights" className="btn btn-ghost">Make a plan</Link>
-        </div>
-      )}
-      <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {TOOLS.map(({ tool, title, detail, icon: Icon, href }) => (
-          <li key={tool}>
-            <Link href={href ?? `/study?tool=${tool}`} className="flex h-full flex-col gap-2 rounded-[var(--radius-tile)] border-2 border-b-[5px] border-line bg-white p-4 transition-transform hover:bg-polar active:translate-y-[3px] active:border-b-2">
-              <Icon size={26} strokeWidth={2.4} className="text-teal" aria-hidden />
-              <span className="font-black leading-tight">{title}</span>
-              <span className="text-sm text-muted">{detail}</span>
+      <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-balance md:text-[2.125rem]">
+        {greet(now.getHours())}
+        {profile.sample ? `, ${profile.name}` : ""}
+      </h1>
+      <p className="mt-1.5 text-muted">
+        {courses.length - checkIns} of {courses.length} classes on track
+        {checkIns > 0 && `, ${checkIns} worth a check-in`}
+        {profile.streakDays > 0 && ` · ${profile.streakDays}-day streak`}
+      </p>
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {courses.map((c) => (
+          <li key={c.slug}>
+            <Link href={`/insights?course=${c.slug}`} className="flex items-center gap-2 rounded-xl border-2 border-line bg-white py-1.5 pl-2.5 pr-3.5 font-bold transition-colors hover:bg-polar">
+              <StatusMark atRisk={c.result.atRisk} label={false} size={16} />
+              {c.code}
             </Link>
           </li>
         ))}
@@ -212,8 +51,136 @@ export function UpNext() {
   );
 }
 
+// ---- 2. The route: heads-up, then three turns ----------------------------------------
+
+type Turn = { when: string; title: string; detail?: string; action: { label: string; href?: string; onClick?: () => void; primary?: boolean } };
+
+function buildTurns(args: {
+  now: Date;
+  focus: CourseView | undefined;
+  courses: CourseView[];
+  todos: { id: string; title: string; detail: string; href: string; due?: string }[];
+  done: Record<string, boolean>;
+  blocks: Block[];
+  completeBlock: (b: Block) => void;
+  makeReal: (blocks: Omit<Block, "id" | "done">[]) => void;
+}): Turn[] {
+  const { now, focus, todos, done, blocks, completeBlock, makeReal } = args;
+  const turns: Turn[] = [];
+
+  // Turn 1: the nearest hard deadline.
+  const due = todos.filter((t) => !done[t.id] && t.due).sort((a, b) => a.due!.localeCompare(b.due!))[0];
+  if (due) {
+    const d = new Date(due.due!);
+    turns.push({ when: sameDay(d, now) ? `Today, ${fmtTime(due.due!)}` : fmtDay(due.due!), title: due.title, action: { label: "Open", href: due.href } });
+  }
+
+  // Turn 2: the next planned block, or the one change that would help most, as a plan.
+  const next = blocks.filter((b) => !b.done).sort((a, b) => a.at.localeCompare(b.at))[0];
+  if (next) {
+    turns.push({ when: `${fmtDay(next.at)}, ${fmtTime(next.at)}`, title: next.title, action: { label: "Done", onClick: () => completeBlock(next), primary: true } });
+  } else if (focus?.rec) {
+    const planned = planBlocks(focus, focus.rec.moves, now);
+    turns.push({
+      when: planned[0] ? `${fmtDay(planned[0].at)}, ${fmtTime(planned[0].at)}` : "This week",
+      title: focus.rec.moves.map(moveText).join(" and "),
+      detail: `${planned.length} study ${planned.length === 1 ? "block" : "blocks"} before the ${focus.exam.title.toLowerCase()}. Similar students often end up on track.`,
+      action: { label: "Put it on my calendar", onClick: () => makeReal(planned), primary: true },
+    });
+  }
+
+  // Turn 3: a short practice step for the focus course.
+  if (focus) {
+    turns.push({ when: "5 minutes, any time", title: `${focus.code} practice quiz`, action: { label: "Quiz", href: `/study?tool=quiz&course=${focus.slug}` } });
+  }
+  return turns.slice(0, 3);
+}
+
+export function Route() {
+  const { courses, now, profile, state, completeBlock, makeReal, suggestions } = usePathway();
+  const focus = [...courses].filter((c) => c.result.atRisk).sort((a, b) => a.daysToExam - b.daysToExam)[0] ?? [...courses].sort((a, b) => a.daysToExam - b.daysToExam)[0];
+  const turns = buildTurns({ now, focus, courses, todos: profile.todos, done: state.done, blocks: state.blocks, completeBlock, makeReal });
+
+  return (
+    <section className="panel p-5 md:p-6" aria-labelledby="route">
+      {focus && (
+        <div className="flex items-start gap-3">
+          <span className="mt-1"><StatusMark atRisk={focus.result.atRisk} label={false} size={22} /></span>
+          <div className="min-w-0">
+            <h2 id="route" className="text-xl font-extrabold leading-snug">
+              {focus.code} is {focus.result.atRisk ? "worth a check-in" : "on track"}
+              <span className="font-bold text-muted"> · {focus.exam.title} {fmtDay(focus.exam.date)}, in {focus.daysToExam} {focus.daysToExam === 1 ? "day" : "days"}</span>
+            </h2>
+            <p className="mt-1 text-muted">{reasonFor(focus.steps)}</p>
+          </div>
+        </div>
+      )}
+
+      <ol className="mt-5">
+        {turns.map((t, i) => (
+          <li key={t.title} className="relative flex gap-4 pb-5 last:pb-0">
+            {i < turns.length - 1 && <span className="absolute left-[9px] top-6 bottom-0 border-l-2 border-dotted border-line" aria-hidden />}
+            <span className={`mt-1.5 grid size-5 shrink-0 place-items-center rounded-full border-[3px] bg-white ${i === 0 ? "border-ink" : "border-line"}`} aria-hidden>
+              {i === 0 && <span className="size-1.5 rounded-full bg-ink" />}
+            </span>
+            <div className="flex min-w-0 flex-1 flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-muted">{t.when}</p>
+                <p className="font-extrabold leading-snug">{t.title}</p>
+                {t.detail && <p className="text-sm text-muted">{t.detail}</p>}
+              </div>
+              {t.action.href ? (
+                <Link href={t.action.href} className={`btn min-h-10 shrink-0 px-4 text-xs ${t.action.primary ? "btn-primary" : "btn-ghost"}`}>{t.action.label}</Link>
+              ) : (
+                <button onClick={t.action.onClick} className={`btn min-h-10 shrink-0 px-4 text-xs ${t.action.primary ? "btn-primary" : "btn-ghost"}`}>{t.action.label}</button>
+              )}
+            </div>
+          </li>
+        ))}
+      </ol>
+
+      {focus && (
+        <p className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-t-2 border-line pt-4 text-sm font-bold">
+          <Link href={`/insights?course=${focus.slug}`} className="text-teal underline underline-offset-4">Why this route</Link>
+          {suggestions.length > 0 && (
+            <Link href="/calendar" className="text-sky underline underline-offset-4">
+              {suggestions.length === 1 ? "A better slot for one block" : `${suggestions.length} changes to your week`} · review
+            </Link>
+          )}
+        </p>
+      )}
+    </section>
+  );
+}
+
+// ---- 3. Ask Viva: one line -----------------------------------------------------------
+
+export function AskLine() {
+  const { ask: askViva } = usePathway();
+  const router = useRouter();
+  const submit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+    if (!q) return;
+    askViva(q);
+    router.push("/viva");
+  };
+  return (
+    <form onSubmit={submit} className="flex items-center gap-3 rounded-2xl border-2 border-line bg-white p-1.5 pl-2 focus-within:border-sky" aria-label="Ask Viva">
+      <VivaAvatar size={36} state="idle" />
+      <label htmlFor="q" className="sr-only">Ask Viva</label>
+      <input id="q" name="q" autoComplete="off" placeholder="Ask Viva: what should I do first?" className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted" />
+      <button className="btn btn-sky min-h-10 px-3" aria-label="Send">
+        <ArrowUp size={18} strokeWidth={3} />
+      </button>
+    </form>
+  );
+}
+
+// ---- 4. This week: calendar strip, today, to-dos --------------------------------------
+
 export function WeekPanel() {
-  const { now, state, profile, checkIn } = usePathway();
+  const { now, state, profile, checkIn, toggleTodo, googleOn } = usePathway();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -227,131 +194,194 @@ export function WeekPanel() {
   const classes = [...profile.classes, ...state.addedClasses.filter((c) => !profile.classes.some((p) => same(p, c)))].filter((c) => sameDay(new Date(c.at), now));
   const today = [
     ...classes.map((c) => ({ at: c.at, kind: "class" as const, title: c.title, course: c.course })),
-    ...blocksOn(now).map((b) => ({ at: b.at, kind: "study" as const, title: b.title, course: b.course, done: b.done })),
+    ...blocksOn(now).map((b) => ({ at: b.at, kind: "study" as const, title: b.title, course: b.course })),
     ...profile.todos.filter((t) => t.due && sameDay(new Date(t.due), now)).map((t) => ({ at: t.due!, kind: "due" as const, title: t.title, course: "" })),
   ].sort((a, b) => a.at.localeCompare(b.at));
+  const later = profile.todos.filter((t) => !(t.due && sameDay(new Date(t.due), now)));
   const planned = state.blocks.length;
   const done = state.blocks.filter((b) => b.done).length;
 
   return (
-    <section className="panel p-5" aria-labelledby="this-week">
+    <section aria-labelledby="this-week">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 id="this-week" className="text-lg font-black">This week</h2>
-        {planned > 0 && <span className="text-sm font-bold text-muted">Plan: {done} of {planned} blocks done</span>}
+        <h2 id="this-week" className="font-extrabold">This week</h2>
+        <Link href="/calendar" className="text-sm font-bold text-teal underline underline-offset-4">{planned > 0 ? `${done} of ${planned} blocks done` : "Open week"}</Link>
       </div>
-      {planned > 0 && (
-        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuemin={0} aria-valuemax={planned} aria-valuenow={done} aria-label="Study plan progress">
-          <div className="h-full rounded-full bg-teal-face transition-[width] duration-500" style={{ width: `${(done / planned) * 100}%` }} />
-        </div>
-      )}
-      <ol className="mt-4 grid grid-cols-7 text-center">
+      <ol className="mt-3 grid grid-cols-7 text-center">
         {days.map((d) => {
           const bs = blocksOn(d);
           const isToday = sameDay(d, now);
           return (
             <li key={d.toISOString()} className="flex flex-col items-center gap-1">
-              <span className="text-xs font-extrabold text-muted">{d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2)}</span>
-              <span className={`grid size-9 place-items-center rounded-full font-black tabular-nums ${isToday ? "bg-ink text-white" : ""}`}>{d.getDate()}</span>
-              <span className="flex h-2 gap-0.5" aria-hidden>
+              <span className="text-xs font-bold text-muted">{d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2)}</span>
+              <span className={`grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums ${isToday ? "bg-ink text-white" : ""}`}>{d.getDate()}</span>
+              <span className="flex h-1.5 gap-0.5" aria-hidden>
                 {bs.map((b) => (
-                  <span key={b.id} className={`size-2 rounded-full ${b.done ? "bg-teal-face" : "border-2 border-teal-face"}`} />
+                  <span key={b.id} className={`size-1.5 rounded-full ${b.done ? "bg-teal-face" : "border-2 border-teal-face"}`} />
                 ))}
               </span>
-              <span className="sr-only">{bs.length ? `${bs.length} study blocks, ${bs.filter((b) => b.done).length} done` : "no study blocks"}</span>
             </li>
           );
         })}
       </ol>
-      <h3 className="mb-2 mt-5 text-sm font-extrabold text-muted">Today, {fmtDay(now.toISOString())}</h3>
+      <h3 className="mb-1 mt-4 text-sm font-bold text-muted">Today</h3>
       {today.length === 0 ? (
         <p className="text-muted">Nothing scheduled.</p>
       ) : (
-        <ul className="space-y-1">
+        <ul>
           {today.map((a) => (
             <li key={a.at + a.title} className="flex items-center gap-3 py-1.5">
-              <span className="w-16 shrink-0 text-right text-sm font-extrabold tabular-nums text-muted">{fmtTime(a.at)}</span>
+              <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-muted">{fmtTime(a.at)}</span>
               <span className="min-w-0 flex-1 font-bold leading-snug">{a.title}</span>
               {a.kind === "class" &&
                 (state.checkedIn[a.at] ? (
-                  <span className="flex items-center gap-1 text-sm font-extrabold text-teal">
-                    <Check size={16} strokeWidth={3} aria-hidden /> Checked in
-                  </span>
+                  <span className="flex items-center gap-1 text-sm font-bold text-teal"><Check size={15} strokeWidth={3} aria-hidden /> Here</span>
                 ) : (
-                  <button onClick={() => checkIn(a.course, a.at)} className="btn btn-ghost min-h-9 px-3 text-xs">
-                    Check in
-                  </button>
+                  <button onClick={() => checkIn(a.course, a.at)} className="btn btn-ghost min-h-8 px-2.5 text-xs">Check in</button>
                 ))}
-              {a.kind === "due" && <span className="rounded-lg bg-sun-soft px-2 py-0.5 text-xs font-extrabold text-sun-ink">Due</span>}
+              {a.kind === "due" && <span className="text-xs font-bold text-sun-ink">Due</span>}
             </li>
           ))}
         </ul>
+      )}
+      {later.length > 0 && (
+        <>
+          <h3 className="mb-1 mt-4 text-sm font-bold text-muted">To do</h3>
+          <ul>
+            {later.map((t) => {
+              const isDone = !!state.done[t.id];
+              return (
+                <li key={t.id} className="flex items-center gap-3 py-1.5">
+                  <button onClick={() => toggleTodo(t.id)} aria-pressed={isDone} aria-label={isDone ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`} className={`grid size-6 shrink-0 place-items-center rounded-md border-2 transition-colors ${isDone ? "animate-[pop_250ms_ease-out] border-[#109c8a] bg-teal-face text-teal-ink" : "border-line bg-white hover:bg-polar"}`}>
+                    {isDone && <Check size={14} strokeWidth={4} />}
+                  </button>
+                  <Link href={t.href} className="group flex min-w-0 flex-1 items-center gap-2">
+                    <span className={`min-w-0 flex-1 font-bold leading-snug ${isDone ? "text-muted line-through" : ""}`}>{t.title}</span>
+                    <ChevronRight size={18} className="shrink-0 text-muted/50 group-hover:text-muted" aria-hidden />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </>
+      )}
+      {planned > 0 && !googleOn && (
+        <p className="mt-3 text-sm">
+          <a href={googleCalendarUrl(state.blocks.find((b) => !b.done) ?? state.blocks[0])} target="_blank" rel="noreferrer" className="font-bold text-teal underline underline-offset-4">Add next block to Google Calendar</a>
+        </p>
       )}
     </section>
   );
 }
 
-const ACCEPT = [".pdf", ".ppt", ".pptx", ".doc", ".docx", ".txt", ".png", ".jpg", ".jpeg", ".ics"];
+// ---- 5. Inbox: course mail only --------------------------------------------------------
 
-export function DropZone() {
+export function InboxPanel() {
   const { courses } = usePathway();
-  const [over, setOver] = useState(false);
-  const [files, setFiles] = useState<{ name: string; course: string; confirmed: boolean; reading: boolean }[]>([]);
-  const [error, setError] = useState("");
+  const mail = inboxFor(courses.map((c) => c.code));
+  const unread = mail.filter((m) => m.unread).length;
+  const reply = mail.filter((m) => m.unread && m.needsReply).length;
+  return (
+    <section aria-labelledby="inbox">
+      <h2 id="inbox" className="font-extrabold">Inbox</h2>
+      <Link href="/inbox" className="group mt-2 flex items-center gap-3 rounded-2xl border-2 border-line px-4 py-3 hover:bg-polar">
+        <Mail size={20} className={`shrink-0 ${unread ? "text-sky" : "text-muted"}`} aria-hidden />
+        <span className="min-w-0 flex-1 font-bold">
+          {unread === 0 ? "No unread course mail" : `${unread} unread from your classes`}
+          {reply > 0 && <span className="font-semibold text-muted"> · {reply} {reply === 1 ? "needs" : "need"} a reply</span>}
+        </span>
+        <ChevronRight size={18} className="shrink-0 text-muted/50 group-hover:text-muted" aria-hidden />
+      </Link>
+    </section>
+  );
+}
 
-  // TODO: POST each file to /api/syllabus; Gemini picks the course and pulls out dates for you to confirm.
+// ---- 6. Files: drop a syllabus or a Gradescope page; Gemini reads it, you confirm ---------
+
+const ACCEPT = [".pdf", ".png", ".jpg", ".jpeg", ".txt", ".csv"];
+type Pending = { id: number; name: string; course: string; status: "reading" | "ready" | "error"; result?: AnalyzeResult; error?: string };
+
+export function Files() {
+  const { courses, state, addSource, removeSource } = usePathway();
+  const [over, setOver] = useState(false);
+  const [items, setItems] = useState<Pending[]>([]);
+
   const take = (list: FileList | null) => {
     if (!list) return;
-    const all = Array.from(list);
-    const ok = all.filter((f) => ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext)));
-    setError(ok.length < all.length ? `Skipped ${all.length - ok.length} file(s). Pathway reads PDFs, slides, docs, images and .ics calendars.` : "");
-    setFiles((fs) => [...fs, ...ok.map((f) => ({ name: f.name, course: courses[0]?.slug ?? "", confirmed: false, reading: true }))]);
-    // Mock parse time; the real one is the Gemini round trip.
-    setTimeout(() => setFiles((fs) => fs.map((f) => ({ ...f, reading: false }))), 1600);
+    for (const f of Array.from(list)) {
+      if (!ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext))) {
+        setItems((xs) => [...xs, { id: Date.now() + Math.random(), name: f.name, course: "", status: "error", error: "Export slides or docs to PDF first." }]);
+        continue;
+      }
+      const id = Date.now() + Math.random();
+      setItems((xs) => [...xs, { id, name: f.name, course: courses[0]?.slug ?? "", status: "reading" }]);
+      analyzeFile(f, { courses: courses.map((c) => c.code) })
+        .then((result) => {
+          const guess = courses.find((c) => result.classification.course_guess.toUpperCase().includes(c.code))?.slug;
+          setItems((xs) => xs.map((x) => (x.id === id ? { ...x, status: "ready", result, course: guess ?? x.course } : x)));
+        })
+        .catch((e: Error) => setItems((xs) => xs.map((x) => (x.id === id ? { ...x, status: "error", error: e.message } : x))));
+    }
+  };
+  const confirm = (p: Pending) => {
+    const course = courses.find((c) => c.slug === p.course);
+    if (!p.result || !course) return;
+    const src = toSource(p.result, course.code);
+    if (src) addSource(src);
+    setItems((xs) => xs.filter((x) => x.id !== p.id));
+  };
+  const summary = (r: AnalyzeResult) => {
+    if (r.syllabus) return `Syllabus · ${r.syllabus.deadlines.length} dates, grading, policies`;
+    if (r.grades) return `Grades · ${r.grades.items.length} items${r.grades.average_percent != null ? `, avg ${r.grades.average_percent}%` : ""}`;
+    if (r.study) return `${r.classification.kind} · ${r.study.quiz.length} quiz questions ready`;
+    if (r.insights) return `Dataset · ${r.profile?.rows} rows`;
+    return r.classification.kind;
   };
 
   return (
-    <section aria-labelledby="drop">
-      <h2 id="drop" className="sr-only">Add files</h2>
-      <div
+    <section aria-labelledby="files">
+      <h2 id="files" className="font-extrabold">Files</h2>
+      <label
         onDragOver={(e) => (e.preventDefault(), setOver(true))}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => (e.preventDefault(), setOver(false), take(e.dataTransfer.files))}
-        className={`flex flex-col items-center gap-2 rounded-[var(--radius-tile)] border-2 border-dashed px-5 py-6 text-center transition-colors ${over ? "border-teal bg-teal-soft" : "border-line"}`}
+        className={`mt-2 flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed px-4 py-3 transition-colors ${over ? "border-teal bg-teal-soft" : "border-line hover:bg-polar"}`}
       >
-        <FileUp size={28} strokeWidth={2.4} className="text-teal" aria-hidden />
-        <p className="font-extrabold">Drop syllabi, slides or notes</p>
-        <p className="text-sm text-muted">We&apos;ll suggest the right course. You confirm before anything is filed.</p>
-        <label className="btn btn-ghost mt-1 min-h-10 cursor-pointer text-xs">
-          Choose files
-          <input type="file" multiple accept={ACCEPT.join(",")} className="sr-only" onChange={(e) => take(e.target.files)} />
-        </label>
-      </div>
-      {error && <p role="alert" className="mt-2 text-sm font-bold text-sun-ink">{error}</p>}
-      {files.length > 0 && (
-        <ul className="mt-3 space-y-2" aria-live="polite">
-          {files.map((f, i) => (
-            <li key={f.name + i} className="flex flex-wrap items-center gap-2 rounded-xl bg-polar px-3 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate font-bold">{f.name}</span>
-              {f.reading ? (
-                <span className="flex items-center gap-1.5 font-bold text-muted">
-                  <ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…
-                </span>
-              ) : f.confirmed ? (
-                <span className="flex items-center gap-1 font-extrabold text-teal">
-                  <Check size={15} strokeWidth={3} aria-hidden /> Filed to {courses.find((c) => c.slug === f.course)?.code}
-                </span>
-              ) : (
+        <FileUp size={22} strokeWidth={2.4} className="shrink-0 text-teal" aria-hidden />
+        <span className="min-w-0">
+          <span className="block font-bold">Drop a syllabus, slides, or your Gradescope page</span>
+          <span className="block text-sm text-muted">Gemini reads it; you confirm the course before it counts.</span>
+        </span>
+        <input type="file" multiple accept={ACCEPT.join(",")} className="sr-only" onChange={(e) => take(e.target.files)} />
+      </label>
+
+      {(items.length > 0 || state.sources.length > 0) && (
+        <ul className="mt-2" aria-live="polite">
+          {items.map((p) => (
+            <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+              <span className="min-w-0 flex-1 truncate font-bold">{p.name}</span>
+              {p.status === "reading" && (
+                <span className="flex items-center gap-1.5 text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…</span>
+              )}
+              {p.status === "error" && <span className="text-sun-ink">{p.error}</span>}
+              {p.status === "ready" && p.result && (
                 <>
-                  <label className="sr-only" htmlFor={`f${i}`}>Course for {f.name}</label>
-                  <select id={`f${i}`} value={f.course} onChange={(e) => setFiles((fs) => fs.map((x, j) => (j === i ? { ...x, course: e.target.value } : x)))} className="rounded-lg border-2 border-line bg-white px-2 py-1 font-bold">
-                    {courses.map((c) => (
-                      <option key={c.slug} value={c.slug}>{c.code}</option>
-                    ))}
+                  <span className="text-muted">{summary(p.result)}</span>
+                  <label className="sr-only" htmlFor={`c${p.id}`}>Course</label>
+                  <select id={`c${p.id}`} value={p.course} onChange={(e) => setItems((xs) => xs.map((x) => (x.id === p.id ? { ...x, course: e.target.value } : x)))} className="rounded-lg border-2 border-line bg-white px-2 py-1 font-bold">
+                    {courses.map((c) => <option key={c.slug} value={c.slug}>{c.code}</option>)}
                   </select>
-                  <button onClick={() => setFiles((fs) => fs.map((x, j) => (j === i ? { ...x, confirmed: true } : x)))} className="font-extrabold text-teal">Confirm</button>
-                  <button onClick={() => setFiles((fs) => fs.filter((_, j) => j !== i))} className="font-bold text-muted">Remove</button>
+                  <button onClick={() => confirm(p)} className="font-extrabold text-teal">Confirm</button>
                 </>
               )}
+              <button onClick={() => setItems((xs) => xs.filter((x) => x.id !== p.id))} aria-label={`Remove ${p.name}`} className="text-muted hover:text-ink"><X size={16} /></button>
+            </li>
+          ))}
+          {state.sources.map((s, i) => (
+            <li key={`${s.kind}-${s.course}-${s.title}`} className="flex items-center gap-2 py-2 text-sm">
+              <Check size={15} strokeWidth={3} className="shrink-0 text-teal" aria-hidden />
+              <span className="min-w-0 flex-1 truncate"><span className="font-bold">{s.title}</span> <span className="text-muted">· {s.kind} · {s.course}</span></span>
+              <button onClick={() => removeSource(i)} aria-label={`Remove ${s.title}`} className="text-muted hover:text-ink"><X size={16} /></button>
             </li>
           ))}
         </ul>
@@ -360,71 +390,16 @@ export function DropZone() {
   );
 }
 
-export function TodoPanel() {
-  const { profile, state, toggleTodo } = usePathway();
-  const left = profile.todos.filter((t) => !state.done[t.id]).length;
-  return (
-    <section className="panel p-5" aria-labelledby="to-do">
-      <div className="mb-4 flex items-baseline justify-between">
-        <h2 id="to-do" className="text-lg font-black">To do</h2>
-        <span className="text-sm font-bold text-muted">{left} left</span>
-      </div>
-      {profile.todos.length === 0 ? (
-        <p className="text-muted">Nothing yet. Deadlines from your syllabi show up here.</p>
-      ) : (
-        <ul className="divide-y-2 divide-line">
-          {profile.todos.map((t) => {
-            const done = !!state.done[t.id];
-            return (
-              <li key={t.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                <button
-                  onClick={() => toggleTodo(t.id)}
-                  aria-pressed={done}
-                  aria-label={done ? `Mark "${t.title}" not done` : `Mark "${t.title}" done`}
-                  className={`grid size-8 shrink-0 place-items-center rounded-lg border-2 border-b-4 transition-colors ${done ? "animate-[pop_250ms_ease-out] border-[#109c8a] bg-teal-face text-teal-ink" : "border-line bg-white hover:bg-polar"}`}
-                >
-                  {done && <Check size={16} strokeWidth={4} />}
-                </button>
-                <Link href={t.href} className="group flex min-w-0 flex-1 items-center gap-2">
-                  <span className="min-w-0 flex-1">
-                    <span className={`block font-extrabold leading-snug ${done ? "text-muted line-through" : ""}`}>{t.title}</span>
-                    <span className="block text-sm text-muted">{t.detail}</span>
-                  </span>
-                  <ChevronRight size={20} className="shrink-0 text-muted/50 group-hover:text-muted" aria-hidden />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </section>
-  );
-}
+// ---- Onboarding (judge profile) ------------------------------------------------------------
 
 export function Onboarding() {
   const { addJudgeCourse } = usePathway();
   return (
     <section className="panel mx-auto max-w-2xl p-6 md:p-8" aria-labelledby="start">
-      <h1 id="start" className="text-[2rem] font-black leading-tight">Let&apos;s set up your semester</h1>
-      <p className="mt-2 text-lg text-muted">Two steps. Pathway saves your courses and study activity, never your status.</p>
-      <ol className="mt-6 space-y-4">
-        <li className="flex gap-4 rounded-2xl bg-polar p-4">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-black text-white">1</span>
-          <div className="flex-1">
-            <p className="font-black">Import your calendar</p>
-            <p className="text-sm text-muted">An .ics file from your school calendar. Not connected yet: /api/calendar (ical.js).</p>
-          </div>
-        </li>
-        <li className="flex gap-4 rounded-2xl bg-polar p-4">
-          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-black text-white">2</span>
-          <div className="flex-1">
-            <p className="font-black">Add a course from its syllabus</p>
-            <p className="text-sm text-muted">We read the dates and you confirm them. For the demo, add BIO 181.</p>
-            <button onClick={addJudgeCourse} className="btn btn-primary mt-3">Add BIO 181</button>
-          </div>
-        </li>
-      </ol>
+      <h1 id="start" className="text-[1.75rem] font-extrabold leading-tight">Let&apos;s set up your semester</h1>
+      <p className="mt-2 text-muted">Moodle, Gradescope and Gmail are connected. Add one course to start your route.</p>
+      <button onClick={addJudgeCourse} className="btn btn-primary mt-5">Add BIO 181 from its syllabus</button>
+      <p className="mt-3 text-sm text-muted">Pathway saves your courses and study activity, never your status.</p>
     </section>
   );
 }
-

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType } from "react";
-import { BarChart3, BookOpen, House, RotateCcw, Users } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, House, Mail, RotateCcw, Users } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
 import { usePathway } from "@/lib/store";
@@ -14,7 +14,9 @@ type NavLink = { href: string; label: string; icon: ComponentType<{ size?: numbe
 const nav: NavLink[] = [
   { href: "/", label: "Home", icon: House },
   { href: "/study", label: "Study", icon: BookOpen },
+  { href: "/calendar", label: "Week", icon: CalendarDays },
   { href: "/insights", label: "Insights", icon: BarChart3 },
+  { href: "/inbox", label: "Inbox", icon: Mail },
   { href: "/viva", label: "Viva", icon: VivaIcon },
 ];
 const extra: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
@@ -80,6 +82,7 @@ function NavItem({ href, label, icon: Icon, on, onPick }: NavLink & { on: boolea
 
 export function Sidebar() {
   const path = usePathname();
+  const { googleOn } = usePathway();
   // Move the highlight on click, not when the next page finishes loading. The pick only
   // counts while we're still on the page it was made from, so it clears itself after navigation.
   const [picked, setPicked] = useState<{ href: string; from: string } | null>(null);
@@ -116,6 +119,9 @@ export function Sidebar() {
         </LiquidSelect>
         <div className="hidden md:block">
           <ProfileSwitcher />
+          <p className="mt-4 px-1 text-xs font-bold leading-relaxed text-muted">
+            Connected: Moodle, Gradescope, Gmail{googleOn ? ", Google Calendar" : ""}
+          </p>
         </div>
       </nav>
     </>

@@ -4,15 +4,20 @@
 // in the browser: the status is computed on this device and never stored by Pathway (in voice mode,
 // Viva's spoken words, which can mention it, are voiced by ElevenLabs).
 // TODO: also POST each action to /api/events so Tiger has the timeline (inputs only, never the status).
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from "./data";
 import { ACTIONABLE, meta } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { vivaReply, type Action } from "./viva";
+import { soften, vivaReply, type Action } from "./viva";
+import { askCoach, coachContext } from "./api";
+import type { Source } from "./intel/coach";
+import { inboxFor } from "./inbox";
+import * as gcal from "./gcal";
+import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
 
 export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
-export type Block = { id: string; course: string; title: string; at: string; done: boolean };
+export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
   added: CourseSeed[];
@@ -23,11 +28,15 @@ type PState = {
   done: Record<string, boolean>;
   checkedIn: Record<string, boolean>;
   chat: ChatMsg[];
+  sources: Source[]; // dropped files, parsed by Gemini, kept on this device
+  moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
+  dismissed: string[]; // suggestion ids the student said "not now" to
+  gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
 const KEY = "pathway:v1";
-const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [] });
+const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [], sources: [], moved: {}, dismissed: [], gids: {} });
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
 export function featuresFor(c: CourseSeed, s: PState): Features {
@@ -99,7 +108,8 @@ function useStore() {
   }, [activeId, hydrate]);
 
   const profile = profiles.find((p) => p.id === saved.profile) ?? profiles[0];
-  const s = (profile && saved.by[profile.id]) ?? empty();
+  // Older saved state (or a database row) may lack newer fields; merge over a blank state. Memoized so `courses` is stable.
+  const s = useMemo<PState>(() => ({ ...empty(), ...((profile && saved.by[profile.id]) ?? {}) }), [profile, saved]);
 
   const view = useCallback(
     (c: CourseSeed, st: PState): CourseView | null => {
@@ -121,9 +131,75 @@ function useStore() {
     [profile, s, view],
   );
 
+  // ---- calendar. Local feed = classes, exams and due dates (from Moodle; demo data here) plus
+  // Pathway study blocks. Google Calendar, once connected, becomes the working copy: everything
+  // local is written there once (tracked in gids), and approved changes are written back.
+  const [googleEvents, setGoogleEvents] = useState<CalEvent[]>([]);
+  // Lazy init is safe here for the same reason as `saved` above; nothing renders before the trees load.
+  const [googleOn, setGoogleOn] = useState(() => typeof window !== "undefined" && gcal.isConnected());
+  const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
+  const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
+
+  const localEvents = useMemo<CalEvent[]>(() => {
+    if (!profile) return [];
+    const feed = [...demoWeek(demo.now, courses, profile.todos), ...sourceEvents(s.sources, courses, demo.now)];
+    const base = [...feed, ...blocksAsEvents(s.blocks)];
+    return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
+  }, [profile, courses, s.blocks, s.moved, s.sources]);
+  // Google copies of things we already render locally are skipped (they carry a Pathway tag).
+  const events = useMemo<CalEvent[]>(() => [...localEvents, ...googleEvents.filter((g) => !g.localId)], [localEvents, googleEvents]);
+  const suggestions = useMemo<Suggestion[]>(
+    () => suggest(events, demo.now, courses.map((c) => ({ slug: c.slug, code: c.code, exam: c.exam, atRisk: c.result.atRisk }))).filter((x) => !s.dismissed.includes(x.id)),
+    [events, courses, s.dismissed],
+  );
+
   const say = (text: string) => setToast({ id: Date.now(), text });
   const update = (fn: (st: PState) => PState) =>
-    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn(v.by[profile.id] ?? empty()) } }));
+    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(), ...(v.by[profile.id] ?? {}) }) } }));
+
+  // Write every local event Google does not have yet. Idempotent: gids remembers what was written.
+  const syncing = useRef(false);
+  const syncAll = async (): Promise<number> => {
+    if (!gcal.isConnected() || syncing.current) return 0;
+    syncing.current = true;
+    let n = 0;
+    try {
+      const have = { ...s.gids };
+      // blocks written by the earlier build kept their Google id on the block itself
+      for (const b of s.blocks) if (b.googleId && !have[b.id]) have[b.id] = b.googleId;
+      for (const e of localEvents) {
+        if (have[e.id]) continue;
+        if (e.kind === "study" && s.blocks.find((b) => b.id === e.id)?.done) continue;
+        const tag = e.source === "pathway" ? "Planned in Pathway" : "From Moodle via Pathway";
+        const id = await gcal.insert({ title: e.title, start: e.start, end: e.end }, `${tag}\nPathway:${e.id}`);
+        have[e.id] = id;
+        n++;
+        update((st) => ({ ...st, gids: { ...st.gids, [e.id]: id } }));
+      }
+    } catch (e) {
+      say(`Google Calendar said: ${(e as Error).message}`);
+    } finally {
+      syncing.current = false;
+    }
+    return n;
+  };
+  const refreshGoogle = async () => {
+    if (!gcal.isConnected()) return;
+    setGoogleEvents(await gcal.listWeek(monday));
+  };
+  // Keep Google current while connected: whenever local events change, write the new ones.
+  const localKey = localEvents.map((e) => e.id).join("|");
+  const syncRef = useRef(syncAll);
+  useEffect(() => {
+    syncRef.current = syncAll;
+  });
+  useEffect(() => {
+    if (!googleOn || !profile) return;
+    // Defer a tick so the write happens after render, as an external-system sync.
+    const t = setTimeout(() => void syncRef.current(), 0);
+    return () => clearTimeout(t);
+  }, [googleOn, localKey, profile]);
+
 
   // Apply a change to one course's inputs, then tell the student what moved and what the tree says now.
   const bump = (slug: string, key: keyof Deltas, label: string, extra: Partial<PState> = {}, event?: Parameters<typeof sync.event>[2]) => {
@@ -176,7 +252,7 @@ function useStore() {
       const made = blocks.map((b, i) => ({ ...b, id: `${Date.now()}-${i}`, done: false }));
       update((st) => ({ ...st, blocks: [...st.blocks, ...made] }));
       sync.blocks(profile.id, made);
-      say(`${blocks.length} study blocks added to your week.`);
+      say(gcal.isConnected() ? `${blocks.length} study blocks added to your week and your Google Calendar.` : `${blocks.length} study blocks added to your week.`);
     },
     completeBlock: (b: Block) => {
       sync.blockDone(profile.id, b.id, true);
@@ -192,18 +268,80 @@ function useStore() {
       await sync.addJudgeCourse();
       if (isLive()) setProfiles(await getProfiles());
     },
+    events,
+    suggestions,
+    googleOn,
+    googleWho,
+    connectGoogle: async () => {
+      await gcal.connect();
+      setGoogleOn(true);
+      setGoogleWho(await gcal.whoAmI().catch(() => null));
+      await refreshGoogle();
+      const n = await syncAll();
+      say(n ? `Google Calendar connected. ${n} events added: classes, exams, due dates and study blocks.` : "Google Calendar connected.");
+    },
+    disconnectGoogle: () => {
+      gcal.disconnect();
+      setGoogleOn(false);
+      setGoogleWho(null);
+      setGoogleEvents([]);
+    },
+    refreshGoogle,
+    dismissSuggestion: (id: string) => update((st) => ({ ...st, dismissed: [...st.dismissed, id] })),
+    // The student approved a change: apply it here, and in Google Calendar when that event lives there.
+    approveSuggestion: async (sg: Suggestion) => {
+      let googleErr = "";
+      for (const op of sg.ops) {
+        if (op.op === "move") {
+          if (s.blocks.some((b) => b.id === op.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === op.id ? { ...b, at: op.start } : b)) }));
+          else update((st) => ({ ...st, moved: { ...st.moved, [op.id]: { start: op.start, end: op.end } } }));
+          const gid = op.id.startsWith("g-") ? op.id.slice(2) : s.gids[op.id];
+          if (gid && gcal.isConnected()) await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
+        } else {
+          const b: Block = { id: op.event.id, course: op.event.course ?? "", title: op.event.title, at: op.event.start, done: false };
+          update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
+        }
+      }
+      update((st) => ({ ...st, dismissed: [...st.dismissed, sg.id] }));
+      say(googleErr ? `Changed here. Google Calendar said: ${googleErr}` : gcal.isConnected() ? "Done, here and in your Google Calendar." : "Done. Your week is updated.");
+    },
+    addSource: (src: Source) => {
+      update((st) => ({ ...st, sources: [...st.sources.filter((x) => !(x.kind === src.kind && x.course === src.course && x.title === src.title)), src] }));
+      const dated = src.kind === "syllabus" ? src.deadlines.filter((d) => d.date).length : 0;
+      say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}. Viva can use it now.`);
+    },
+    removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,
     reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
     addTurn: (m: ChatMsg) => update((st) => ({ ...st, chat: [...st.chat, m] })),
     // Chat mode: show the question, "think" briefly, then answer. TODO: POST /api/coach.
-    ask: (text: string) => {
-      const r = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
+    // Chat mode: show the question, ask Gemini (POST /api/coach, tools over the numbers already on this
+    // device), keep the mock's action chips. If Gemini is unreachable, fall back to the mock brain so the
+    // page never goes silent.
+    ask: async (text: string) => {
+      const local = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
       update((st) => ({ ...st, chat: [...st.chat, { role: "you", text }] }));
       setVivaThinking(true);
-      setTimeout(() => {
-        setVivaThinking(false);
-        update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: r.text, actions: r.actions }] }));
-      }, 900);
+      let answer = local.text;
+      try {
+        const ctx = coachContext({
+          now: demo.now,
+          studentName: profile?.sample ? profile.name ?? "" : "",
+          courses,
+          todos: profile?.todos ?? [],
+          blocks: s.blocks,
+          sources: s.sources,
+          inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
+          week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
+          suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
+        });
+        const r = await askCoach(text, ctx, s.chat);
+        if (r.text.trim()) answer = soften(r.text);
+      } catch (e) {
+        console.warn("coach unavailable, using local reply:", (e as Error).message);
+      }
+      setVivaThinking(false);
+      update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: answer, actions: local.actions }] }));
     },
   };
 }

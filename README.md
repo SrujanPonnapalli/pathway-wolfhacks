@@ -28,7 +28,10 @@ npm run dev
 | `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
 | `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
 | `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
-| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side); syllabus/coach (Gemini) and calendar: stubs |
+| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side) |
+| `src/lib/gemini.ts`, `src/lib/intel/` | Gemini: `coach` (Viva's brain, one fast call over the student's own context), `syllabus`, `study` (quiz/viva/flashcards), `dataset`, `analyze` (drop anything). Routes: `api/{coach,syllabus,quiz,viva,analyze,dataset}` |
+| `src/lib/schedule.ts`, `src/lib/gcal.ts`, `src/app/calendar/` | The week: classes/exams/due dates (Moodle feed, demo data) + study blocks + Google Calendar; suggestion rules; approved changes write to Google |
+| `src/lib/inbox.ts`, `src/app/inbox/` | Course mail (demo data); Viva drafts replies, Gmail sends |
 
 Your status is calculated on your device and never stored by Pathway; the database holds inputs only. In voice mode, speech is processed by ElevenLabs.
 
@@ -40,3 +43,9 @@ UI libraries (all MIT): [orb-ui](https://orb-ui.com) for Viva's body, and [think
 - Srujan — notebook + JSON exports
 - Third — Tiger schema, events, calendar
 - Fourth — Gemini/ElevenLabs routes, Vercel + domain
+
+## Gemini and Google Calendar
+
+`GEMINI_API_KEY` (AI Studio). Viva answers from one fast call on `gemini-3.5-flash-lite`; documents use `gemini-3.8-flash` with fallbacks. Both model names are env-overridable.
+
+Google Calendar is read and written from the browser with a Web OAuth client ID (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`): Cloud Console → enable Calendar API → consent screen (Testing, add yourself as test user) → OAuth client, Web application, authorized JavaScript origin `http://localhost:3000` (add the Vercel/GoDaddy origins later). Once connected, every class, exam, due date and study block is written to the student's calendar once and kept in sync; approved suggestions update the Google events.

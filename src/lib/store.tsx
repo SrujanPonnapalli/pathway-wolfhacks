@@ -9,7 +9,7 @@ import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from
 import { ACTIONABLE, meta } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { soften, vivaReply, type Action } from "./viva";
+import { soften, vivaReply, type Action, type Reply } from "./viva";
 import { askCoach, coachContext } from "./api";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
@@ -274,6 +274,35 @@ function useStore() {
     say(`${label}.${moved}${flip}`);
   };
 
+  // One Gemini-backed coaching turn, shared by chat and voice so they can't diverge: same
+  // context (courses, to-dos, blocks, sources, inbox, week, suggestions), same history, same
+  // answer. The local mock replies only when /api/coach can't be reached, and the console
+  // says which brain answered.
+  const coachTurn = async (text: string): Promise<Reply & { via: "gemini" | "local" }> => {
+    try {
+      const ctx = coachContext({
+        now: demo.now,
+        studentName: profile?.sample ? profile.name ?? "" : "",
+        courses,
+        todos: profile?.todos ?? [],
+        blocks: s.blocks,
+        sources: s.sources,
+        inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
+        week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
+        suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
+      });
+      // Voice appends the student's turn before calling this; don't send it twice.
+      const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
+      const r = await askCoach(text, ctx, history);
+      if (!r.text.trim()) throw new Error("empty reply");
+      console.info(`[viva] Gemini answered in ${r.ms}ms${r.filtered ? " (filtered)" : ""}`);
+      return { text: soften(r.text), actions: [], via: "gemini" };
+    } catch (e) {
+      console.warn("[viva] /api/coach unavailable, using the local fallback brain:", (e as Error).message);
+      return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
+    }
+  };
+
   return {
     ready: !!trees && !!profile,
     error,
@@ -372,36 +401,16 @@ function useStore() {
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,
-    reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
+    coachTurn,
     addTurn: (m: ChatMsg) => update((st) => ({ ...st, chat: [...st.chat, m] })),
-    // Chat mode: show the question, "think" briefly, then answer. TODO: POST /api/coach.
-    // Chat mode: show the question, ask Gemini (POST /api/coach, tools over the numbers already on this
-    // device), keep the mock's action chips. If Gemini is unreachable, fall back to the mock brain so the
-    // page never goes silent.
+    // Chat mode: show the question, run the shared Gemini coach, then append Viva's turn.
+    // If the coach route is down the local fallback answers so the page never goes silent.
     ask: async (text: string) => {
-      const local = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
       update((st) => ({ ...st, chat: [...st.chat, { role: "you", text }] }));
       setVivaThinking(true);
-      let answer = local.text;
-      try {
-        const ctx = coachContext({
-          now: demo.now,
-          studentName: profile?.sample ? profile.name ?? "" : "",
-          courses,
-          todos: profile?.todos ?? [],
-          blocks: s.blocks,
-          sources: s.sources,
-          inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
-          week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
-          suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
-        });
-        const r = await askCoach(text, ctx, s.chat);
-        if (r.text.trim()) answer = soften(r.text);
-      } catch (e) {
-        console.warn("coach unavailable, using local reply:", (e as Error).message);
-      }
+      const r = await coachTurn(text);
       setVivaThinking(false);
-      update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: answer, actions: local.actions }] }));
+      update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: r.text, actions: r.actions }] }));
     },
   };
 }

@@ -1,7 +1,8 @@
 "use client";
 
 // Viva's voice session. Microphone → end-of-speech detection → /api/stt (ElevenLabs Scribe)
-// → Viva's reply → /api/tts (ElevenLabs v4 Turbo) → playback. Real input and output levels
+// → the shared Gemini coach (/api/coach, same brain as chat) → /api/tts (ElevenLabs v4
+// Turbo) → playback. Real input and output levels
 // drive the orb and the voice glow. Degrades gracefully: no microphone → tap a question;
 // no voice service → captions with simulated speech. The page reads { state, input, output, caption }.
 import { useEffect, useRef, useState } from "react";
@@ -26,7 +27,7 @@ function level(an: AnalyserNode | null, buf: Float32Array<ArrayBuffer> | null) {
   return Math.min(1, Math.sqrt(sum / buf.length) * 5); // RMS, scaled so speech sits mid-range
 }
 
-export function useVoiceSession(opts: { greeting: () => string; reply: (q: string) => string; onTurn: (who: Who, text: string) => void }) {
+export function useVoiceSession(opts: { greeting: () => string; reply: (q: string) => string | Promise<string>; onTurn: (who: Who, text: string) => void }) {
   const [state, setState] = useState<OrbState>("idle");
   const [caption, setCaption] = useState<Caption>(null);
   const [levels, setLevels] = useState({ input: 0, output: 0 });
@@ -135,14 +136,21 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
     return true;
   };
 
-  // Handle one student turn (from the microphone or a tapped question).
+  // Handle one student turn (from the microphone or a tapped question): the transcript goes
+  // through the same Gemini coach as chat, and the reply comes back as speech.
   const answer = async (question: string, id: number) => {
     setCaption({ who: "you", text: question });
     optsRef.current.onTurn("you", question);
     go("thinking");
-    await sleep(500);
+    const reply = await Promise.resolve()
+      .then(() => optsRef.current.reply(question))
+      .catch(() => "");
     if (run.current !== id) return;
-    if (await speak(optsRef.current.reply(question), id)) listen(id);
+    if (!reply) {
+      setNotice("Viva couldn't answer that. Try again, or tap a question.");
+      return listen(id);
+    }
+    if (await speak(reply, id)) listen(id);
   };
 
   // Listen for one turn: record until the student stops talking, then transcribe.

@@ -7,8 +7,9 @@
 // - Honest about limits: patterns, not verdicts; "I could be wrong".
 // - Loves turning advice into a time on the calendar.
 //
-// This file is the mock brain. TODO: replace vivaReply() with POST /api/coach (Gemini with tools:
-// explain_path, recourse, make_plan, quiz_me) and keep soften() on whatever comes back.
+// This file is the fallback brain. Chat and voice both answer through POST /api/coach (Gemini)
+// via the shared coachTurn() in src/lib/store.tsx; vivaReply() runs only when that route is
+// unreachable, so one canned reply beats silence. soften() still applies to whatever comes back.
 import { goalText, meta, sentence } from "./features.ts";
 
 export const VIVA = {

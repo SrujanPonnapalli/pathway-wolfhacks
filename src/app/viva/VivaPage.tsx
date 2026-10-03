@@ -130,15 +130,16 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 function Voice() {
-  const { profile, reply, addTurn } = usePathway();
+  const { profile, coachTurn, addTurn } = usePathway();
   const last = useRef<Reply | null>(null);
   const [actions, setActions] = useState<Action[]>([]);
   const v = useVoiceSession({
     greeting: () => VIVA.greeting(profile.sample ? profile.name : undefined),
-    reply: (q) => {
-      last.current = reply(q);
+    reply: async (q) => {
+      const r = await coachTurn(q); // same Gemini brain as chat; local mock only if it's down
+      last.current = r;
       setActions([]);
-      return last.current.text;
+      return r.text;
     },
     onTurn: (who, text) => {
       const acts = who === "viva" ? (last.current?.actions ?? []) : undefined;

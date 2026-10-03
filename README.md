@@ -29,6 +29,7 @@ npm run dev
 | `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
 | `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
 | `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side) |
+| `src/app/device/` | The Raspberry Pi kiosk screen (1024×600, no app chrome). `scripts/kiosk.sh` launches it fullscreen on the Pi; setup docs: [docs/hardware](docs/hardware/README.md) |
 | `src/lib/gemini.ts`, `src/lib/intel/` | Gemini: `coach` (Viva's brain, one fast call over the student's own context), `syllabus`, `study` (quiz/viva/flashcards), `dataset`, `analyze` (drop anything). Routes: `api/{coach,syllabus,quiz,viva,analyze,dataset}` |
 | `src/lib/schedule.ts`, `src/lib/gcal.ts`, `src/app/calendar/` | The week: classes/exams/due dates (Moodle feed, demo data) + study blocks + Google Calendar; suggestion rules; approved changes write to Google |
 | `src/lib/inbox.ts`, `src/app/inbox/` | Course mail (demo data); Viva drafts replies, Gmail sends |

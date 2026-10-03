@@ -53,7 +53,7 @@ SEED = 42
 CV = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
 MIN_RECALL = 0.80  # catch at least 4 in 5 struggling students...
 COST_FN = 4  # ...because missing one is assumed to cost about 4 false alarms
-RUN_TEST = False  # False: stop before the TEST cell (no test scoring). First test results: results_v1_test.csv
+RUN_TEST = False  # False: stop before the TEST cell (no test scoring). Test results: results_v1_test.csv, results_v2_test.csv
 pd.set_option("display.width", 200, "display.max_columns", 40)
 
 # %% [markdown]
@@ -436,10 +436,29 @@ for name in ["warning count (1-SE)", "warning count, best-scoring"]:
           f"cutoffs {({f: round(c, 3) for f, c in fitted[0].cutoffs_.items()})}")
 
 # %% [markdown]
-# ## 12. TEST: scored once
+# Decision: the warning count improved CV PR-AUC by about 0.08 (5-fold) and 0.10 (25 fresh folds),
+# well over the 0.03 bar, so it is kept as `tree_early_v2` (the 1-SE setting). It is refit on dev with
+# its cutoff from dev out-of-fold predictions, exactly like the other models in section 11.
+
+# %%
+V2 = "tree_early_v2"
+TUNED[V2], FEATS[V2] = rw.params[pw], EARLY
+est = signs_pipe(**TUNED[V2])
+THR[V2] = pick_thresholds(y_dev, oof_proba(est, X_dev[EARLY], y_dev))
+FIT[V2] = est.fit(X_dev[EARLY], y_dev)
+MODELS.append(V2)
+print(f"[{V2}] depth {FIT[V2][-1].get_depth()}, {FIT[V2][-1].get_n_leaves()} leaves; cutoffs {({k: round(v, 3) for k, v in THR[V2].items()})}; "
+      f"warning-sign cutoffs on dev {({f: round(c, 3) for f, c in FIT[V2][0].cutoffs_.items()})}")
+
+# %% [markdown]
+# ## 12. TEST
 # Every model at its recall-80 cutoff (from dev out-of-fold predictions), plus the two trees at their
 # accuracy-optimal cutoff. 95% bootstrap intervals for the trees: the test set holds ~44 at-risk
 # students, so one student moves recall by ~2.3 points.
+#
+# **Two looks, both reported.** First look: `tree_early` and the comparison models (saved in
+# `results_v1_test.csv`). Second look: `tree_early_v2`, chosen afterwards on CV only (section 11b).
+# The other models are unchanged, and the cell checks they reproduce the first look exactly.
 
 # %%
 if not RUN_TEST:
@@ -450,9 +469,16 @@ for m in ["tree_early", "tree_mid"]:
     TEST[f"{m} @accuracy cutoff"] = scores(y_test, P_TEST[m], THR[m]["accuracy"])
 TEST_DF = pd.DataFrame(TEST).T
 print(TEST_DF.astype(float).round(3).to_string())
-for m in ["tree_early", "tree_mid"]:
+for m in ["tree_early", V2, "tree_mid"]:
     ci = boot_ci(y_test, P_TEST[m], THR[m]["recall80"])
     print(f"[{m}] 95% CI: " + ", ".join(f"{k} {lo:.2f}–{hi:.2f}" for k, (lo, hi) in ci.items()))
+V1 = pd.read_csv(NB / "results_v1_test.csv", index_col="model")
+assert np.allclose(TEST_DF.loc[V1.index].astype(float), V1), "first-look models no longer reproduce results_v1_test.csv"
+TEST_DF.to_csv(NB / "results_v2_test.csv", index_label="model")
+cols = ["recall", "precision", "accuracy", "bal_acc", "pr_auc", "tp", "fn", "fp", "tn"]
+SIDE = pd.concat([V1.loc[["baseline", "tree_early"], cols].rename(index={"tree_early": "v1 early tree (first look)"}),
+                  TEST_DF.loc[[V2, "logreg_early", "hgb_early"], cols].astype(float).rename(index={V2: "v2 early tree + warning count (second look)"})])
+print("\nside by side:\n" + SIDE.round(3).to_string())
 e, b = TEST["tree_early"], TEST["hgb_early"]
 print(f"\nprice of interpretability: the {FIT['tree_early'].get_n_leaves()}-leaf early tree keeps {e['pr_auc'] / b['pr_auc']:.0%} of boosting's PR-AUC "
       f"({e['pr_auc']:.3f} vs {b['pr_auc']:.3f}); precision at ~80% recall {e['precision']:.2f} vs {b['precision']:.2f}")
@@ -510,6 +536,12 @@ for m, f in [("tree_early", EARLY), ("tree_mid", MID)]:
     print(f"--- {m} (cutoff {THR[m]['recall80']:.3f}) ---")
     for line in leaf_rules(FIT[m], f, X_dev[f], y_dev, THR[m]["recall80"]):
         print(" ", line)
+INTS.add("warning_signs")
+Xd = FIT[V2][0].transform(X_dev[EARLY])
+print(f"--- {V2} (cutoff {THR[V2]['recall80']:.3f}); warning_signs = how many of these hold: "
+      + ", ".join(f"{f} ≤ {c:.3g}" for f, c in FIT[V2][0].cutoffs_.items()) + " ---")
+for line in leaf_rules(FIT[V2][-1], list(Xd.columns), Xd, y_dev, THR[V2]["recall80"]):
+    print(" ", line)
 
 # %% [markdown]
 # ## 14. Figures (notebooks/figures/)

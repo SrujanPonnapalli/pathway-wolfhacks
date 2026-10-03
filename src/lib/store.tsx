@@ -1,7 +1,8 @@
 "use client";
 
 // Client-side app state. Study actions update a course's features, and the tree re-scores right here
-// in the browser: the status is computed on this device and never sent anywhere.
+// in the browser: the status is computed on this device and never stored by Pathway (in voice mode,
+// Viva's spoken words, which can mention it, are voiced by ElevenLabs).
 // TODO: also POST each action to /api/events so Tiger has the timeline (inputs only, never the status).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from "./data";

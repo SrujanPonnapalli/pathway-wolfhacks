@@ -9,7 +9,7 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: [
 
 export const metadata: Metadata = {
   title: "Pathway",
-  description: "Your risk score is calculated on your device and never stored on a server.",
+  description: "Your status is calculated on your device and never stored by Pathway.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

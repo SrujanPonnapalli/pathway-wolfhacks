@@ -53,7 +53,7 @@ export function Greeting() {
             ))}
           </ul>
           <p className="mt-3 flex items-center gap-2 text-sm text-muted">
-            <Lock size={15} aria-hidden /> Statuses are calculated on this device and never stored on a server.
+            <Lock size={15} aria-hidden /> Statuses are calculated on this device and never stored by Pathway.
           </p>
         </>
       )}
@@ -406,7 +406,7 @@ export function Onboarding() {
   return (
     <section className="panel mx-auto max-w-2xl p-6 md:p-8" aria-labelledby="start">
       <h1 id="start" className="text-[2rem] font-black leading-tight">Let&apos;s set up your semester</h1>
-      <p className="mt-2 text-lg text-muted">Two steps. Everything stays on this device until you choose to share it.</p>
+      <p className="mt-2 text-lg text-muted">Two steps. Pathway saves your courses and study activity, never your status.</p>
       <ol className="mt-6 space-y-4">
         <li className="flex gap-4 rounded-2xl bg-polar p-4">
           <span className="grid size-9 shrink-0 place-items-center rounded-full bg-ink font-black text-white">1</span>

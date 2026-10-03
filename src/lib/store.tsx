@@ -137,8 +137,16 @@ function useStore() {
   // local is written there once (tracked in gids), and approved changes are written back.
   const [googleEvents, setGoogleEvents] = useState<CalEvent[]>([]);
   // Lazy init is safe here for the same reason as `saved` above; nothing renders before the trees load.
-  const [googleOn, setGoogleOn] = useState(() => typeof window !== "undefined" && gcal.isConnected());
+  const [googleOn, setGoogleOn] = useState(false);
   const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
+  const [googleShared, setGoogleShared] = useState(false);
+  useEffect(() => {
+    gcal.init().then(async (on) => {
+      setGoogleOn(on);
+      setGoogleShared(gcal.isShared());
+      if (on) setGoogleWho(await gcal.whoAmI().catch(() => null));
+    });
+  }, []);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 
   const localEvents = useMemo<CalEvent[]>(() => {
@@ -148,7 +156,20 @@ function useStore() {
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
   }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
   // Google copies of things we already render locally are skipped (they carry a Pathway tag).
-  const events = useMemo<CalEvent[]>(() => [...localEvents, ...googleEvents.filter((g) => !g.localId)], [localEvents, googleEvents]);
+  const events = useMemo<CalEvent[]>(() => {
+    const localIds = new Set(localEvents.map((e) => e.id));
+    return [...localEvents, ...googleEvents.filter((g) => !g.localId || !localIds.has(g.localId))];
+  }, [localEvents, googleEvents]);
+  /** Study blocks in the shared calendar that this browser did not create: treat them as part of the plan. */
+  const sharedBlocks = useMemo<Block[]>(() => {
+    const local = new Set(s.blocks.map((b) => b.id));
+    return googleEvents
+      .filter((g) => g.localId && g.kind === "study" && !local.has(g.localId))
+      .map((g) => ({ id: g.localId!, course: courses.find((c) => g.title.startsWith(c.code))?.slug ?? "", title: g.title, at: g.start, done: false, googleId: g.id.slice(2) }));
+  }, [googleEvents, s.blocks, courses]);
+  const allBlocks = useMemo<Block[]>(() => [...s.blocks, ...sharedBlocks], [s.blocks, sharedBlocks]);
+  /** Google's id for one of our events: from Google's own tag first (shared calendar, any visitor), then this browser's map. */
+  const gidFor = (localId: string) => googleEvents.find((g) => g.localId === localId)?.id.slice(2) ?? s.gids[localId] ?? s.blocks.find((b) => b.id === localId)?.googleId;
   const suggestions = useMemo<Suggestion[]>(
     () => suggest(events, demo.now, courses.map((c) => ({ slug: c.slug, code: c.code, exam: c.exam, atRisk: c.result.atRisk }))).filter((x) => !s.dismissed.includes(x.id)),
     [events, courses, s.dismissed],
@@ -158,6 +179,74 @@ function useStore() {
   const update = (fn: (st: PState) => PState) =>
     profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(), ...(v.by[profile.id] ?? {}) }) } }));
 
+  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
+  const prevGoogle = useRef<Map<string, CalEvent> | null>(null);
+  const touched = useRef<Map<string, string>>(new Map()); // google id -> start we wrote; a matching start is our own change, not news
+  const TOUCHED = "pathway:gcal-touched";
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(TOUCHED);
+      if (raw) touched.current = new Map(Object.entries(JSON.parse(raw)));
+    } catch {}
+  }, []);
+  const markTouched = (gid: string, start: string) => {
+    touched.current.set(gid, start.slice(0, 16));
+    try {
+      sessionStorage.setItem(TOUCHED, JSON.stringify(Object.fromEntries(touched.current)));
+    } catch {}
+  };
+  const fmtWhen = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const notice = (text: string) => {
+    setNotices((n) => [{ id: Date.now() + Math.random(), text }, ...n].slice(0, 5));
+    say(text);
+  };
+  const ours = (gid: string, start: string) => touched.current.get(gid) === start.slice(0, 16);
+  // 1. Diff Google against the last poll: anything moved, added or removed there gets a notice.
+  // 2. For our own tagged events, pull Google's version into local state so the week matches.
+  const SEEN = "pathway:gcal-seen";
+  const reconcile = (fromGoogle: CalEvent[]) => {
+    if (!prevGoogle.current) {
+      try {
+        const raw = sessionStorage.getItem(SEEN);
+        if (raw) prevGoogle.current = new Map((JSON.parse(raw) as CalEvent[]).map((g) => [g.id, g]));
+      } catch {}
+    }
+    const prev = prevGoogle.current;
+    const cur = new Map(fromGoogle.map((g) => [g.id, g]));
+    try {
+      sessionStorage.setItem(SEEN, JSON.stringify(fromGoogle));
+    } catch {}
+    if (prev) {
+      for (const [id, g] of cur) {
+        const was = prev.get(id);
+        if (ours(id.slice(2), g.start)) continue;
+        if (!was) notice(`Heads up: "${g.title}" was added in Google Calendar for ${fmtWhen(g.start)}.`);
+        else if (was.start.slice(0, 16) !== g.start.slice(0, 16)) notice(`Heads up: "${g.title}" moved to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
+      }
+      for (const [id, was] of prev) if (!cur.has(id) && !ours(id.slice(2), "")) notice(`Heads up: "${was.title}" was removed in Google Calendar. Taking it off your week.`);
+    }
+    prevGoogle.current = cur;
+    // local state follows Google for our tagged events
+    const byLocal = new Map(fromGoogle.filter((g) => g.localId).map((g) => [g.localId!, g]));
+    for (const e of localEvents) {
+      const g = byLocal.get(e.id);
+      if (g) {
+        if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
+          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
+          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
+        }
+      } else if (prev && [...prev.values()].some((p) => p.localId === e.id)) {
+        // it was in Google last poll and is gone now: someone deleted it there
+        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
+        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
+        update((st) => {
+          const gids = { ...st.gids };
+          delete gids[e.id];
+          return { ...st, gids };
+        });
+      }
+    }
+  };
   // Write every local event Google does not have yet. Idempotent: gids remembers what was written.
   const syncing = useRef(false);
   const syncAll = async (): Promise<number> => {
@@ -165,15 +254,23 @@ function useStore() {
     syncing.current = true;
     let n = 0;
     try {
-      const have = { ...s.gids };
-      // blocks written by the earlier build kept their Google id on the block itself
+      const have: Record<string, string> = { ...s.gids };
       for (const b of s.blocks) if (b.googleId && !have[b.id]) have[b.id] = b.googleId;
+      // what Google already holds (tagged by Pathway), fetched fresh so two visitors never double-write
+      const fresh = await gcal.listWeek(monday);
+      setGoogleEvents(fresh);
+      reconcile(fresh); // keeps the diff baseline current so our own writes below stay silent later
+      for (const g of fresh) if (g.localId) have[g.localId] = g.id.slice(2);
+      const horizon = new Date(monday);
+      horizon.setDate(monday.getDate() + 14);
       for (const e of localEvents) {
         if (have[e.id]) continue;
+        if (new Date(e.start) < monday || new Date(e.start) >= horizon) continue;
         if (e.kind === "study" && s.blocks.find((b) => b.id === e.id)?.done) continue;
         const tag = e.source === "pathway" ? "Planned in Pathway" : "From Moodle via Pathway";
         const id = await gcal.insert({ title: e.title, start: e.start, end: e.end }, `${tag}\nPathway:${e.id}`);
         have[e.id] = id;
+        markTouched(id, e.start);
         n++;
         update((st) => ({ ...st, gids: { ...st.gids, [e.id]: id } }));
       }
@@ -182,44 +279,14 @@ function useStore() {
     } finally {
       syncing.current = false;
     }
-    return n;
-  };
-  const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
-  const seenGids = useRef<Set<string>>(new Set());
-  const fmtWhen = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
-  const notice = (text: string) => {
-    setNotices((n) => [{ id: Date.now() + Math.random(), text }, ...n].slice(0, 5));
-    say(text);
-  };
-  // Compare Google's copy of each Pathway event with ours. Moved in Google -> move here and say so.
-  // Deleted in Google -> drop it here and say so. Changes we made ourselves already match, so they stay quiet.
-  const reconcile = (fromGoogle: CalEvent[]) => {
-    const weekEnd = new Date(monday);
-    weekEnd.setDate(monday.getDate() + 7);
-    const byLocal = new Map(fromGoogle.filter((g) => g.localId).map((g) => [g.localId!, g]));
-    for (const e of localEvents) {
-      const gid = s.gids[e.id] ?? s.blocks.find((b) => b.id === e.id)?.googleId;
-      if (!gid) continue;
-      const g = byLocal.get(e.id);
-      if (g) {
-        seenGids.current.add(gid);
-        if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
-          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
-          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
-          notice(`Heads up: you moved "${e.title}" to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
-        }
-      } else if (seenGids.current.has(gid) && new Date(e.start) >= monday && new Date(e.start) < weekEnd) {
-        seenGids.current.delete(gid);
-        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
-        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
-        update((st) => {
-          const gids = { ...st.gids };
-          delete gids[e.id];
-          return { ...st, gids };
-        });
-        notice(`Heads up: you removed "${e.title}" in Google Calendar. Taking it off your week.`);
+    if (n) {
+      const after = await gcal.listWeek(monday).catch(() => null);
+      if (after) {
+        setGoogleEvents(after);
+        reconcile(after);
       }
     }
+    return n;
   };
   const refreshGoogle = async () => {
     if (!gcal.isConnected()) return;
@@ -235,7 +302,8 @@ function useStore() {
   useEffect(() => {
     if (!googleOn) return;
     const tick = () => void refreshRef.current().catch(() => {});
-    const id = setInterval(tick, 45_000);
+    tick(); // first fetch as soon as the calendar is known to be connected
+    const id = setInterval(tick, 20_000);
     const onFocus = () => document.visibilityState === "visible" && tick();
     document.addEventListener("visibilitychange", onFocus);
     window.addEventListener("focus", onFocus);
@@ -280,7 +348,7 @@ function useStore() {
     now: demo.now,
     profiles,
     profile,
-    state: s,
+    state: { ...s, blocks: allBlocks },
     courses,
     toast,
     dismissToast: () => setToast(undefined),
@@ -314,7 +382,9 @@ function useStore() {
     },
     completeBlock: (b: Block) => {
       sync.blockDone(profile.id, b.id, true);
-      bump(b.course, "sessions", "Study block done", { blocks: s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) }, { kind: "study", minutes: 45 });
+      const mine = s.blocks.some((x) => x.id === b.id);
+      const blocks = mine ? s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) : [...s.blocks, { ...b, done: true }];
+      bump(b.course, "sessions", "Study block done", { blocks }, { kind: "study", minutes: 45 });
     },
     toggleTodo: (id: string) => {
       sync.todo(profile.id, id, !s.done[id]);
@@ -332,6 +402,7 @@ function useStore() {
     dismissNotice: (id: number) => setNotices((n) => n.filter((x) => x.id !== id)),
     googleOn,
     googleWho,
+    googleShared,
     connectGoogle: async () => {
       await gcal.connect();
       setGoogleOn(true);
@@ -355,8 +426,11 @@ function useStore() {
         if (op.op === "move") {
           if (s.blocks.some((b) => b.id === op.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === op.id ? { ...b, at: op.start } : b)) }));
           else update((st) => ({ ...st, moved: { ...st.moved, [op.id]: { start: op.start, end: op.end } } }));
-          const gid = op.id.startsWith("g-") ? op.id.slice(2) : s.gids[op.id];
-          if (gid && gcal.isConnected()) await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
+          const gid = op.id.startsWith("g-") ? op.id.slice(2) : gidFor(op.id);
+          if (gid && gcal.isConnected()) {
+            markTouched(gid, op.start);
+            await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
+          }
         } else {
           const b: Block = { id: op.event.id, course: op.event.course ?? "", title: op.event.title, at: op.event.start, done: false };
           update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google

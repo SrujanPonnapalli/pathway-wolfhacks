@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowUp, Clock, History, MessageCircle, Mic, PhoneOff, Plus, Search, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { ArrowDown, ArrowUp, Clock, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
@@ -38,8 +38,42 @@ export function VivaPage() {
   const { chatSessions, activeChatId, startNewChat, selectChat, deleteChat } = usePathway();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Track mode transitions so switching from voice to chat does not auto-scroll
+  const prevModeRef = useRef<"chat" | "voice">(mode);
+  const chatScrollYRef = useRef<number | null>(null);
+  const switchedFromVoiceRef = useRef<boolean>(false);
+
+  const handleSetMode = (nextMode: "chat" | "voice") => {
+    if (nextMode === mode) return;
+    if (mode === "chat") {
+      chatScrollYRef.current = window.scrollY;
+    }
+    if (mode === "voice" && nextMode === "chat") {
+      switchedFromVoiceRef.current = true;
+    } else {
+      switchedFromVoiceRef.current = false;
+    }
+    prevModeRef.current = mode;
+    setMode(nextMode);
+  };
+
+  useEffect(() => {
+    if (prevModeRef.current === "voice" && mode === "chat") {
+      switchedFromVoiceRef.current = true;
+      if (chatScrollYRef.current !== null) {
+        const targetY = chatScrollYRef.current;
+        requestAnimationFrame(() => {
+          window.scrollTo({ top: targetY, behavior: "instant" });
+        });
+      }
+    } else if (prevModeRef.current === "chat" && mode === "voice") {
+      chatScrollYRef.current = window.scrollY;
+    }
+    prevModeRef.current = mode;
+  }, [mode]);
+
   const handleStartNew = () => {
-    if (mode !== "chat") setMode("chat");
+    if (mode !== "chat") handleSetMode("chat");
     startNewChat();
     setTimeout(() => {
       const input = document.getElementById("q") as HTMLInputElement | null;
@@ -49,7 +83,7 @@ export function VivaPage() {
 
   const handleSelectChat = (id: string) => {
     selectChat(id);
-    if (mode !== "chat") setMode("chat");
+    if (mode !== "chat") handleSetMode("chat");
   };
 
   return (
@@ -95,7 +129,7 @@ export function VivaPage() {
           {(["chat", "voice"] as const).map((m) => (
             <button
               key={m}
-              onClick={() => setMode(m)}
+              onClick={() => handleSetMode(m)}
               aria-pressed={mode === m}
               data-liquid-key={m}
               className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold uppercase tracking-wider transition-colors duration-300 ${mode === m ? "text-white" : "text-muted hover:text-ink"}`}
@@ -107,7 +141,14 @@ export function VivaPage() {
         </div>
         </LiquidSelect>
       </header>
-      {mode === "chat" ? <Chat onStartNew={handleStartNew} /> : <Voice />}
+      <div className={mode === "chat" ? "contents" : "hidden"}>
+        <Chat
+          onStartNew={handleStartNew}
+          isVoiceMode={mode === "voice"}
+          switchedFromVoiceRef={switchedFromVoiceRef}
+        />
+      </div>
+      {mode === "voice" && <Voice />}
       <p className="mt-4 text-sm text-muted">
         Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven&apos;t logged, and it never stores your status.
       </p>
@@ -125,14 +166,26 @@ export function VivaPage() {
   );
 }
 
-function Message({ m }: { m: ChatMsg }) {
+function Message({
+  m,
+  id,
+  isPlaying = false,
+  isLoading = false,
+  onToggleReadAloud,
+}: {
+  m: ChatMsg;
+  id?: string;
+  isPlaying?: boolean;
+  isLoading?: boolean;
+  onToggleReadAloud?: (id: string, text: string) => void;
+}) {
   if (m.role === "you")
     return <li className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-teal-soft px-4 py-3 text-teal-lip">{m.text}</li>;
   return (
     <li className="flex max-w-[90%] gap-3">
       <VivaGlyph size={36} className="mt-1 shrink-0 text-sky" />
-      <div className="rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-4 py-3">
-        <p>{m.text}</p>
+      <div className="group relative rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-4 py-3">
+        <p className="whitespace-pre-wrap">{m.text}</p>
         {m.actions && m.actions.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {m.actions.map((a) => (
@@ -140,6 +193,27 @@ function Message({ m }: { m: ChatMsg }) {
             ))}
           </div>
         )}
+        <div className="mt-2 -mb-0.5 flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => id && onToggleReadAloud?.(id, m.text)}
+            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
+              isPlaying
+                ? "bg-sky text-white shadow-xs"
+                : "text-sky/75 hover:bg-sky/15 hover:text-sky active:scale-95"
+            }`}
+            title={isPlaying ? "Stop reading" : "Read aloud"}
+            aria-label={isPlaying ? "Stop reading aloud" : "Read aloud"}
+          >
+            {isLoading ? (
+              <Loader2 size={14} className="animate-spin text-sky" />
+            ) : isPlaying ? (
+              <Square size={11} className="fill-current" />
+            ) : (
+              <Volume2 size={15} />
+            )}
+          </button>
+        </div>
       </div>
     </li>
   );
@@ -400,19 +474,199 @@ function ChatHistoryDrawer({
   );
 }
 
-function Chat({ onStartNew }: { onStartNew: () => void }) {
+function Chat({
+  onStartNew,
+  isVoiceMode,
+  switchedFromVoiceRef,
+}: {
+  onStartNew: () => void;
+  isVoiceMode: boolean;
+  switchedFromVoiceRef: React.RefObject<boolean>;
+}) {
   const { state, ask, vivaThinking, profile, activeChat } = usePathway();
   const end = useRef<HTMLLIElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const hasAutoScrolledOnOpen = useRef(false);
+
+  // Auto-scroll to bottom ONLY when viva is opened from a different page or loaded into
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [state.chat.length, vivaThinking]);
+    if (!hasAutoScrolledOnOpen.current && !switchedFromVoiceRef.current && !isVoiceMode) {
+      hasAutoScrolledOnOpen.current = true;
+      const timer = setTimeout(() => {
+        window.scrollTo({
+          top: document.documentElement.scrollHeight,
+          behavior: "instant",
+        });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [switchedFromVoiceRef, isVoiceMode]);
+
+  // Track scrolling up to show/hide the "go to bottom" down arrow button
+  const checkScroll = useCallback(() => {
+    if (isVoiceMode) return;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const scrollTop = window.scrollY;
+    const clientHeight = window.innerHeight;
+    const distanceFromBottom = scrollHeight - (scrollTop + clientHeight);
+
+    const isScrollable = scrollHeight > clientHeight + 40;
+    setIsScrolledUp(isScrollable && distanceFromBottom > 80);
+  }, [isVoiceMode]);
+
+  useEffect(() => {
+    if (isVoiceMode) return;
+    const handleScroll = () => {
+      checkScroll();
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleScroll, { passive: true });
+    const frame = requestAnimationFrame(() => {
+      checkScroll();
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [checkScroll, isVoiceMode, state.chat.length]);
+
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    window.scrollTo({
+      top: document.documentElement.scrollHeight,
+      behavior,
+    });
+  }, []);
+
+  // Read aloud audio player state
+  const [activeAudioId, setActiveAudioId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const audioBlobUrlRef = useRef<string | null>(null);
+  const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+
+  const stopMedia = useCallback(() => {
+    if (audioElRef.current) {
+      audioElRef.current.pause();
+      audioElRef.current = null;
+    }
+    if (audioBlobUrlRef.current) {
+      URL.revokeObjectURL(audioBlobUrlRef.current);
+      audioBlobUrlRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      utteranceRef.current = null;
+    }
+  }, []);
+
+  const stopAudio = useCallback(() => {
+    stopMedia();
+    setActiveAudioId(null);
+    setLoadingAudioId(null);
+  }, [stopMedia]);
+
+  useEffect(() => {
+    if (isVoiceMode) {
+      stopMedia();
+      const frame = requestAnimationFrame(() => {
+        setActiveAudioId(null);
+        setLoadingAudioId(null);
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [isVoiceMode, stopMedia]);
+
+  useEffect(() => {
+    stopMedia();
+    const frame = requestAnimationFrame(() => {
+      setActiveAudioId(null);
+      setLoadingAudioId(null);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [activeChat?.id, stopMedia]);
+
+  useEffect(() => {
+    return () => {
+      stopMedia();
+    };
+  }, [stopMedia]);
+
+  const handleToggleReadAloud = useCallback(
+    async (id: string, text: string) => {
+      if (activeAudioId === id || loadingAudioId === id) {
+        stopAudio();
+        return;
+      }
+
+      stopAudio();
+      setLoadingAudioId(id);
+
+      try {
+        const res = await fetch("/api/tts", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
+
+        if (res.ok) {
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          audioBlobUrlRef.current = url;
+          const audio = new Audio(url);
+          audioElRef.current = audio;
+
+          audio.onended = () => {
+            stopAudio();
+          };
+          audio.onerror = () => {
+            stopAudio();
+          };
+
+          setLoadingAudioId(null);
+          setActiveAudioId(id);
+          await audio.play();
+          return;
+        }
+        throw new Error(`TTS status ${res.status}`);
+      } catch {
+        setLoadingAudioId(null);
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          try {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utteranceRef.current = utterance;
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.onend = () => {
+              stopAudio();
+            };
+            utterance.onerror = () => {
+              stopAudio();
+            };
+            setActiveAudioId(id);
+            window.speechSynthesis.speak(utterance);
+          } catch {
+            stopAudio();
+          }
+        } else {
+          stopAudio();
+        }
+      }
+    },
+    [activeAudioId, loadingAudioId, stopAudio],
+  );
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
-    if (q) ask(q);
+    if (q) {
+      ask(q);
+      scrollToBottom("smooth");
+    }
     e.currentTarget.reset();
   };
 
@@ -448,9 +702,24 @@ function Chat({ onStartNew }: { onStartNew: () => void }) {
 
       <ol className="space-y-4" aria-live="polite">
         {state.chat.length === 0 && (
-          <Message m={{ role: "viva", text: VIVA.greeting(profile.sample ? profile.name : undefined) }} />
+          <Message
+            id="greeting"
+            m={{ role: "viva", text: VIVA.greeting(profile.sample ? profile.name : undefined) }}
+            isPlaying={activeAudioId === "greeting"}
+            isLoading={loadingAudioId === "greeting"}
+            onToggleReadAloud={handleToggleReadAloud}
+          />
         )}
-        {state.chat.map((m, i) => <Message key={i} m={m} />)}
+        {state.chat.map((m, i) => (
+          <Message
+            key={i}
+            id={`msg-${i}`}
+            m={m}
+            isPlaying={activeAudioId === `msg-${i}`}
+            isLoading={loadingAudioId === `msg-${i}`}
+            onToggleReadAloud={handleToggleReadAloud}
+          />
+        ))}
         {vivaThinking && (
           <li className="flex items-center gap-3 font-bold text-muted">
             <ThinkingOrb state="searching" size={32} theme="light" color="#1a6fd1" aria-hidden />
@@ -468,20 +737,39 @@ function Chat({ onStartNew }: { onStartNew: () => void }) {
           ))}
         </ul>
       )}
-      <form onSubmit={submit} className="sticky bottom-24 mt-6 flex items-center gap-2 rounded-2xl border-2 border-line bg-white p-1.5 pl-4 focus-within:border-sky md:bottom-6">
-        <label htmlFor="q" className="sr-only">Message Viva</label>
-        <input
-          ref={inputRef}
-          id="q"
-          name="q"
-          autoComplete="off"
-          placeholder="Message Viva…"
-          className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted"
-        />
-        <button className="btn btn-sky min-h-10 px-3" aria-label="Send">
-          <ArrowUp size={20} strokeWidth={3} />
-        </button>
-      </form>
+      <div className="sticky bottom-24 mt-6 z-30 md:bottom-6">
+        {/* Simple down arrow go to bottom button right above chat interface */}
+        <div className="pointer-events-none relative flex justify-center">
+          <button
+            type="button"
+            onClick={() => scrollToBottom("smooth")}
+            aria-label="Go to bottom"
+            title="Go to bottom"
+            className={`pointer-events-auto absolute -top-11 flex h-9 w-9 items-center justify-center rounded-full border-2 border-line bg-white text-sky shadow-md transition-all duration-200 hover:border-sky hover:bg-sky-soft hover:shadow-lg active:scale-95 ${
+              isScrolledUp
+                ? "translate-y-0 opacity-100 scale-100"
+                : "pointer-events-none translate-y-2 opacity-0 scale-90"
+            }`}
+          >
+            <ArrowDown size={18} strokeWidth={2.5} />
+          </button>
+        </div>
+
+        <form onSubmit={submit} className="flex items-center gap-2 rounded-2xl border-2 border-line bg-white p-1.5 pl-4 shadow-xs focus-within:border-sky">
+          <label htmlFor="q" className="sr-only">Message Viva</label>
+          <input
+            ref={inputRef}
+            id="q"
+            name="q"
+            autoComplete="off"
+            placeholder="Message Viva…"
+            className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted"
+          />
+          <button className="btn btn-sky min-h-10 px-3" aria-label="Send">
+            <ArrowUp size={20} strokeWidth={3} />
+          </button>
+        </form>
+      </div>
     </>
   );
 }

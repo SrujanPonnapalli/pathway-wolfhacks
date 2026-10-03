@@ -22,7 +22,7 @@ const look: Record<CalEvent["kind"], string> = {
 };
 
 export function Calendar() {
-  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, notices, dismissNotice } = usePathway();
+  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, googleShared, notices, dismissNotice } = usePathway();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const mon = mondayOf(now);
@@ -56,8 +56,8 @@ export function Calendar() {
       <PageHeader title="This week" lead="Classes and due dates from Moodle, your study blocks from Pathway, all on your calendar.">
         {googleOn ? (
           <p className="flex items-center gap-2 text-sm font-bold text-muted">
-            <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {googleWho?.email ?? "Google Calendar"}
-            <button onClick={disconnectGoogle} className="underline underline-offset-4 hover:text-ink">disconnect</button>
+            <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {googleShared ? "Google Calendar synced" : googleWho?.email ?? "Google Calendar"}
+            {!googleShared && <button onClick={disconnectGoogle} className="underline underline-offset-4 hover:text-ink">disconnect</button>}
           </p>
         ) : (
           <div className="flex items-center gap-3">

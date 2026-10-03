@@ -1,0 +1,20 @@
+Column,Source,Description,Unit,Range
+student_id,ID,Anonymous synthetic identifier,text,S1000–S1799
+course,Category,Course the record belongs to,text,8 NC State-style course codes
+class_year,Category,Student's class standing,text,Freshman–Senior
+credit_hours,Profile,Total credit hours enrolled that semester,hours,12–18
+work_hours_per_week,Profile,Self-reported paid work hours per week (some missing),hours/week,0–35
+avg_weekly_study_hours,Dashboard,Average hours of logged study time per week for this course,hours/week,0.5–18
+study_sessions_logged,Dashboard,Number of study sessions logged in the dashboard,count,≥ 3
+materials_uploaded,Dashboard,"Notes, slides, or PDFs uploaded for this course",count,0–40
+practice_quizzes_taken,Dashboard,AI-generated practice quizzes completed,count,0–60
+avg_practice_quiz_score,Dashboard,Average practice quiz score (blank if no quizzes taken),percent points,30–100
+flashcards_reviewed,Dashboard,Total flashcards reviewed,count,≥ 0
+avg_days_started_before_exam,Dashboard,Average days between first study session and each exam,days,0–14
+on_time_submission_rate,Calendar,Share of calendar deadlines submitted on time,fraction (shown as %),0.30–1.00
+missed_deadlines,Calendar,Number of deadlines missed,count,≥ 0
+late_night_study_pct,Dashboard,Share of study time logged between midnight and 4 a.m.,fraction (shown as %),0–0.90
+attendance_rate,Survey,Self-reported share of classes attended,fraction (shown as %),0.30–1.00
+avg_sleep_hours,Survey,Self-reported average nightly sleep (some missing),hours,3.5–10
+midterm_score,Outcome,Midterm exam score (available mid-semester),percent points,20–100
+at_risk,Target,1 = finished the course with a D or F (final score below 70); 0 = C or better,0/1,0 or 1 (about 28% are 1)

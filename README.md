@@ -16,6 +16,8 @@ npm run dev
 
 | Path | What |
 |---|---|
+| `data/` | Student outcomes dataset (800 rows) + data dictionary |
+| `docs/planning/` | Ideation, critiques, decisions, spec — start at `docs/planning/README.md` |
 | `src/lib/tree.ts` | Walks exported sklearn tree JSON; returns path (for D3 highlight) + risk |
 | `public/models/` | `tree_early.json`, `tree_mid.json`, `evidence.json` from the notebook (sample tree checked in) |
 | `notebooks/` | Training + export (`iaa_baseline.py`) |

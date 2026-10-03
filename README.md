@@ -1,4 +1,4 @@
-# pathway
+# Pathway
 
 Next.js (TypeScript, Tailwind) app. The decision tree is trained offline in Python and runs in the browser — no Python server.
 

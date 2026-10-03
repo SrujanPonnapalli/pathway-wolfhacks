@@ -12,6 +12,7 @@ type Meta = {
   fmt: (v: number) => string;
   ask: (t: number) => string; // the split as a yes/no question; "yes" = value above t
   fact: (v: number) => string; // the student's value, in a sentence fragment
+  goal?: (v: number) => string; // a target, as advice: "starting exam prep 3.5 days out"
 };
 
 const pct = (v: number) => `${+(v * 100).toFixed(1)}%`; // one decimal so small moves (79.5% → 80.5%) stay visible
@@ -21,26 +22,32 @@ export const FEATURES: Record<string, Meta> = {
   avg_days_started_before_exam: {
     label: "Start exam prep", role: "suggest", min: 0, max: 14, step: 0.5, fmt: (v) => `${days(v)} before`,
     ask: (t) => `Start exam prep more than ${days(t)} out?`, fact: (v) => `you start exam prep about ${days(v)} out`,
+    goal: (v) => `starting exam prep ${days(v)} out`,
   },
   attendance_rate: {
     label: "Class attendance", role: "suggest", min: 0.3, max: 1, step: 0.01, fmt: pct,
     ask: (t) => `Attend more than ${pct(t)} of classes?`, fact: (v) => `you attend ${pct(v)} of classes`,
+    goal: (v) => `getting attendance above ${pct(v - 0.01)}`,
   },
   practice_quizzes_taken: {
     label: "Practice quizzes", role: "suggest", min: 0, max: 60, step: 1, fmt: (v) => `${v}`,
     ask: (t) => `Take more than ${Math.floor(t)} practice quizzes?`, fact: (v) => `you've taken ${v} practice ${v === 1 ? "quiz" : "quizzes"}`,
+    goal: (v) => `taking ${v} practice quizzes`,
   },
   on_time_submission_rate: {
     label: "On-time submissions", role: "suggest", min: 0.3, max: 1, step: 0.01, fmt: pct,
     ask: (t) => `Submit more than ${pct(t)} of work on time?`, fact: (v) => `you submit ${pct(v)} of work on time`,
+    goal: (v) => `submitting ${pct(v)} of work on time`,
   },
   late_night_study_pct: {
     label: "Studying after midnight", role: "suggest", min: 0, max: 0.9, step: 0.01, fmt: pct,
     ask: (t) => `Study after midnight more than ${pct(t)} of the time?`, fact: (v) => `${pct(v)} of your study time is after midnight`,
+    goal: (v) => `keeping after-midnight study to ${pct(v)}`,
   },
   missed_deadlines: {
     label: "Missed deadlines", role: "suggest", min: 0, max: 15, step: 1, fmt: (v) => `${v}`,
     ask: (t) => `Miss more than ${Math.floor(t)} deadlines?`, fact: (v) => `you've missed ${v} ${v === 1 ? "deadline" : "deadlines"}`,
+    goal: (v) => `keeping missed deadlines to ${v}`,
   },
   avg_weekly_study_hours: {
     label: "Weekly study hours", role: "suggest", min: 0.5, max: 18, step: 0.5, fmt: (v) => `${v} h`,
@@ -94,3 +101,5 @@ export const reasonFor = (steps: { feature: string; value: number }[]) =>
 
 export const moveText = (m: { feature: string; from: number; to: number }) =>
   `${meta(m.feature).label}: ${meta(m.feature).fmt(m.from)} → ${meta(m.feature).fmt(m.to)}`;
+
+export const goalText = (m: { feature: string; to: number }) => meta(m.feature).goal?.(m.to) ?? moveText({ ...m, from: m.to });

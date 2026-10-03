@@ -2,16 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, BookOpen, House, MessageCircle, RotateCcw, Users } from "lucide-react";
+import { useState, type ComponentType } from "react";
+import { BarChart3, BookOpen, CalendarDays, House, Mail, RotateCcw, Users } from "lucide-react";
+import { LiquidSelect } from "@/components/LiquidSelect";
+import { VivaGlyph } from "@/components/Viva";
 import { usePathway } from "@/lib/store";
 
-const nav = [
+const VivaIcon = ({ size }: { size?: number; strokeWidth?: number }) => <VivaGlyph size={size} />;
+
+type NavLink = { href: string; label: string; icon: ComponentType<{ size?: number; strokeWidth?: number }> };
+const nav: NavLink[] = [
   { href: "/", label: "Home", icon: House },
   { href: "/study", label: "Study", icon: BookOpen },
+  { href: "/calendar", label: "Week", icon: CalendarDays },
   { href: "/insights", label: "Insights", icon: BarChart3 },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/inbox", label: "Inbox", icon: Mail },
+  { href: "/viva", label: "Viva", icon: VivaIcon },
 ];
-const extra = { href: "/buddies", label: "Buddies", icon: Users };
+const extra: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
 
 export function Wordmark() {
   return (
@@ -55,24 +63,32 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function NavItem({ href, label, icon: Icon, on }: (typeof nav)[number] & { on: boolean }) {
+function NavItem({ href, label, icon: Icon, on, onPick }: NavLink & { on: boolean; onPick: (href: string) => void }) {
   return (
     <Link
       href={href}
+      onClick={() => onPick(href)}
       aria-current={on ? "page" : undefined}
-      className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1.5 max-md:py-1.5 max-md:text-xs max-md:tracking-normal max-md:normal-case ${
-        on ? "border-teal/40 bg-teal-soft text-teal-lip" : "border-transparent text-muted hover:bg-polar"
+      data-liquid-key={href}
+      className={`flex items-center gap-4 rounded-xl border-2 px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:flex-col max-md:gap-0.5 max-md:px-1 max-md:py-1.5 max-md:text-[11px] max-md:tracking-normal max-md:normal-case ${
+        on ? "border-transparent text-teal-lip" : "border-transparent text-muted hover:text-ink"
       }`}
     >
-      <Icon size={26} strokeWidth={2.4} aria-hidden />
-      {label}
+      <Icon size={22} strokeWidth={2.4} />
+      <span>{label}</span>
     </Link>
   );
 }
 
 export function Sidebar() {
   const path = usePathname();
-  const on = (href: string) => (href === "/" ? path === "/" : path.startsWith(href));
+  const { googleOn } = usePathway();
+  // Move the highlight on click, not when the next page finishes loading. The pick only
+  // counts while we're still on the page it was made from, so it clears itself after navigation.
+  const [picked, setPicked] = useState<{ href: string; from: string } | null>(null);
+  const pending = picked && picked.from === path ? picked.href : null;
+  const on = (href: string) => (pending ? pending === href : href === "/" ? path === "/" : path.startsWith(href));
+  const pick = (href: string) => setPicked({ href, from: path });
 
   return (
     <>
@@ -89,18 +105,23 @@ export function Sidebar() {
         <div className="hidden px-3 pb-8 md:block">
           <Wordmark />
         </div>
-        <ul className="flex flex-1 max-md:justify-around md:flex-col md:gap-1.5">
+        <LiquidSelect active={[...nav, extra].find((n) => on(n.href))?.href ?? ""} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="flex-1">
+        <ul className="flex max-md:justify-around md:flex-col md:gap-1.5">
           {nav.map((n) => (
             <li key={n.href}>
-              <NavItem {...n} on={on(n.href)} />
+              <NavItem {...n} on={on(n.href)} onPick={pick} />
             </li>
           ))}
           <li className="md:mt-4 md:border-t-2 md:border-line md:pt-4">
-            <NavItem {...extra} on={on(extra.href)} />
+            <NavItem {...extra} on={on(extra.href)} onPick={pick} />
           </li>
         </ul>
+        </LiquidSelect>
         <div className="hidden md:block">
           <ProfileSwitcher />
+          <p className="mt-4 px-1 text-xs font-bold leading-relaxed text-muted">
+            Connected: Moodle, Gradescope, Gmail{googleOn ? ", Google Calendar" : ""}
+          </p>
         </div>
       </nav>
     </>

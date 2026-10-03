@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
-import { Sidebar } from "@/components/Sidebar";
+import { Chrome } from "@/components/Chrome";
 import { Toast } from "@/components/ui";
 import { PathwayProvider } from "@/lib/store";
 import "./globals.css";
@@ -9,16 +9,15 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: [
 
 export const metadata: Metadata = {
   title: "Pathway",
-  description: "Your risk score is calculated on your device and never stored on a server.",
+  description: "Your status is calculated on your device and never stored by Pathway.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${nunito.variable} antialiased`}>
-      <body className="min-h-dvh overflow-x-clip pb-24 md:pb-0 md:pl-64">
+      <body className="min-h-dvh overflow-x-clip">
         <PathwayProvider>
-          <Sidebar />
-          {children}
+          <Chrome>{children}</Chrome>
           <Toast />
         </PathwayProvider>
       </body>

@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { Check, Lock, RotateCcw, Sparkles } from "lucide-react";
+import { BorderBeam } from "border-beam";
+import { Check, Lock, RotateCcw } from "lucide-react";
+import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
 import { FEATURES, meta, moveText, reasonFor } from "@/lib/features";
 import { planBlocks } from "@/lib/plan";
 import { fmtDay, score, usePathway, type CourseView } from "@/lib/store";
+import { EvidenceSection } from "./EvidenceSection";
 
 export function Insights() {
   const { courses } = usePathway();
@@ -27,23 +29,28 @@ export function Insights() {
     <main className="mx-auto max-w-[1200px] px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Insights" lead="Why each class has its status, what would help, and how sure the model is." />
 
-      <div role="tablist" aria-label="Courses" className="relative -mx-1 mb-8 flex gap-2 overflow-x-auto px-1 pb-2">
+      <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-2">
+      <LiquidSelect active={c.slug} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">
+      <div role="tablist" aria-label="Courses" className="flex items-center gap-1">
         {courses.map((x) => (
           <button
             key={x.slug}
             role="tab"
             aria-selected={x.slug === c.slug}
             onClick={() => router.replace(`/insights?course=${x.slug}`, { scroll: false })}
-            className={`flex shrink-0 items-center gap-2 rounded-xl border-2 border-b-4 px-3.5 py-2 font-extrabold ${x.slug === c.slug ? "border-teal/40 bg-teal-soft text-teal-lip" : "border-line bg-white hover:bg-polar"}`}
+            data-liquid-key={x.slug}
+            className={`relative flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 font-extrabold transition-colors duration-300 ${x.slug === c.slug ? "text-teal-lip" : "text-muted hover:text-ink"}`}
           >
             <StatusMark atRisk={x.result.atRisk} label={false} />
             {x.code}
           </button>
         ))}
       </div>
+      </LiquidSelect>
+      </div>
 
       <CourseInsight key={c.slug} c={c} />
-      <Evidence />
+      <EvidenceSection />
     </main>
   );
 }
@@ -158,9 +165,11 @@ function CourseInsight({ c }: { c: CourseView }) {
                   <Check size={20} strokeWidth={3} aria-hidden /> Added to your week
                 </p>
               ) : (
-                <button onClick={real} disabled={!canPlan} className="btn btn-primary w-full">
-                  Make it real
-                </button>
+                <BorderBeam size="md" colorVariant="ocean" theme="light" active={canPlan} borderRadius={14}>
+                  <button onClick={real} disabled={!canPlan} className="btn btn-primary w-full">
+                    Make it real
+                  </button>
+                </BorderBeam>
               )}
             </div>
             <p className="mt-2 text-sm text-muted" aria-live="polite">
@@ -209,53 +218,3 @@ function Midterm({ c, has, set }: { c: CourseView; has?: number; set: (v: number
   );
 }
 
-// Evidence for judges and skeptics. Numbers arrive from the notebook as public/models/evidence.json.
-const EVIDENCE = [
-  { title: "Catching struggling students", body: "Recall on the held-out test set vs. guessing “everyone's fine” (72% accurate, catches 0).", key: "test.recall, baseline" },
-  { title: "Early vs. mid-semester", body: "How much accuracy the early warning gives up for ~6 more weeks to act.", key: "horizons" },
-  { title: "Simple vs. complex", body: "This tree vs. a boosted model: the price of being explainable.", key: "interpretability" },
-  { title: "Rules that hold up", body: "How often each rule reappears across 200 rebuilt trees. Advice only uses stable rules.", key: "stability" },
-  { title: "If advisors can meet 15%", body: "Share of struggling students reached at each advisor capacity.", key: "capacity" },
-  { title: "Works the same for everyone?", body: "Recall and false alarms by class year, course, and work hours.", key: "fairness" },
-];
-
-function Evidence() {
-  return (
-    <section id="evidence" aria-labelledby="ev" className="scroll-mt-6">
-      <h2 id="ev" className="text-[1.75rem] font-black leading-tight md:text-[2rem]">How sure is this?</h2>
-      <p className="mt-2 max-w-[65ch] text-lg text-muted">
-        Pathway shows its work. 800 synthetic course records, about 28% finished below a C. Each student appears once, so no student is in both training and test data.
-      </p>
-      <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {EVIDENCE.map((e) => (
-          <li key={e.key} className="panel p-5">
-            <p className="font-black">{e.title}</p>
-            <p className="mt-1 text-muted">{e.body}</p>
-            <p className="mt-3 inline-block rounded-lg bg-polar px-2 py-1 text-xs font-bold text-muted">Waiting on the notebook · evidence.json: {e.key}</p>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <div className="panel p-5">
-          <h3 className="font-black">Model card</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
-            <li>For: a private self-check that suggests support and next steps.</li>
-            <li>Not for: grading, admissions, or any decision about a student.</li>
-            <li>Never suggests working fewer hours or changing things you can&apos;t control.</li>
-            <li>Learned from synthetic data; patterns, not causes.</li>
-          </ul>
-        </div>
-        <div className="panel p-5">
-          <h3 className="flex items-center gap-2 font-black"><Sparkles size={18} className="text-sky" aria-hidden /> How AI is used</h3>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-muted">
-            <li>The status comes from a decision tree, not a chatbot, and runs on this device.</li>
-            <li>Gemini reads syllabi, writes practice questions, and powers the coach.</li>
-            <li>ElevenLabs is the voice of Viva.</li>
-            <li>The team used AI coding assistants to build Pathway; see the README.</li>
-          </ul>
-          <Link href="/chat" className="mt-3 inline-block text-sm font-extrabold text-teal underline underline-offset-4">Ask the coach about your path</Link>
-        </div>
-      </div>
-    </section>
-  );
-}

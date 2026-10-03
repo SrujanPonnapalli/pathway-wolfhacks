@@ -1,0 +1,99 @@
+// Browser-side helpers for the intelligence routes. UI code calls these; nothing else
+// needs to know the request shapes. All of them throw an Error with a readable message.
+
+import type { CoachContext, CoachReply } from "./intel/coach";
+import type { Syllabus } from "./intel/syllabus";
+import type { StudyMaterial, VivaFeedback, VivaQuestion } from "./intel/study";
+import type { DatasetInsights, DatasetProfile } from "./intel/dataset";
+import type { Classification, GenericSummary, GradeImport } from "./intel/analyze";
+import type { Source } from "./intel/coach";
+import type { CourseView, Block } from "./store";
+
+async function json<T>(res: Response): Promise<T> {
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error ?? `${res.status} ${res.statusText}`);
+  return body as T;
+}
+
+function form(file: File, extra: Record<string, string | undefined> = {}) {
+  const fd = new FormData();
+  fd.append("file", file);
+  for (const [k, v] of Object.entries(extra)) if (v != null) fd.append(k, v);
+  return fd;
+}
+
+/** Drop anything: Gemini says what it is and extracts accordingly. */
+export type AnalyzeResult = {
+  classification: Classification;
+  syllabus?: Syllabus;
+  grades?: GradeImport;
+  study?: StudyMaterial;
+  profile?: DatasetProfile;
+  insights?: DatasetInsights;
+  generic?: GenericSummary;
+};
+export const analyzeFile = (file: File, opts: { question?: string; courses?: string[] } = {}) =>
+  fetch("/api/analyze", { method: "POST", body: form(file, { question: opts.question, courses: opts.courses?.join(",") }) }).then(json<AnalyzeResult>);
+
+export const parseSyllabus = (file: File, today?: string) =>
+  fetch("/api/syllabus", { method: "POST", body: form(file, { today }) }).then(json<Syllabus>);
+
+export const makeStudyMaterial = (file: File, counts: { quiz?: number; viva?: number; flashcards?: number } = {}, focus?: string) =>
+  fetch("/api/quiz", { method: "POST", body: form(file, { quiz: counts.quiz?.toString(), viva: counts.viva?.toString(), flashcards: counts.flashcards?.toString(), focus }) }).then(json<StudyMaterial>);
+
+export const gradeViva = (question: VivaQuestion, answer: string) =>
+  fetch("/api/viva", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, answer }) }).then(json<VivaFeedback>);
+
+export const analyzeDataset = (file: File, question?: string) =>
+  fetch("/api/dataset", { method: "POST", body: form(file, { question }) }).then(json<{ profile: DatasetProfile; insights: DatasetInsights }>);
+
+/** Build the coach's context from what usePathway() already has. Status stays on-device; we send numbers, not identity. */
+export function coachContext(input: {
+  now: Date;
+  studentName: string;
+  courses: CourseView[];
+  todos: { title: string; detail: string; due?: string }[];
+  blocks: Block[];
+  sources?: Source[];
+  inbox?: { from: string; subject: string; course: string; snippet: string }[];
+  week?: { title: string; start: string; end: string; kind: string }[];
+  suggestions?: { title: string; why: string }[];
+}): CoachContext {
+  return {
+    now: input.now.toISOString(),
+    studentName: input.studentName,
+    courses: input.courses.map((c) => ({
+      slug: c.slug,
+      code: c.code,
+      name: c.name,
+      exam: c.exam,
+      daysToExam: c.daysToExam,
+      status: c.result.atRisk ? "check_in" : "on_track",
+      x: c.x,
+      steps: c.steps.map(({ feature, threshold, value, above }) => ({ feature, threshold, value, above })),
+      recourse: c.rec?.moves ?? null,
+      similarStudentsStruggledPct: Math.round(c.result.pRisk * 100),
+    })),
+    todos: input.todos,
+    blocks: input.blocks,
+    sources: input.sources ?? [],
+    inbox: input.inbox ?? [],
+    week: input.week ?? [],
+    suggestions: input.suggestions ?? [],
+  };
+}
+
+/** Turn an analyze result into the compact Source the coach reads. */
+export function toSource(r: AnalyzeResult, course: string): Source | null {
+  if (r.syllabus) {
+    const s = r.syllabus;
+    return { kind: "syllabus", course, title: r.classification.title, deadlines: s.deadlines.map((d) => ({ title: d.title, date: d.date, kind: d.kind })), policies: s.policies as unknown as Record<string, string>, grading: s.grading.map((g) => ({ component: g.component, weight_percent: g.weight_percent })) };
+  }
+  if (r.grades) return { kind: "grades", course, title: r.classification.title, items: r.grades.items };
+  if (r.generic) return { kind: "note", course, title: r.classification.title, summary: r.generic.summary };
+  if (r.study) return { kind: "note", course, title: r.classification.title, summary: `Study material: ${r.study.topics.join(", ")}` };
+  return null;
+}
+
+export const askCoach = (message: string, context: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: "chat" | "draft" = "chat") =>
+  fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, context, history, mode }) }).then(json<CoachReply>);

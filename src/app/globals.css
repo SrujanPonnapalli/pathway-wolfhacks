@@ -109,6 +109,11 @@ body {
   border-color: var(--color-sky-lip);
   color: white;
 }
+@utility btn-danger {
+  background: #d93636;
+  border-color: #a52222;
+  color: white;
+}
 @utility btn-ghost {
   background: white;
   border-color: var(--color-line);
@@ -181,4 +186,13 @@ body {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* Viva's face fades in as the cloud body grows in from a dot. */
+@keyframes viva-appear {
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
+}
+.viva-appear {
+  animation: viva-appear 450ms 350ms cubic-bezier(.3,.7,.2,1) both;
 }

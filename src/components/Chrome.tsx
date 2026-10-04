@@ -6,14 +6,14 @@ import { AccountMenu } from "@/components/Account";
 import { Sidebar } from "@/components/Sidebar";
 import { VivaDock, VivaProvider } from "@/components/VivaDock";
 
-// Full-screen device surfaces (the Pi kiosk at /device) get no app chrome — no sidebar,
-// no bottom nav, none of the padding that makes room for them — but VivaProvider still
-// wraps them so the kiosk can run the same voice session, and it survives page changes.
+// Standalone surfaces (the Pi kiosk and landing page) get no app sidebar or dock.
+// VivaProvider still wraps them so the kiosk can keep its voice session across pages.
 export function Chrome({ children }: { children: ReactNode }) {
-  const device = usePathname().startsWith("/device");
+  const path = usePathname();
+  const fullscreen = path.startsWith("/device") || path === "/landing";
   return (
     <VivaProvider>
-      {device ? (
+      {fullscreen ? (
         children
       ) : (
         <>

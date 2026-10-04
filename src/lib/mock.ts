@@ -24,6 +24,7 @@ export type Profile = {
   classYear: string;
   streakDays: number;
   sample: boolean; // built from dataset rows (synthetic) vs. the live judge profile
+  account?: boolean; // the signed-in Google account's own profile
   courses: CourseSeed[];
   classes: ClassSeed[];
   todos: TodoSeed[];

@@ -12,6 +12,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar } from "@/components/Viva";
 import { StatusMark } from "@/components/ui";
 import { googleCalendarUrl } from "@/lib/calendar";
+import { isSampleSource } from "@/lib/knowledge/sample";
 import { moveText, reasonFor } from "@/lib/features";
 import { inboxFor } from "@/lib/inbox";
 import { planBlocks } from "@/lib/plan";
@@ -327,13 +328,21 @@ export function Files() {
     }
   };
   const facts = (sourceId: string) => knowledge.nodes.filter((n) => n.source === sourceId && n.review !== "rejected");
+  const own = knowledge.sources.filter((src) => !isSampleSource(src));
 
   return (
     <section aria-labelledby="files">
       <h2 id="files" className="font-extrabold">Course materials</h2>
+      {/* Sample course files live on the Courses tab; this card is the drop zone plus what the student added. */}
       {knowledge.sources.length > 0 && (
+        <p className="mt-1 text-sm text-muted">
+          {knowledge.sources.length} file{knowledge.sources.length === 1 ? "" : "s"} · {knowledge.nodes.filter((n) => n.review !== "rejected").length} facts on file for your {courses.length} class{courses.length === 1 ? "" : "es"}.{" "}
+          <Link href="/courses?tab=facts" className="font-extrabold text-teal">See them on Courses</Link>
+        </p>
+      )}
+      {own.length > 0 && (
         <ul className="mt-2" aria-live="polite">
-          {knowledge.sources.map((src) => {
+          {own.map((src) => {
             const mine = facts(src.id);
             const waiting = mine.filter((n) => n.review === "proposed").length;
             return (

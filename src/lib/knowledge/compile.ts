@@ -53,11 +53,17 @@ export function scopeFor(message: string, pageCourse: string | undefined, all: s
 }
 
 /** Compact, citable context for the courses in scope. Other courses get one line each. */
-export function compileContext(kb: Knowledge, scope: Scope, maxChars = 6000): { text: string; ids: string[] } {
+export function compileContext(kb: Knowledge, scope: Scope, maxChars = 6000, now = new Date()): { text: string; ids: string[] } {
   const live = kb.nodes.filter((n) => n.review !== "rejected" && !n.supersededBy);
   const L: string[] = [];
   const ids: string[] = [];
-  const focus = scope.courses.length === scope.all.length && scope.all.length > 1 ? scope.courses : scope.courses;
+  const focus = scope.courses;
+  // One course in focus gets every fact. Several (a question about the whole week) get the parts that
+  // can change a plan: dates in the next two weeks, open and missing work, the weights. Graded history,
+  // policies, contacts and topics are a question away ("in BIO 181, ...") and cost nothing until then.
+  const brief = focus.length > 1;
+  const soon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 14).toISOString().slice(0, 10);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString().slice(0, 10);
   for (const code of scope.all) {
     const mine = live.filter((n) => n.course === code);
     if (!mine.length) continue;
@@ -69,13 +75,19 @@ export function compileContext(kb: Knowledge, scope: Scope, maxChars = 6000): { 
     }
     const files = kb.sources.filter((s) => s.course === code);
     L.push(`${code} knowledge (cite ids in used)${files.length ? ` · files: ${files.map((f) => `${f.filename} [${f.kind}]`).join(", ")}` : ""}:`);
-    const order: KbNode["type"][] = ["deadline", "grade_item", "grading", "policy", "contact", "topic", "course_info"];
+    const order: KbNode["type"][] = brief ? ["deadline", "grade_item", "grading"] : ["deadline", "grade_item", "grading", "policy", "contact", "topic", "course_info"];
     for (const t of order) {
-      const rows = confirmed.filter((n) => n.type === t).sort((a, b) => String(a.body.date ?? a.body.due ?? "").localeCompare(String(b.body.date ?? b.body.due ?? "")));
+      let rows = confirmed.filter((n) => n.type === t).sort((a, b) => String(a.body.date ?? a.body.due ?? "").localeCompare(String(b.body.date ?? b.body.due ?? "")));
+      if (brief && t === "deadline") rows = rows.filter((n) => String(n.body.date ?? "") >= today && String(n.body.date ?? "") <= soon);
+      if (brief && t === "grade_item") rows = rows.filter((n) => n.body.status !== "graded" && n.body.status !== "submitted");
       for (const n of rows) {
         L.push(`  ${line(n)}`);
         ids.push(n.id);
       }
+    }
+    if (brief) {
+      const skipped = confirmed.length - ids.filter((id) => mine.some((n) => n.id === id)).length;
+      if (skipped > 0) L.push(`  (${skipped} more facts on file: graded work, policies, people, ${confirmed.filter((n) => n.type === "topic").length} lecture files; ask about ${code} to see them)`);
     }
     if (waiting.length) L.push(`  waiting for the student to confirm (do not state as fact): ${waiting.map((n) => `${n.title}${n.type === "deadline" ? ` ${date(n)}` : ""}`).join("; ")}`);
   }

@@ -1,6 +1,7 @@
 // POST multipart { file, profile, courses (JSON array of codes), course?, existing? (JSON nodes) }
 // Streams NDJSON: one {stage: ...} object per line, ending with {stage: "done", source, nodes, edges, legacy}.
 // The browser animates each stage as it lands. See docs/knowledge/PLAN.md §3.2.
+import { mayUseProfile } from "@/lib/db";
 import { ingest } from "@/lib/knowledge/ingest";
 import type { IngestEvent } from "@/lib/knowledge/types";
 import { HttpError, readUpload, str } from "@/lib/intel/http";
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
     return Response.json({ error: err.message }, { status: err.status ?? 400 });
   }
   const profile = str(upload.form.get("profile"), "maya");
+  if (!(await mayUseProfile(req, profile))) return Response.json({ error: "Sign in to that account first." }, { status: 403 });
   const courses = safeJson<string[]>(str(upload.form.get("courses")), []);
   const course = str(upload.form.get("course")) || undefined;
   const existing = safeJson<{ nodes: never[] } | undefined>(str(upload.form.get("existing")), undefined);

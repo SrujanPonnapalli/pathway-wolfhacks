@@ -9,9 +9,13 @@ import * as personal from "./gcalPersonal";
 let mode: "shared" | "personal" | "unknown" = "unknown";
 let sharedId: string | null = null;
 
-/** Call once on load. Resolves true when a calendar is already connected. */
-export async function init(): Promise<boolean> {
-  if (mode !== "unknown") return isConnected();
+/** Call on load and on profile switch. Resolves true when a calendar is already connected.
+ *  A signed-in Google account always uses its own calendar, never the shared demo one. */
+export async function init(personalOnly = false): Promise<boolean> {
+  if (personalOnly) {
+    mode = "personal";
+    return personal.isConnected();
+  }
   try {
     const r = await fetch("/api/gcal", { cache: "no-store" });
     const j = (await r.json()) as { connected: boolean; calendarId: string | null };

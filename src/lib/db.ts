@@ -1,6 +1,7 @@
 // Server-only Postgres client for Tiger Cloud. One connection per serverless instance and no
 // prepared statements, so it works through Tiger's PgBouncer pooler (use the pooled URL on Vercel).
 import postgres from "postgres";
+import { sessionProfile } from "./auth";
 
 let client: postgres.Sql | null = null;
 
@@ -14,15 +15,25 @@ export function db() {
 export const noDb = () => Response.json({ error: "database not configured" }, { status: 503 });
 export const bad = (error: string) => Response.json({ error }, { status: 400 });
 
-// No auth in the demo: a profile id is trusted if it exists. See docs/database/README.md.
-export async function profileExists(sql: postgres.Sql, id: unknown) {
+// Who may act as a profile: demo profiles (no Google account) are open to everyone, as before;
+// a profile that belongs to a Google account only to that account's session cookie.
+export async function profileExists(sql: postgres.Sql, id: unknown, req: Request) {
   if (typeof id !== "string" || !id) return false;
-  const [row] = await sql`SELECT 1 FROM profiles WHERE id = ${id}`;
-  return !!row;
+  const [row] = await sql`SELECT EXISTS (SELECT 1 FROM accounts a WHERE a.profile_id = p.id) AS owned FROM profiles p WHERE p.id = ${id}`;
+  return !!row && (!row.owned || sessionProfile(req) === id);
 }
 
 export async function courseExists(sql: postgres.Sql, profile: string, slug: unknown) {
   if (typeof slug !== "string" || !slug) return false;
   const [row] = await sql`SELECT 1 FROM courses WHERE profile_id = ${profile} AND slug = ${slug}`;
   return !!row;
+}
+
+/** For routes that also run without a database (Knowledge): a profile owned by a Google account is
+ *  only usable with its own session. Demo profiles, unknown ids and the no-database mode stay open. */
+export async function mayUseProfile(req: Request, id: string) {
+  const sql = db();
+  if (!sql) return true;
+  const [row] = await sql`SELECT 1 FROM accounts WHERE profile_id = ${id}`;
+  return !row || sessionProfile(req) === id;
 }

@@ -16,12 +16,15 @@ import { compileContext, scopeFor } from "./knowledge/compile";
 import { dropSource, ingestFile, legacySources, merge, reassign, setReview as reviewLocal, summary as ingestSummary, type DoneEvent } from "./knowledge/client";
 import { emptyKnowledge, type IngestEvent, type KbNode, type Knowledge, type Review } from "./knowledge/types";
 import { nodeId } from "./knowledge/nodes";
+import { SAMPLE_VERSION, isSampleSource, retireSuperseded, sampleKnowledge } from "./knowledge/sample";
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import type { StudyMaterial } from "./intel/study";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
-import { blocksAsEvents, demoWeek, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { pickExcerpts } from "./knowledge/excerpts";
+import { docsFor } from "./knowledge/sample";
 import type { Proposal } from "./intel/planner";
 import ROWS from "./rows.json";
 
@@ -179,30 +182,34 @@ function useStore() {
     if (activeId) hydrate(activeId);
   }, [activeId, hydrate]);
 
-  // Demo profiles arrive already knowing their courses: the seed (public/knowledge/<id>.json) was
-  // built by sending the real syllabi and grade pages through the ingestion agent (npm run kb:seed).
-  // No upload is needed; the Knowledge/course tab shows where every fact came from.
-  const seedKey = activeId ? `${activeId}:${saved.by[activeId]?.seeded ?? ""}:${saved.by[activeId]?.knowledge?.sources.length ?? 0}` : "";
+  // Every profile arrives already knowing its courses: syllabus, gradebook and lecture files as
+  // graph facts, built in code from src/lib/coursework-data.ts (src/lib/knowledge/sample.ts). No
+  // upload is needed. The seed is replaced when the sample content changes or a course is added
+  // (the judge's onboarding); files the student dropped themselves are kept.
+  const seedCourses = useMemo(() => {
+    const p = profiles.find((x) => x.id === activeId);
+    return p ? [...p.courses, ...((saved.by[p.id]?.added ?? []).filter((a) => !p.courses.some((c) => c.slug === a.slug)))] : [];
+  }, [profiles, activeId, saved]);
+  const seedStamp = activeId ? `${SAMPLE_VERSION}|${seedCourses.map((c) => c.code).sort().join(",")}` : "";
+  const seedKey = activeId ? `${activeId}:${saved.by[activeId]?.seeded ?? ""}:${seedStamp}` : "";
   useEffect(() => {
-    if (!activeId) return;
-    const cur = saved.by[activeId];
-    if (cur?.seeded || cur?.knowledge?.sources.length) return;
-    let gone = false;
-    fetch(`/knowledge/${activeId}.json`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((seed: (Knowledge & { version?: string }) | null) => {
-        if (gone || !seed || !Array.isArray(seed.nodes)) return;
-        setSaved((v) => {
-          const st = { ...empty(activeId), ...(v.by[activeId] ?? {}) };
-          if (st.seeded || st.knowledge.sources.length) return v;
-          const kb = merge(st.knowledge, seed);
-          return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seed.version ?? "1" } } };
-        });
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
+    if (!activeId || !seedStamp) return;
+    if ((saved.by[activeId]?.seeded ?? "") === seedStamp) return;
+    const t = setTimeout(() => setSaved((v) => {
+      const st = { ...empty(activeId), ...(v.by[activeId] ?? {}) };
+      if (st.seeded === seedStamp) return v;
+      const sample = sampleKnowledge(activeId, seedCourses, demo.now);
+      // Keep the student's own files and facts; a seed from before the in-code samples is replaced whole.
+      const fresh = st.seeded && !st.seeded.startsWith(SAMPLE_VERSION) && !st.seeded.startsWith("coursework-");
+      const keepSources = fresh ? [] : st.knowledge.sources.filter((x) => !isSampleSource(x));
+      const keepIds = new Set(keepSources.map((x) => x.id));
+      const keepNodes = fresh ? [] : st.knowledge.nodes.filter((n) => (n.source ? keepIds.has(n.source) : n.createdBy !== "seed"));
+      const nodeIds = new Set(keepNodes.map((n) => n.id));
+      const keepEdges = fresh ? [] : st.knowledge.edges.filter((e) => nodeIds.has(e.from) && nodeIds.has(e.to));
+      const kb = retireSuperseded(merge({ sources: keepSources, nodes: keepNodes, edges: keepEdges }, sample));
+      return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seedStamp } } };
+    }), 0);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedKey]);
 
@@ -276,18 +283,20 @@ function useStore() {
   const [googleOn, setGoogleOn] = useState(false);
   const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
   const [googleShared, setGoogleShared] = useState(false);
+  const isAccount = !!profile?.account;
   useEffect(() => {
-    gcal.init().then(async (on) => {
+    gcal.init(isAccount).then(async (on) => {
       setGoogleOn(on);
       setGoogleShared(gcal.isShared());
-      if (on) setGoogleWho(await gcal.whoAmI().catch(() => null));
+      setGoogleWho(on ? await gcal.whoAmI().catch(() => null) : null);
     });
-  }, []);
+  }, [isAccount]);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 
   const localEvents = useMemo<CalEvent[]>(() => {
     if (!profile) return [];
-    const feed = [...demoWeek(demo.now, courses, profile.todos), ...sourceEvents(s.sources, courses, demo.now)];
+    const demoFeed = demoWeek(demo.now, courses, profile.todos);
+    const feed = [...demoFeed, ...sourceEvents(s.sources, courses, demo.now, demoFeed)];
     const base = [...feed, ...blocksAsEvents(s.blocks)].filter((e) => !s.removed.includes(e.id));
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
   }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
@@ -589,6 +598,16 @@ function useStore() {
     toast,
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
+    /** After Google sign-in or sign-out: the visible profiles change, so reload them and pick one. */
+    reloadProfiles: async (select?: string, forget?: string) => {
+      const p = await getProfiles();
+      setProfiles(p);
+      setSaved((v) => {
+        const by = { ...v.by };
+        if (forget) delete by[forget]; // a deleted account leaves nothing behind on this device either
+        return { ...v, by, profile: select ?? (p.some((x) => x.id === v.profile) ? v.profile : p[0]?.id) };
+      });
+    },
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
@@ -634,7 +653,7 @@ function useStore() {
     addJudgeCourse: async () => {
       update((st) => (st.added.length ? st : { ...st, added: [demo.judgeCourse], addedClasses: [demo.judgeClass] }));
       say("BIO 181 added from your syllabus.");
-      await sync.addJudgeCourse();
+      await sync.addJudgeCourse(profile.id);
       if (isLive()) setProfiles(await getProfiles());
     },
     events,
@@ -693,7 +712,9 @@ function useStore() {
       if (s.blocks.some((b) => b.id === id) || sharedBlocks.some((b) => b.id === id)) {
         const mine = s.blocks.some((b) => b.id === id);
         const shared = sharedBlocks.find((b) => b.id === id);
-        update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start } : b)) : [...st.blocks, { ...shared!, at: start }] }));
+        // The block keeps the length it was given (a resize is a move with a new end).
+        const minutes = Math.max(15, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000));
+        update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start, minutes } : b)) : [...st.blocks, { ...shared!, at: start, minutes }] }));
       } else if (!id.startsWith("g-")) update((st) => ({ ...st, moved: { ...st.moved, [id]: { start, end } } }));
       const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
       if (gid && gcal.isConnected()) {
@@ -739,12 +760,26 @@ function useStore() {
       say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}.${rescored || " Viva can use it now."}`);
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
+    /** Rename a block Pathway made. Returns false for Moodle or Google events, which keep their names. */
+    renameEvent: (id: string, title: string) => {
+      if (!s.blocks.some((b) => b.id === id)) return false;
+      update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === id ? { ...b, title } : b)) }));
+      return true;
+    },
+    /** Sync now: re-read the sample Moodle/Gradescope records, the database and Google Calendar. */
+    syncNow: async () => {
+      update((st) => ({ ...st, seeded: "" }));
+      const p = await getProfiles().catch(() => null);
+      if (p) setProfiles(p);
+      if (profile) hydrate(profile.id);
+      if (gcal.isConnected()) await refreshGoogle().catch(() => {});
+    },
     // ---- knowledge graph (docs/knowledge/PLAN.md) --------------------------------------------
     knowledge: s.knowledge,
     /** Send a file through the ingestion agent, stage by stage, then file its facts here. */
     ingestFile: async (file: File, onStage?: (e: IngestEvent) => void, course?: string): Promise<DoneEvent> => {
       const done = await ingestFile(file, { profile: profile.id, courses: courses.map((c) => c.code), course, existing: s.knowledge.nodes }, (e) => onStage?.(e));
-      const kb = merge(s.knowledge, { sources: [done.source], nodes: done.nodes, edges: done.edges });
+      const kb = retireSuperseded(merge(s.knowledge, { sources: [done.source], nodes: done.nodes, edges: done.edges }));
       update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
       // A grade page changes the numbers the tree reads: re-score that course right away and say what moved.
       const seed = done.source.kind === "grades" ? courses.find((c) => c.code === done.source.course) : undefined;
@@ -895,22 +930,99 @@ function useStore() {
           case "add_event": {
             const minutes = Math.max(15, Math.min(240, Math.round((new Date(a.end!).getTime() - new Date(a.start!).getTime()) / 60_000) || 50));
             const course = slugOf(a.course) ?? courses.find((c) => a.title!.toUpperCase().includes(c.code))?.slug ?? "";
-            const b: Block = { id: `viva-${Date.now()}-${receipts.length}`, course, title: a.title!, at: a.start!, done: false, minutes };
-            update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
-            sync.blocks(profile.id, [b]);
-            receipts.push(`Added “${a.title}” ${when(a.start!)}${gnote()}`);
+            // Repeat: one block per day on the pattern, up to ten, through `until`.
+            const first = new Date(a.start!);
+            const until = a.until && /^\d{4}-\d{2}-\d{2}$/.test(a.until) ? new Date(`${a.until}T23:59:59`) : first;
+            const starts: Date[] = [];
+            for (let d = new Date(first); d <= until && starts.length < 10; d.setDate(d.getDate() + (a.repeat === "weekly" ? 7 : 1))) {
+              const dow = d.getDay();
+              if (a.repeat === "weekdays" && (dow === 0 || dow === 6)) continue;
+              starts.push(new Date(d));
+              if (!a.repeat || a.repeat === "none") break;
+            }
+            const made: Block[] = [];
+            const shifted: string[] = [];
+            for (const st of starts) {
+              // Taken? Slide to the next free slot that day and say so, rather than stacking on a class.
+              let at = localIso(st);
+              const probeEnd = localIso(new Date(st.getTime() + minutes * 60_000));
+              const busy = [...events, ...blocksAsEvents(made)].some((e) => e.start < probeEnd && at < e.end);
+              if (busy) {
+                const slot = freeSlot([...events, ...blocksAsEvents(made)], st, minutes, st.getHours() + (st.getMinutes() ? 1 : 0), 22) ?? freeSlot([...events, ...blocksAsEvents(made)], st, minutes, 8, 22);
+                if (slot) {
+                  shifted.push(`${when(at)} was taken, used ${when(slot.start)}`);
+                  at = slot.start;
+                }
+              }
+              made.push({ id: `viva-${Date.now()}-${receipts.length}-${made.length}`, course, title: a.title!, at, done: false, minutes });
+            }
+            if (!made.length) break;
+            update((st) => ({ ...st, blocks: [...st.blocks, ...made] })); // the sync effect writes them to Google
+            sync.blocks(profile.id, made);
+            receipts.push(made.length === 1 ? `Added “${a.title}” ${when(made[0].at)}${gnote()}` : `Added “${a.title}” ${made.length} times, ${when(made[0].at)} through ${fmtDay(made[made.length - 1].at)}${gnote()}`);
+            for (const x of shifted) receipts.push(x);
             break;
           }
           case "move_event": {
             const ev = events.find((e) => e.id === a.id);
+            if (!ev) {
+              receipts.push(`Couldn't find that event to move`);
+              break;
+            }
             await base.moveEvent(a.id!, a.start!, a.end!);
-            receipts.push(`Moved “${ev?.title ?? a.id}” to ${when(a.start!)}${gnote()}`);
+            receipts.push(`Moved “${ev.title}” to ${when(a.start!)}${gnote()}`);
+            break;
+          }
+          case "resize_event": {
+            const ev = events.find((e) => e.id === a.id);
+            if (!ev || a.end! <= ev.start) {
+              receipts.push(`Couldn't change that event's length`);
+              break;
+            }
+            await base.moveEvent(a.id!, ev.start, a.end!);
+            receipts.push(`“${ev.title}” now runs ${fmtTime(ev.start)} to ${fmtTime(a.end!)}${gnote()}`);
+            break;
+          }
+          case "rename_event": {
+            const ev = events.find((e) => e.id === a.id);
+            if (!ev) break;
+            if (!base.renameEvent(a.id!, a.title!)) {
+              receipts.push(`“${ev.title}” comes from Moodle or Google; only blocks Pathway made can be renamed`);
+              break;
+            }
+            receipts.push(`Renamed “${ev.title}” to “${a.title}”`);
             break;
           }
           case "remove_event": {
             const ev = events.find((e) => e.id === a.id);
+            if (!ev) {
+              receipts.push(`Couldn't find that event to remove`);
+              break;
+            }
             await base.removeEvent(a.id!);
-            receipts.push(`Removed “${ev?.title ?? a.id}”${gnote()}`);
+            receipts.push(`Removed “${ev.title}”${gnote()}`);
+            break;
+          }
+          case "clear_range": {
+            // Study blocks always; with kind "all" also the student's other events, never classes, exams or work.
+            const inRange = events.filter((e) => e.start < a.end! && a.start! < e.end && e.kind !== "class" && e.kind !== "exam" && e.kind !== "work" && (a.kind === "all" || e.kind === "study"));
+            for (const e of inRange) await base.removeEvent(e.id);
+            receipts.push(inRange.length ? `Cleared ${inRange.length} item${inRange.length === 1 ? "" : "s"} between ${when(a.start!)} and ${when(a.end!)}${gnote()}` : `Nothing of yours to clear between ${when(a.start!)} and ${when(a.end!)}`);
+            break;
+          }
+          case "approve_all": {
+            for (const sg of suggestions) await base.approveSuggestion(sg);
+            receipts.push(suggestions.length ? `Approved ${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"}` : "No suggestions were waiting");
+            break;
+          }
+          case "start_quiz": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            const code = courses.find((c) => c.slug === slug)?.code ?? "";
+            const want = (a.title ?? "").toLowerCase();
+            const doc = want ? docsFor(code, s.knowledge).find((d) => d.title.toLowerCase() === want) ?? docsFor(code, s.knowledge).find((d) => d.title.toLowerCase().includes(want) || want.includes(d.title.toLowerCase())) : undefined;
+            navigate = `/study?tool=${a.tool === "flashcards" ? "flashcards" : "quiz"}&course=${slug}${doc ? `&doc=${encodeURIComponent(doc.id)}` : ""}`;
+            receipts.push(doc ? `Opened a ${a.tool === "flashcards" ? "deck" : "quiz"} from “${doc.title}”` : `Opened Study for ${code}`);
             break;
           }
           case "approve_suggestion": {
@@ -989,7 +1101,17 @@ function useStore() {
     return { receipts, links, email, navigate };
   };
 
-  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat"): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
+  // Voice confirmation: on voice turns, calendar-writing actions are held as a spoken
+  // proposal ("three blocks, Tue/Thu/Sat — want me to go ahead?") until the student says
+  // yes or no, instead of mutating the calendar mid-sentence. The Week page's manual
+  // approve/dismiss is untouched — this is the same gate, just spoken.
+  const pendingActions = useRef<AgentAction[] | null>(null);
+  const MUTATING = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
+  const CONFIRM = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|approve|confirm|sounds good|please)\b/i;
+
+  // act=false is for proactive turns (device events): Viva may speak but never executes
+  // actions unprompted — nothing changes without the student asking.
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
     try {
       const ctx = coachContext({
         now: demo.now,
@@ -1005,12 +1127,19 @@ function useStore() {
       const page = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
       const pageCourse = courses.find((c) => page.includes(`course=${c.slug}`))?.code;
       const todayIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate()));
-      const weekAheadIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() + 7));
-      const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)));
+      const weekAheadIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() + 14));
+      const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)), 6000, demo.now);
       // Voice appends the student's turn before calling this; don't send it twice.
       const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
+      // If last turn ended on a spoken proposal, this message is the student's verdict:
+      // show the agent exactly what was on the table so it can re-emit or drop it.
+      const held = pendingActions.current;
+      pendingActions.current = null;
+      const message = held?.length
+        ? `${text}\n\n[Earlier you proposed these calendar changes and asked the student to confirm: ${JSON.stringify(held)}. If the student just agreed, return the same actions again so they run; if they declined, acknowledge briefly and return no actions.]`
+        : text;
       const r = await askAgent(
-        text,
+        message,
         {
           ...ctx,
           page,
@@ -1018,8 +1147,11 @@ function useStore() {
           profileId: profile.id,
           knowledge: pack.text,
           notes: s.notes,
-          // the next seven days only: enough to plan with, half the tokens of the full fortnight
+          // the next two weeks: enough to plan around exams, nothing older
           weekIds: events.filter((e) => e.end >= todayIso && e.start < weekAheadIso).map((e) => ({ id: e.id, title: e.title, start: e.start })),
+          // Lecture files this message is about, by word overlap with their titles, summaries and text. No model call,
+          // and nothing is sent unless the overlap is real, so a scheduling question costs no extra tokens.
+          excerpts: pickExcerpts(text, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)).courses, s.knowledge),
           suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
           files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
           recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),
@@ -1028,7 +1160,38 @@ function useStore() {
       );
       setUsage((u) => ({ input: u.input + r.usage.input, output: u.output + r.usage.output, turns: u.turns + 1 }));
       console.info(`[viva] ${r.specialist} answered in ${r.ms}ms, ${r.usage.input}+${r.usage.output} tokens, ${r.actions.length} action(s)`);
-      const done = await execute(r.actions);
+      let actions = r.actions;
+      let spoken = r.say;
+      if (page.startsWith("/device")) actions = actions.filter((a) => a.type !== "navigate"); // the kiosk stays put — Viva speaks instead of moving you
+      if (act && channel === "voice") {
+        const mut = actions.filter((a) => MUTATING.has(a.type));
+        if (!mut.length && held?.length && CONFIRM.test(text)) {
+          actions = held; // agent confirmed in words but dropped the actions — run the held proposal
+        } else if (!held && mut.length) {
+          // First proposal on this voice session: hold the calendar writes and say it as a
+          // proposal — never reuse `say`, which claims it already happened.
+          pendingActions.current = mut;
+          actions = actions.filter((a) => !MUTATING.has(a.type));
+          const titleFor = (id?: string) => events.find((e) => e.id === id)?.title ?? "that event";
+          const sugFor = (id?: string) => suggestions.find((x) => x.id === id)?.title ?? "the suggestion";
+          const codeFor = (slug?: string) => courses.find((c) => c.slug === slug)?.code ?? slug ?? "the course";
+          const bits = mut.map((a) => {
+            if (a.type === "add_event") return `add "${a.title}"${a.start ? ` ${fmtDay(a.start)} ${fmtTime(a.start)}` : ""}`;
+            if (a.type === "move_event") return `move "${titleFor(a.id)}"`;
+            if (a.type === "resize_event") return `change the length of "${titleFor(a.id)}"`;
+            if (a.type === "rename_event") return `rename "${titleFor(a.id)}"`;
+            if (a.type === "remove_event") return `remove "${titleFor(a.id)}"`;
+            if (a.type === "clear_range") return `clear ${a.start ? `${fmtDay(a.start)} ${fmtTime(a.start)} to ${fmtTime(a.end ?? a.start)}` : "that stretch"}`;
+            if (a.type === "approve_all") return "approve every pending suggestion";
+            if (a.type === "make_it_real") return `add the study plan for ${codeFor(a.course)}`;
+            if (a.type === "approve_suggestion") return `approve "${sugFor(a.id)}"`;
+            if (a.type === "dismiss_suggestion") return `set aside "${sugFor(a.id)}"`;
+            return a.type;
+          });
+          spoken = `I can ${bits.join(" and ")} — want me to go ahead?`;
+        }
+      }
+      const done = act ? await execute(actions) : { receipts: [] as string[], links: [] as Action[], email: undefined as EmailDraft | undefined, navigate: undefined as string | undefined };
       // What the student told Viva becomes a visible, deletable preference fact (course-scoped when they named one).
       if (r.remember.length) {
         const course = courses.find((c) => text.toLowerCase().includes(c.code.toLowerCase()))?.code ?? "";
@@ -1037,7 +1200,7 @@ function useStore() {
       }
       const byId = new Map(s.knowledge.nodes.map((n) => [n.id, n]));
       const citations = (r.used ?? []).map((id) => byId.get(id)).filter((n): n is KbNode => !!n).map((n) => ({ id: n.id, title: n.title, quote: n.quote, locator: n.locator, course: n.course }));
-      const say = r.say.trim() || (done.receipts.length ? "Done." : "I don't have that.");
+      const say = spoken.trim() || (done.receipts.length ? "Done." : "I don't have that.");
       return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations };
     } catch (e) {
       console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);

@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   if (!sql) return noDb();
   const b = await req.json().catch(() => null);
   if (!b || !KINDS.includes(b.kind)) return bad(`kind must be one of ${KINDS.join(", ")}`);
-  if (!(await profileExists(sql, b.profile_id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, b.profile_id, req))) return bad("unknown profile_id");
   if (!(await courseExists(sql, b.profile_id, b.course_slug))) return bad("unknown course_slug");
   const minutes = Number.isFinite(b.minutes) ? Math.max(0, Math.min(600, Math.round(b.minutes))) : 0;
   const score = Number.isFinite(b.score) ? Math.max(0, Math.min(100, b.score)) : null;
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   const sql = db();
   if (!sql) return noDb();
   const id = new URL(req.url).searchParams.get("profile_id");
-  if (!(await profileExists(sql, id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
   const rows = await sql`SELECT * FROM course_features WHERE profile_id = ${id} ORDER BY course_slug`;
   // numeric columns arrive as strings; send numbers.
   return Response.json(rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === "string" && /^-?\d+(\.\d+)?$/.test(v) ? Number(v) : v]))));

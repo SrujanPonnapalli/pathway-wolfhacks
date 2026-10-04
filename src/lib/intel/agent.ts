@@ -18,17 +18,22 @@ import { logTurn } from "../knowledge/db";
 
 export type AgentAction = {
   type:
-    | "add_event" // title, start, end, course?, kind
+    | "add_event" // title, start, end, course?, kind, repeat?, until?
     | "move_event" // id, start, end
+    | "resize_event" // id, end (same start, new length)
+    | "rename_event" // id, title (blocks Pathway made)
     | "remove_event" // id
+    | "clear_range" // start, end, kind? ("study" = Pathway blocks only, "all" = everything but classes, exams and work)
     | "approve_suggestion" // id
     | "dismiss_suggestion" // id
+    | "approve_all" // every pending suggestion
     | "make_it_real" // course: apply the recourse plan as study blocks
     | "complete_block" // id
     | "log_quiz" // course
     | "log_session" // course
     | "check_in" // course
     | "set_midterm" // course, score
+    | "start_quiz" // course, title (a lecture file), tool? ("quiz" | "flashcards"): opens Study on that file
     | "draft_email" // email_to, email_subject, email_body (shown to the student; never sent)
     | "navigate" // path
     | "link"; // label, path (a chip, no navigation)
@@ -38,6 +43,9 @@ export type AgentAction = {
   end?: string;
   course?: string;
   kind?: string;
+  repeat?: string;
+  until?: string;
+  tool?: string;
   score?: number;
   path?: string;
   label?: string;
@@ -56,6 +64,7 @@ export type AgentContext = CoachContext & {
   suggestionIds: { id: string; title: string }[];
   files: { course: string; title: string; kind: string }[];
   recourse: { course: string; plan: string }[]; // what "make it real" would add, per flagged course
+  excerpts?: { course: string; title: string; text: string }[]; // the lecture files this message is about, picked by word overlap (no model call)
 };
 
 export type AgentReply = { say: string; actions: AgentAction[]; remember: string[]; used: string[]; specialist: string; ms: number; usage: { input: number; output: number } };
@@ -72,15 +81,18 @@ const schema: Schema = {
       items: {
         type: Type.OBJECT,
         required: ["type"],
-        propertyOrdering: ["type", "id", "title", "start", "end", "course", "kind", "score", "path", "label", "email_to", "email_subject", "email_body"],
+        propertyOrdering: ["type", "id", "title", "start", "end", "course", "kind", "repeat", "until", "tool", "score", "path", "label", "email_to", "email_subject", "email_body"],
         properties: {
-          type: { type: Type.STRING, enum: ["add_event", "move_event", "remove_event", "approve_suggestion", "dismiss_suggestion", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "draft_email", "navigate", "link"] },
-          id: { type: Type.STRING, description: "move_event/remove_event/complete_block: the week event id; approve/dismiss_suggestion: the suggestion id. Copy exactly from CONTEXT." },
-          title: { type: Type.STRING, description: "add_event only: short event title like 'BIO 181 review'" },
-          start: { type: Type.STRING, description: "add_event/move_event only: start as local ISO, e.g. 2026-10-09T16:00:00" },
-          end: { type: Type.STRING, description: "add_event/move_event only: end as local ISO, e.g. 2026-10-09T16:50:00" },
-          course: { type: Type.STRING, description: "course slug such as bio-181 (add_event, make_it_real, log_quiz, log_session, check_in, set_midterm)" },
-          kind: { type: Type.STRING, enum: ["study", "other"], description: "add_event only" },
+          type: { type: Type.STRING, enum: ["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "approve_suggestion", "dismiss_suggestion", "approve_all", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "start_quiz", "draft_email", "navigate", "link"] },
+          id: { type: Type.STRING, description: "move_event/resize_event/rename_event/remove_event/complete_block: the calendar event id; approve/dismiss_suggestion: the suggestion id. Copy exactly from CONTEXT." },
+          title: { type: Type.STRING, description: "add_event: short event title like 'BIO 181 review'; rename_event: the new title; start_quiz: the lecture file's title from CONTEXT" },
+          start: { type: Type.STRING, description: "add_event/move_event/clear_range: start as local ISO, e.g. 2026-10-09T16:00:00" },
+          end: { type: Type.STRING, description: "add_event/move_event/resize_event/clear_range: end as local ISO, e.g. 2026-10-09T16:50:00" },
+          course: { type: Type.STRING, description: "course slug such as bio-181 (add_event, make_it_real, log_quiz, log_session, check_in, set_midterm, start_quiz)" },
+          kind: { type: Type.STRING, enum: ["study", "other", "all"], description: "add_event: study or other. clear_range: study (Pathway's blocks only) or all (everything except classes, exams and work)" },
+          repeat: { type: Type.STRING, enum: ["none", "daily", "weekdays", "weekly"], description: "add_event only: repeat the block until `until` (at most 10 copies)" },
+          until: { type: Type.STRING, description: "add_event with repeat: last date, YYYY-MM-DD" },
+          tool: { type: Type.STRING, enum: ["quiz", "flashcards"], description: "start_quiz only; default quiz" },
           score: { type: Type.NUMBER, description: "set_midterm only: 0 to 100" },
           path: { type: Type.STRING, description: "navigate/link only: an app path like /calendar or /insights?course=bio-181" },
           label: { type: Type.STRING, description: "link only: chip text, 2 to 4 words" },
@@ -105,18 +117,24 @@ Rules:
 2. Statuses are only "on track" or "worth a check-in". Never say failing, at risk, behind, or in trouble.
 3. Patterns, never cause and effect: "students with similar patterns often do better when...". Never promise outcomes.
 4. Only suggest changing habits marked role=suggest. Never suggest working fewer hours, sleeping differently, or uploading more files.
-5. Scheduling: pick times that do not overlap anything in "calendar this week", between 9:00 and 21:00 unless the student names a time, 50-minute study blocks by default. Dates are local ISO. The week list gives each event's id; use ids exactly.
-6. Approving or dismissing a pending suggestion uses its id. "Make it real" for a flagged course adds its study plan.
+5. Scheduling: you have full control of the calendar. Add, move, resize, rename, remove, clear a range, repeat a block (daily, weekdays, weekly until a date). Pick times that do not overlap anything in "calendar" unless the student names a time; the app moves a block to the next free slot if the time is taken and says so. Defaults: 50-minute study blocks; morning = 9:00, afternoon = 14:00, evening = 18:00, tonight = 19:00, "after class" = right after that class ends. Dates are local ISO; use the "dates" line for weekday names. Use event ids exactly as listed; to act on several events, return one action per event.
+6. Approving or dismissing a pending suggestion uses its id; "approve them all" is approve_all. "Make it real" for a flagged course adds its study plan.
 7. Email: when asked to write, reply to, or send mail, return a draft_email with a real, specific body in the student's voice (3 to 6 sentences, no placeholders, sign with their first name if known). The student sends it; say that in one short clause.
 8. Course knowledge: facts from the student's syllabi, grade pages, slides and notes are listed per course with ids in brackets.
    Answer deadline, grading, policy, grade and topic questions from them and put every id you relied on in "used".
    Facts marked "waiting for the student to confirm" are not settled: say so instead of stating them.
+   When a "file excerpt" is in CONTEXT, teach and quiz from that text (it is the student's own lecture file) and name the file.
+   To quiz the student on a file, use start_quiz with the file's title; to study a course with no file named, start_quiz with the course alone.
 9. Navigation: if the student asks to see or go somewhere, navigate. Add a link chip when pointing at a page would help.
-10. remember: only facts the student states about themselves (preferences, constraints, plans), never your own advice.`;
+10. remember: only facts the student states about themselves (preferences, constraints, plans), never your own advice.
+11. The "desk camera" line, when present, reports plainly observed scene facts from the kiosk camera. Use it only for
+    presence and schedule relevance (welcome back after a PERSON_RETURNED, note a step-away during a study block,
+    acknowledge materials are out). Never infer emotion, stress, focus, tiredness, health, or identity, and never
+    change a status or act on a suggestion because of it.`;
 
 const CHANNEL = {
   chat: "Reply in at most three short sentences, plain words, no headers or lists. Then one question back at most.",
-  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural.",
+  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural. Always return the actions that would make a requested change — the app holds calendar writes and asks the student to confirm before running them, and re-sends them on a later turn. Describe the change in say, never claim it is already done. On the /device kiosk never navigate — there is nowhere to go; say it instead.",
 };
 
 type Specialist = { name: string; addendum: string; maxTokens: number; temperature: number };
@@ -126,8 +144,8 @@ export function route(message: string): Specialist {
   const m = message.toLowerCase();
   if (/\b(email|e-mail|mail|write to|reply|respond|message (my|the|dr|prof)|note to|letter|extension|professor|advisor|ta\b)/.test(m))
     return { name: "writer", addendum: "WRITER: produce the email now as a draft_email action with a complete body. Keep the spoken reply to one sentence.", maxTokens: 900, temperature: 0.4 };
-  if (/\b(add|move|reschedul|schedule|put|block|calendar|remove|delete|cancel|shift|free|slot|plan my|approve|not now|dismiss|make it real)\b/.test(m))
-    return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the week in CONTEXT, avoid overlaps, and return the calendar actions. Say what you did and when, briefly.", maxTokens: 700, temperature: 0.2 };
+  if (/\b(add|move|reschedul|schedule|put|block|calendar|remove|delete|cancel|shift|free|clear|slot|plan my|approve|not now|dismiss|make it real|resize|longer|shorter|rename|repeat|every day|weekday|weekly)\b/.test(m))
+    return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the calendar in CONTEXT, avoid overlaps, and return every calendar action needed (one per event). Say what you did and when, briefly.", maxTokens: 1200, temperature: 0.2 };
   if (/\b(quiz|explain|what is|what's|define|teach|study for|review|flashcard|slides|notes|chapter|concept)\b/.test(m))
     return { name: "tutor", addendum: "TUTOR: teach from the student's files and syllabus facts in CONTEXT when they cover it; otherwise say what you have. Offer a quiz link when relevant.", maxTokens: 500, temperature: 0.4 };
   return { name: "coach", addendum: "", maxTokens: 400, temperature: 0.3 };
@@ -136,9 +154,9 @@ export function route(message: string): Specialist {
 export function renderAgentContext(ctx: AgentContext): string {
   // The week is rendered once, below, with ids (the coach's own week line would repeat it).
   const L: string[] = [renderContext({ ...ctx, week: [] })];
-  // Weekday names for the next ten days, so "Friday" never lands on a Saturday.
+  // Weekday names for the next two weeks, so "Friday" never lands on a Saturday.
   const base = new Date(ctx.now);
-  const days = Array.from({ length: 10 }, (_, i) => {
+  const days = Array.from({ length: 14 }, (_, i) => {
     const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
     const name = d.toLocaleDateString("en-US", { weekday: "short" });
     const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -150,9 +168,10 @@ export function renderAgentContext(ctx: AgentContext): string {
   if (ctx.knowledge) L.push(ctx.knowledge);
   else if (ctx.files.length) L.push(`files by course: ${ctx.files.map((f) => `${f.course}: ${f.title} [${f.kind}]`).join("; ")}`);
   else L.push("course knowledge: nothing on file yet");
+  for (const x of ctx.excerpts ?? []) L.push(`file excerpt "${x.title}" (${x.course}): ${x.text}`);
   if (ctx.weekIds.length) {
     const ends = new Map((ctx.week ?? []).map((e) => [`${e.title}|${e.start}`, `${e.end.slice(11, 16)} [${e.kind}]`]));
-    L.push(`calendar this week (id=title start-end [kind]): ${ctx.weekIds.map((e) => `${e.id}=${e.title} ${e.start.slice(5, 16).replace("T", " ")}-${ends.get(`${e.title}|${e.start}`) ?? ""}`).join("; ")}`);
+    L.push(`calendar, next 14 days (id=title start-end [kind]): ${ctx.weekIds.map((e) => `${e.id}=${e.title} ${e.start.slice(5, 16).replace("T", " ")}-${ends.get(`${e.title}|${e.start}`) ?? ""}`).join("; ")}`);
   }
   if (ctx.suggestionIds.length) L.push(`pending suggestion ids: ${ctx.suggestionIds.map((x) => `${x.id}=${x.title}`).join("; ")}`);
   if (ctx.recourse.length) L.push(`make-it-real plans: ${ctx.recourse.map((r) => `${r.course}: ${r.plan}`).join(" | ")}`);
@@ -195,10 +214,14 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
   if (process.env.NODE_ENV !== "production") console.info("[agent] raw actions:", JSON.stringify(raw).slice(0, 600));
   const actions = raw.filter((a) => {
     if (!a || typeof a.type !== "string") return false;
-    if (a.type === "add_event") return !!a.title && ok(a.start) && ok(a.end);
-    if (a.type === "move_event") return !!a.id && ok(a.start) && ok(a.end);
+    if (a.type === "add_event") return !!a.title && ok(a.start) && ok(a.end) && a.end! > a.start!;
+    if (a.type === "move_event") return !!a.id && ok(a.start) && ok(a.end) && a.end! > a.start!;
+    if (a.type === "resize_event") return !!a.id && ok(a.end);
+    if (a.type === "rename_event") return !!a.id && !!a.title;
+    if (a.type === "clear_range") return ok(a.start) && ok(a.end) && a.end! > a.start!;
     if (a.type === "remove_event" || a.type === "approve_suggestion" || a.type === "dismiss_suggestion" || a.type === "complete_block") return !!a.id;
-    if (a.type === "make_it_real" || a.type === "log_quiz" || a.type === "log_session" || a.type === "check_in") return !!a.course;
+    if (a.type === "approve_all") return true;
+    if (a.type === "make_it_real" || a.type === "log_quiz" || a.type === "log_session" || a.type === "check_in" || a.type === "start_quiz") return !!a.course;
     if (a.type === "set_midterm") return !!a.course && typeof a.score === "number";
     if (a.type === "draft_email") return !!a.email_body;
     if (a.type === "navigate") return !!a.path && a.path.startsWith("/");
@@ -208,7 +231,7 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
   const u = res.usageMetadata;
   const reply: AgentReply = {
     say: (parsed.say ?? "").trim(),
-    actions: actions.slice(0, 6),
+    actions: actions.slice(0, 12),
     remember: (parsed.remember ?? []).filter((x) => typeof x === "string" && x.trim()).slice(0, 2),
     used: (parsed.used ?? []).filter((x) => typeof x === "string" && /^n[0-9a-f]{8}$/.test(x)).slice(0, 8),
     specialist: sp.name,

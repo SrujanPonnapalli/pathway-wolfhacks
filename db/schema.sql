@@ -30,6 +30,17 @@ CREATE TABLE IF NOT EXISTS courses (
   PRIMARY KEY (profile_id, slug)
 );
 
+-- Google sign-in. A profile with an account row belongs to that Google account and only its
+-- session can read or write it; profiles without one are the open demo profiles.
+CREATE TABLE IF NOT EXISTS accounts (
+  google_sub  TEXT PRIMARY KEY,                      -- Google's stable user id
+  profile_id  TEXT NOT NULL UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+  email       TEXT NOT NULL,
+  picture     TEXT,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_login  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Scheduled class meetings: the denominator for attendance_rate.
 CREATE TABLE IF NOT EXISTS class_meetings (
   profile_id  TEXT NOT NULL,
@@ -239,7 +250,7 @@ CREATE TABLE IF NOT EXISTS wallets (
 CREATE TABLE IF NOT EXISTS pots (
   address      TEXT PRIMARY KEY,                   -- Pot PDA on devnet
   pot_id       BYTEA NOT NULL UNIQUE,              -- random 16 bytes, no meaning
-  creator_id   TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  creator_id   TEXT REFERENCES profiles(id) ON DELETE SET NULL, -- a deleted account leaves others' pots intact
   stake        INT  NOT NULL CHECK (stake BETWEEN 1 AND 100),
   week_start   DATE NOT NULL,                      -- Monday, America/New_York: the plan's week
   lock_at      TIMESTAMPTZ NOT NULL,               -- stakes lock; the plan freezes
@@ -247,6 +258,11 @@ CREATE TABLE IF NOT EXISTS pots (
   phase        TEXT NOT NULL DEFAULT 'open' CHECK (phase IN ('open', 'settled', 'cancelled')),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Earlier versions cascaded pot deletion from the creator; upgrade in place.
+ALTER TABLE pots ALTER COLUMN creator_id DROP NOT NULL;
+ALTER TABLE pots DROP CONSTRAINT IF EXISTS pots_creator_id_fkey;
+ALTER TABLE pots ADD CONSTRAINT pots_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES profiles(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS pot_members (
   pot        TEXT NOT NULL REFERENCES pots(address) ON DELETE CASCADE,

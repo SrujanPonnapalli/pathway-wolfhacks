@@ -13,6 +13,7 @@ import { VoiceBeam } from "voice-glow";
 import { Wordmark } from "@/components/Sidebar";
 import { VivaAvatar } from "@/components/Viva";
 import { useViva } from "@/components/VivaDock";
+import { deviceContext, onVisionEvents, reportObservation } from "@/lib/awareness";
 import { goalText } from "@/lib/features";
 import type { Observation } from "@/lib/intel/vision";
 import { planBlocks } from "@/lib/plan";
@@ -111,7 +112,283 @@ function visionEvents(prev: Observation | null, cur: Observation): VisionEvent[]
   return e;
 }
 
+// Proactive ambient lines: device-awareness transitions -> at most one spoken Viva line.
+// The sentence itself always comes from the shared Gemini brain — nothing here is canned,
+// and proactive turns never execute actions or touch risk.
+// NOTE: still in relaxed debug tuning — 10 s cooldowns and no study-block gate — because
+// on the kiosk no block lands inside the demo-clock window. Restore 5 min / 2 min and the
+// block requirement once real blocks line up.
+const PROACTIVE_COOLDOWN_MS = 10_000;
+const ABSENCE_MS = 10_000;
+
+function useProactiveViva() {
+  const { state, coachTurn, now } = usePathway();
+  const { voice } = useViva();
+  const deps = useRef({ blocks: state.blocks, coachTurn, voice, now });
+  useEffect(() => {
+    deps.current = { blocks: state.blocks, coachTurn, voice, now };
+  });
+  const awayTimer = useRef(0);
+  const lastSpoke = useRef(0);
+  const busy = useRef(false);
+
+  useEffect(() => {
+    const log = (event: string, verdict: string) => console.debug(`[proactive] ${event} -> ${verdict}`);
+    const cooldownLeft = () => PROACTIVE_COOLDOWN_MS - (Date.now() - lastSpoke.current);
+    // loose: block running now, starting within 10 min, or ended within 15 — "has or
+    // recently had a study block". strict: currently inside the block.
+    const relevantBlock = (loose: boolean) => {
+      const t = +deps.current.now;
+      return deps.current.blocks.find((b) => {
+        if (b.done) return false;
+        const start = +new Date(b.at);
+        const end = start + (b.minutes ?? 50) * 60_000;
+        return loose ? t >= start - 10 * 60_000 && t <= end + 15 * 60_000 : t >= start && t <= end;
+      });
+    };
+    const intervene = async (event: string, prompt: string) => {
+      if (busy.current) return log(event, "skipped: an intervention is already in flight");
+      busy.current = true;
+      try {
+        console.debug(`[proactive] ${event} -> proactive trigger -> Gemini (coachTurn)`);
+        const r = await deps.current.coachTurn(prompt, "voice", false);
+        console.debug(`[proactive] ${event} -> TTS announce(${JSON.stringify(r.text.slice(0, 80))})`);
+        if (r.text && (await deps.current.voice.announce(r.text))) {
+          lastSpoke.current = Date.now();
+          log(event, "proactive trigger -> Gemini -> TTS (delivered)");
+        } else {
+          log(event, "skipped: empty reply or Viva mid-sentence");
+        }
+      } catch (e) {
+        log(event, `skipped: ${(e as Error).message}`);
+      } finally {
+        busy.current = false;
+      }
+    };
+    const off = onVisionEvents((events) => {
+      for (const ev of events) {
+        if (ev === "PERSON_RETURNED") {
+          clearTimeout(awayTimer.current); // cancels a pending step-away reminder
+          const block = relevantBlock(true);
+          if (cooldownLeft() > 0) log(ev, `skipped: cooldown (${Math.ceil(cooldownLeft() / 1000)}s left)`);
+          else {
+            log(ev, `proactive trigger${block ? ` during "${block.title}"` : ""}`);
+            intervene(
+              ev,
+              "[Device camera event: the student just returned to the desk after being away.] In one short warm sentence, welcome them back; if a study block is active or just ended, say how much time is left in it (from the calendar). No actions, no follow-up question.",
+            );
+          }
+        } else if (ev === "PERSON_LEFT_DESK") {
+          if (cooldownLeft() > 0) log(ev, `skipped: cooldown (${Math.ceil(cooldownLeft() / 1000)}s left)`);
+          else {
+            log(ev, "pending: absence timer started (10s, debug)");
+            clearTimeout(awayTimer.current);
+            awayTimer.current = window.setTimeout(() => {
+              if (deviceContext()?.personPresent) log(ev, "skipped: student already back");
+              else if (cooldownLeft() > 0) log(ev, `skipped: cooldown (${Math.ceil(cooldownLeft() / 1000)}s left)`);
+              else {
+                log(ev, "intervention: still away");
+                intervene(
+                  ev,
+                  "[Device camera event: the student has been away from the desk for over two minutes during an active study block.] In one short gentle sentence, check in and offer to pause or adjust the rest of tonight's plan. No guilt, no actions.",
+                );
+              }
+            }, ABSENCE_MS);
+          }
+        }
+        // STUDY_MATERIALS_APPEARED and PHONE_APPEARED never trigger speech by themselves.
+      }
+    });
+    return () => {
+      off();
+      clearTimeout(awayTimer.current);
+    };
+  }, []);
+}
+
+// Wake word: an always-on listener that turns "Hey Viva" / "Hi Viva" into the same voice
+// session as tapping Talk to Viva — it calls voice.start(), never its own pipeline.
+// Browser SpeechRecognition when Chromium has it; 2.5 s mic chunks through the existing
+// /api/stt as the fallback. The listener only exists while Viva is idle: it is torn down
+// the moment she listens, thinks or speaks, and a 1.5 s gap after she goes idle keeps her
+// from waking herself. All decisions are console.debug'd under [wake].
+type SpeechRecog = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((e: { error?: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  abort(): void;
+};
+
+const WAKE_RE = /\b(hey|hi)\s+viva\b/i;
+const WAKE_RESTART_GAP_MS = 1500; // cooldown after Viva's last word / state change
+const WAKE_CHUNK_MS = 2500; // fallback: each mic chunk sent to /api/stt
+
+function useWakeWord() {
+  const { voice } = useViva();
+  const gen = useRef(0);
+  const v = useRef(voice);
+  useEffect(() => {
+    v.current = voice;
+  });
+
+  useEffect(() => {
+    const idle = () => {
+      const s = v.current.state;
+      return s === "idle" || s === "error";
+    };
+    const g = ++gen.current;
+    const log = (m: string) => console.debug(`[wake] ${m}`);
+    if (!idle()) {
+      log(`paused: Viva is ${v.current.state}`);
+      return;
+    }
+
+    const res: { sr: SpeechRecog | null; stream: MediaStream | null; mr: MediaRecorder | null } = { sr: null, stream: null, mr: null };
+    const alive = () => gen.current === g;
+    const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    const stop = () => {
+      try {
+        res.sr?.abort();
+      } catch {}
+      res.sr = null;
+      if (res.mr && res.mr.state !== "inactive") res.mr.stop();
+      res.mr = null;
+      res.stream?.getTracks().forEach((t) => t.stop());
+      res.stream = null;
+    };
+    const matches = (text: string | undefined) => {
+      const t = (text ?? "").trim();
+      if (!t) return false;
+      const hit = WAKE_RE.test(t);
+      log(`heard "${t.slice(0, 80)}" -> ${hit ? "MATCH" : "no match"}`);
+      return hit;
+    };
+    const wake = () => {
+      if (!alive()) return;
+      log("wake phrase matched -> voice.startQuiet()");
+      stop();
+      v.current.startQuiet(); // no greeting — "Hey Viva" goes straight to listening
+    };
+
+    // Fallback: short mic chunks through the existing ElevenLabs STT route, idle only.
+    const startChunks = async () => {
+      try {
+        res.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      } catch (e) {
+        log(`mic unavailable: ${(e as Error).message}`);
+        return;
+      }
+      if (!alive()) return stop();
+      log("listener active: mic chunks -> /api/stt (SpeechRecognition unavailable)");
+      const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t));
+      while (alive() && idle()) {
+        const chunks: Blob[] = [];
+        const mr = new MediaRecorder(res.stream, type ? { mimeType: type } : undefined);
+        res.mr = mr;
+        mr.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+        mr.start();
+        await sleep(WAKE_CHUNK_MS);
+        if (mr.state !== "inactive") await new Promise<void>((done) => ((mr.onstop = () => done()), mr.stop()));
+        res.mr = null;
+        if (!alive() || !idle() || !chunks.length) break;
+        try {
+          const fd = new FormData();
+          fd.append("file", new Blob(chunks, { type: type ?? "audio/webm" }), "wake.webm");
+          const r = await fetch("/api/stt", { method: "POST", body: fd });
+          const j = (r.ok ? await r.json() : {}) as { text?: string };
+          if (!alive() || !idle()) break;
+          if (matches(j.text)) return wake();
+        } catch {
+          await sleep(800); // STT hiccup: keep listening, just slower
+        }
+      }
+    };
+
+    const startSR = () => {
+      const w = window as unknown as { SpeechRecognition?: new () => SpeechRecog; webkitSpeechRecognition?: new () => SpeechRecog };
+      const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+      if (!Ctor) return false;
+      try {
+        const sr = new Ctor();
+        res.sr = sr;
+        sr.continuous = true;
+        sr.interimResults = true;
+        sr.lang = "en-US";
+        sr.onresult = (e) => {
+          const text = Array.from(e.results)
+            .map((r) => r[0]?.transcript ?? "")
+            .join(" ");
+          if (idle() && matches(text)) wake();
+        };
+        sr.onerror = (e) => {
+          log(`SpeechRecognition error: ${e.error}`);
+          if (alive() && (e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "network" || e.error === "audio-capture")) {
+            res.sr = null;
+            void startChunks();
+          }
+        };
+        sr.onend = () => {
+          // Chromium stops SR on its own sometimes; restart while we're the live generation.
+          if (alive() && res.sr === sr && idle()) {
+            try {
+              sr.start();
+            } catch {}
+          }
+        };
+        sr.start();
+        log("listener active: SpeechRecognition");
+        return true;
+      } catch {
+        res.sr = null;
+        return false;
+      }
+    };
+
+    const t = window.setTimeout(() => {
+      if (alive() && idle()) {
+        log("wake listener starting");
+        if (!startSR()) void startChunks();
+      }
+    }, WAKE_RESTART_GAP_MS);
+    return () => {
+      clearTimeout(t);
+      stop();
+      log("wake listener inactive");
+    };
+  }, [voice.state]);
+}
+
+/** The tiny always-visible wake status. Idle = the wake listener's invitation. */
+export function WakeWord() {
+  const { voice } = useViva();
+  useWakeWord();
+  const label =
+    voice.state === "listening"
+      ? "Listening…"
+      : voice.state === "thinking"
+        ? "Thinking…"
+        : voice.state === "speaking"
+          ? "Speaking…"
+          : voice.state === "connecting"
+            ? "Connecting…"
+            : 'Say "Hey Viva"';
+  return (
+    <div
+      aria-live="polite"
+      className="fixed bottom-3 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-md"
+    >
+      <Mic size={13} strokeWidth={2.8} aria-hidden className={voice.state === "idle" ? "text-muted" : "text-sky"} />
+      {label}
+    </div>
+  );
+}
+
 export function CameraAwareness() {
+  useProactiveViva();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const prevObs = useRef<Observation | null>(null);
@@ -147,6 +424,7 @@ export function CameraAwareness() {
         prevObs.current = next;
         setObs(next);
         if (fired.length) setEvent(fired[fired.length - 1]);
+        reportObservation(next, fired); // share with Viva's coach context + proactive events
       } catch {
         /* a missed snapshot is fine; the next interval tries again */
       } finally {
@@ -205,6 +483,7 @@ export function CameraAwareness() {
             : "waiting for first observation"}
         </p>
       )}
+
     </div>
   );
 }
@@ -280,10 +559,10 @@ export function Device() {
   return (
     // Kiosk hardening: exact 100vw×100vh, no scroll/overscroll, no text selection,
     // no long-press context menu, no tap highlight, no pinch zoom (viewport meta),
-    // no cursor — this is a dedicated touchscreen, not a web page.
+    // no cursor on touchscreens — this is a dedicated device, not a web page.
     <main
       onContextMenu={(e) => e.preventDefault()}
-      className="flex h-screen w-screen cursor-none touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar [-webkit-tap-highlight-color:transparent]"
+      className="flex h-screen w-screen touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar pointer-coarse:cursor-none [-webkit-tap-highlight-color:transparent]"
     >
       <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
         <Wordmark />

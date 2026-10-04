@@ -1,11 +1,16 @@
 import { db, noDb } from "@/lib/db";
+import { sessionProfile } from "@/lib/auth";
 
 // Profiles in the same shape as src/lib/mock.ts PROFILES, so the client can swap sources.
-export async function GET() {
+// Demo profiles for everyone, plus the signed-in account's own profile. Never anyone else's.
+export async function GET(req: Request) {
   const sql = db();
   if (!sql) return noDb();
+  const me = sessionProfile(req);
   const [profiles, courses, exams, classes, todos, streaks] = await Promise.all([
-    sql`SELECT id, name, class_year, sample FROM profiles ORDER BY sample DESC, created_at, id`,
+    sql`SELECT id, name, class_year, sample FROM profiles p
+        WHERE NOT EXISTS (SELECT 1 FROM accounts a WHERE a.profile_id = p.id) OR p.id = ${me}
+        ORDER BY (p.id = ${me}) DESC NULLS LAST, sample DESC, created_at, id`,
     sql`SELECT profile_id, slug, code, name, dataset_row, baseline FROM courses ORDER BY created_at, slug`,
     // Next exam per course (or the latest past one if none are ahead).
     sql`SELECT DISTINCT ON (profile_id, course_slug) profile_id, course_slug, title, due_at
@@ -17,6 +22,7 @@ export async function GET() {
   ]);
   const iso = (d: Date) => d.toISOString();
   const out = profiles.map((p) => ({
+    account: p.id === me,
     id: p.id,
     name: p.name,
     classYear: p.class_year ?? "",

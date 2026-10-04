@@ -238,7 +238,7 @@ export function useVoiceSession(opts: {
       // Audio objects must be created inside the click for browsers to allow playback and recording.
       ctx.current ??= new AudioContext();
       await ctx.current.resume().catch(() => {});
-      buf.current = new Float32Array(1024);
+      buf.current ??= new Float32Array(1024);
       try {
         stream.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
         const an = ctx.current.createAnalyser();
@@ -251,6 +251,42 @@ export function useVoiceSession(opts: {
       }
       if (run.current !== id) return;
       if (await speak(optsRef.current.greeting(), id)) listen(id);
+    },
+    /** Wake-word start: the same session and mic setup, but no greeting — straight to listening. */
+    async startQuiet() {
+      const id = ++run.current;
+      go("connecting");
+      setCaption(null);
+      setNotice("");
+      ctx.current ??= new AudioContext();
+      await ctx.current.resume().catch(() => {});
+      buf.current ??= new Float32Array(1024);
+      try {
+        stream.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        const an = ctx.current.createAnalyser();
+        an.fftSize = 1024;
+        ctx.current.createMediaStreamSource(stream.current).connect(an);
+        micAn.current = an;
+        setMicOn(true);
+      } catch {
+        setNotice("Microphone is off, so tap a question below to talk with Viva.");
+      }
+      if (run.current !== id) return;
+      listen(id);
+    },
+    // Viva speaks unprompted (a proactive line, e.g. a device event). Won't cut into a live
+    // turn; if a session was mid-listen it picks the mic back up afterward.
+    async announce(text: string) {
+      if (stateRef.current === "connecting" || stateRef.current === "thinking" || stateRef.current === "speaking") return false;
+      const resume = stateRef.current === "listening";
+      const id = ++run.current;
+      if (recorder.current?.state === "recording") recorder.current.stop();
+      recorder.current = null;
+      const spoke = await speak(text, id);
+      if (run.current !== id) return false;
+      if (resume) listen(id);
+      else go("idle");
+      return spoke;
     },
     /** Fast-forward: stop the line Viva is saying and go straight to listening. */
     skip() {

@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const sql = db();
   if (!sql) return noDb();
   const b = await req.json().catch(() => null);
-  if (!(await profileExists(sql, b?.profile_id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, b?.profile_id, req))) return bad("unknown profile_id");
   if (!Array.isArray(b.blocks) || b.blocks.length === 0 || b.blocks.length > 10) return bad("blocks must be 1-10 items");
   for (const x of b.blocks)
     if (typeof x.id !== "string" || typeof x.course !== "string" || typeof x.title !== "string" || Number.isNaN(Date.parse(x.at))) return bad("each block needs id, course, title, at");
@@ -23,7 +23,7 @@ export async function PATCH(req: Request) {
   const sql = db();
   if (!sql) return noDb();
   const b = await req.json().catch(() => null);
-  if (!(await profileExists(sql, b?.profile_id)) || typeof b.id !== "string") return bad("profile_id and id required");
+  if (!(await profileExists(sql, b?.profile_id, req)) || typeof b.id !== "string") return bad("profile_id and id required");
   await sql`UPDATE study_blocks SET done_at = ${b.done ? sql`now()` : null} WHERE profile_id = ${b.profile_id} AND client_id = ${b.id}`;
   after(() => attestProfile(sql, b.profile_id).catch((e) => console.error("attest", e)));
   return Response.json({ ok: true });

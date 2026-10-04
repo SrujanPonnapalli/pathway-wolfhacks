@@ -45,7 +45,7 @@ export async function getState(profileId: string): Promise<RemoteState | null> {
   if (!live) return null;
   try {
     const r = await api<RemoteState>(`/api/state?profile_id=${encodeURIComponent(profileId)}`);
-    return { ...r, blocks: r.blocks.map((b) => ({ ...b, at: toLocal(b.at) })) };
+    return { ...r, blocks: r.blocks.map((b) => ({ ...b, at: toLocal(b.at) })), checkedIn: Object.fromEntries(Object.entries(r.checkedIn ?? {}).map(([k, v]) => [toLocal(k), v])) };
   } catch {
     return null;
   }

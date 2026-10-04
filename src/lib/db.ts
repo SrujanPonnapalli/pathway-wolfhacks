@@ -28,3 +28,12 @@ export async function courseExists(sql: postgres.Sql, profile: string, slug: unk
   const [row] = await sql`SELECT 1 FROM courses WHERE profile_id = ${profile} AND slug = ${slug}`;
   return !!row;
 }
+
+/** For routes that also run without a database (Knowledge): a profile owned by a Google account is
+ *  only usable with its own session. Demo profiles, unknown ids and the no-database mode stay open. */
+export async function mayUseProfile(req: Request, id: string) {
+  const sql = db();
+  if (!sql) return true;
+  const [row] = await sql`SELECT 1 FROM accounts WHERE profile_id = ${id}`;
+  return !row || sessionProfile(req) === id;
+}

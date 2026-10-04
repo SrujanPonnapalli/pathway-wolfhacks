@@ -5,10 +5,10 @@
 //   assignment/other -> summary + action items
 
 import { Type, type Schema } from "@google/genai";
-import { filePart, generateJSON, textPart } from "../gemini";
-import { interpretDataset, profileDataset } from "./dataset";
-import { makeStudyMaterial } from "./study";
-import { parseSyllabus } from "./syllabus";
+import { filePart, generateJSONMeta, textPart, type CallMeta } from "../gemini";
+import { interpretDataset, profileDataset, type DatasetInsights, type DatasetProfile } from "./dataset";
+import { makeStudyMaterial, type StudyMaterial } from "./study";
+import { parseSyllabus, type Syllabus } from "./syllabus";
 
 export type FileKind = "syllabus" | "grades" | "slides" | "notes" | "reading" | "assignment" | "dataset" | "other";
 
@@ -93,45 +93,67 @@ const genericSchema: Schema = {
 
 const TABULAR = /^(text\/csv|text\/tab-separated-values|application\/vnd\.ms-excel)$/;
 
-export async function analyzeFile(input: { bytes: Buffer; mimeType: string; filename: string; question?: string; knownCourses?: string[] }) {
+export type AnalyzeInput = { bytes: Buffer; mimeType: string; filename: string; question?: string; knownCourses?: string[] };
+export type Extracted = { classification: Classification; syllabus?: Syllabus; grades?: GradeImport; study?: StudyMaterial; generic?: GenericSummary; profile?: DatasetProfile; insights?: DatasetInsights };
+
+const partFor = (bytes: Buffer, mimeType: string) => (mimeType.startsWith("text/") ? textPart(bytes.toString("utf8").slice(0, 200_000)) : filePart(bytes, mimeType));
+
+/** Stage 1: what is this file? (datasets are recognised without a model call) */
+export async function classify(input: AnalyzeInput): Promise<{ classification: Classification; meta: CallMeta | null }> {
   const { bytes, mimeType, filename } = input;
-
-  // datasets never go to the model raw; profile first
-  if (TABULAR.test(mimeType) || /\.(csv|tsv)$/i.test(filename)) {
-    const profile = profileDataset(bytes.toString("utf8"));
-    const insights = await interpretDataset(profile, input.question);
-    return { classification: { kind: "dataset" as const, course_guess: "", title: filename, confidence: "high" as const, why: "tabular file" }, profile, insights };
-  }
-
-  const part = mimeType.startsWith("text/") ? textPart(bytes.toString("utf8").slice(0, 200_000)) : filePart(bytes, mimeType);
-  const classification = await generateJSON<Classification>({
-    parts: [part, textPart(`Filename: ${filename}.` + (input.knownCourses?.length ? ` The student's courses: ${input.knownCourses.join(", ")}.` : "") + " Classify this document.")],
+  if (TABULAR.test(mimeType) || /\.(csv|tsv)$/i.test(filename)) return { classification: { kind: "dataset", course_guess: "", title: filename, confidence: "high", why: "tabular file" }, meta: null };
+  const r = await generateJSONMeta<Classification>({
+    parts: [partFor(bytes, mimeType), textPart(`Filename: ${filename}.` + (input.knownCourses?.length ? ` The student's courses: ${input.knownCourses.join(", ")}.` : "") + " Classify this document.")],
     schema: classifySchema,
     system: "Classify a student's uploaded course document. A syllabus lists grading and a schedule. Grades is a Gradescope, Moodle or gradebook page/screenshot/export listing assignments with scores or submission status. Slides are lecture decks. Notes are student-written. Reading is a textbook chapter or paper. Assignment is a problem set, lab, or project prompt. Pick the single best kind.",
+    tier: "fast", // a label and a title: the small model reads PDFs fine and answers in about a second
   });
+  return { classification: r.data, meta: r.meta };
+}
 
+/** Stage 2: pull the facts out, with the extractor that fits the kind. */
+export async function extract(input: AnalyzeInput, classification: Classification): Promise<{ result: Extracted; meta: CallMeta | null }> {
+  const { bytes, mimeType } = input;
+  const part = partFor(bytes, mimeType);
   switch (classification.kind) {
-    case "syllabus":
-      return { classification, syllabus: await parseSyllabus({ bytes, mimeType }) };
+    case "dataset": {
+      const profile = profileDataset(bytes.toString("utf8"));
+      const insights = await interpretDataset(profile, input.question);
+      return { result: { classification, profile, insights }, meta: null };
+    }
+    case "syllabus": {
+      const t0 = Date.now();
+      const syllabus = await parseSyllabus({ bytes, mimeType });
+      return { result: { classification, syllabus }, meta: { model: "", usage: { input: 0, output: 0 }, ms: Date.now() - t0 } };
+    }
     case "grades": {
-      const grades = await generateJSON<GradeImport>({
+      const r = await generateJSONMeta<GradeImport>({
         parts: [part, textPart("Extract every assignment row with its score, max points, submission status and due date. average_percent is the mean of score/max over graded rows only. Copy names exactly.")],
         schema: gradesSchema,
         system: "You read a student's grade page (Gradescope, Moodle, or a CSV export). Report only what is shown; null for anything missing. Never invent a score.",
       });
-      return { classification, grades };
+      return { result: { classification, grades: r.data }, meta: r.meta };
     }
     case "slides":
     case "notes":
-    case "reading":
-      return { classification, study: await makeStudyMaterial({ bytes, mimeType }) };
+    case "reading": {
+      const t0 = Date.now();
+      const study = await makeStudyMaterial({ bytes, mimeType });
+      return { result: { classification, study }, meta: { model: "", usage: { input: 0, output: 0 }, ms: Date.now() - t0 } };
+    }
     default: {
-      const generic = await generateJSON<GenericSummary>({
+      const r = await generateJSONMeta<GenericSummary>({
         parts: [part, textPart(input.question ?? "Summarize this for the student and list what they need to do, with dates if present.")],
         schema: genericSchema,
         system: "You help a college student act on a course document. Be concrete. If a date is printed, copy it; otherwise write 'not stated'. effort_minutes is your honest estimate.",
       });
-      return { classification, generic };
+      return { result: { classification, generic: r.data }, meta: r.meta };
     }
   }
+}
+
+/** Classify then extract, in one go (the older entry point; the ingest pipeline runs the stages itself). */
+export async function analyzeFile(input: AnalyzeInput): Promise<Extracted> {
+  const { classification } = await classify(input);
+  return (await extract(input, classification)).result;
 }

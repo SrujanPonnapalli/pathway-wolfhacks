@@ -10,9 +10,9 @@ import { createContext, useContext, useEffect, useRef, useState, type FormEvent,
 import { ArrowUp, FastForward, Mic, PhoneOff, Settings2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
-import { EmailCard, Receipts } from "@/components/VivaBits";
+import { Citations, EmailCard, Receipts } from "@/components/VivaBits";
 import { usePathway } from "@/lib/store";
-import { VIVA } from "@/lib/viva";
+import { VIVA, type Citation } from "@/lib/viva";
 import { useVoiceSession } from "@/lib/voice";
 
 type View = "chat" | "voice" | "settings";
@@ -117,7 +117,8 @@ export function VivaDock() {
   const { open, view, show, hide, voice, speed, setSpeed } = useViva();
   const path = usePathname();
   const router = useRouter();
-  const { state, ask, vivaThinking, profile, usage, startNewChat } = usePathway();
+  const { state, ask, vivaThinking, profile, usage, startNewChat, knowledge, reviewNode } = usePathway();
+  const prefs = knowledge.nodes.filter((n) => n.type === "preference" && n.review !== "rejected");
   const end = useRef<HTMLDivElement>(null);
   const onVivaPage = path.startsWith("/viva");
 
@@ -182,7 +183,7 @@ export function VivaDock() {
             <ol className="space-y-3 text-sm" aria-live="polite">
               {state.chat.length === 0 && <Bubble who="viva" text={VIVA.greeting(profile.sample ? profile.name : undefined)} />}
               {state.chat.map((m, i) => (
-                <Bubble key={i} who={m.role} text={m.text} receipts={m.receipts} email={m.email} actions={m.actions} />
+                <Bubble key={i} who={m.role} text={m.text} receipts={m.receipts} email={m.email} actions={m.actions} citations={m.citations} />
               ))}
               {vivaThinking && (
                 <li className="flex items-center gap-2 font-bold text-muted">
@@ -276,11 +277,14 @@ export function VivaDock() {
             </p>
           </div>
           <div className="mt-4">
-            <p className="font-black">What Viva remembers</p>
-            {state.notes?.length ? (
-              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-muted">
-                {state.notes.map((n) => (
-                  <li key={n}>{n}</li>
+            <p className="font-black">Things you told Viva</p>
+            {prefs.length ? (
+              <ul className="mt-1 space-y-1 text-muted">
+                {prefs.map((n) => (
+                  <li key={n.id} className="flex items-center justify-between gap-2">
+                    <span>{n.title}{n.course ? <span className="text-xs"> · {n.course}</span> : null}</span>
+                    <button onClick={() => reviewNode(n.id, "rejected")} className="text-xs font-extrabold text-muted hover:text-ink" aria-label={`Forget: ${n.title}`}>Forget</button>
+                  </li>
                 ))}
               </ul>
             ) : (
@@ -293,12 +297,13 @@ export function VivaDock() {
   );
 }
 
-function Bubble({ who, text, receipts, email, actions }: { who: "you" | "viva"; text: string; receipts?: string[]; email?: { to: string; subject: string; body: string }; actions?: { label: string; href: string }[] }) {
+function Bubble({ who, text, receipts, email, actions, citations }: { who: "you" | "viva"; text: string; receipts?: string[]; email?: { to: string; subject: string; body: string }; actions?: { label: string; href: string }[]; citations?: Citation[] }) {
   if (who === "you") return <li className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-teal-soft px-3 py-2 text-teal-lip">{text}</li>;
   return (
     <li className="max-w-[92%] rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-3 py-2">
       <p className="whitespace-pre-wrap">{text}</p>
       <Receipts items={receipts} />
+      <Citations items={citations} />
       <EmailCard email={email} />
       {actions && actions.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1.5">

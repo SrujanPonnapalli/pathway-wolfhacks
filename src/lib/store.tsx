@@ -9,14 +9,18 @@ import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from
 import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type EmailDraft, type Reply } from "./viva";
+import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type Citation, type EmailDraft, type Reply } from "./viva";
 import { askAgent, askCoach, coachContext } from "./api";
 import type { AgentAction } from "./intel/agent";
+import { compileContext, scopeFor } from "./knowledge/compile";
+import { dropSource, ingestFile, legacySources, merge, reassign, setReview as reviewLocal, summary as ingestSummary, type DoneEvent } from "./knowledge/client";
+import { emptyKnowledge, type IngestEvent, type KbNode, type Knowledge, type Review } from "./knowledge/types";
+import { nodeId } from "./knowledge/nodes";
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
-import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { blocksAsEvents, demoWeek, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
 import type { Proposal } from "./intel/planner";
 import ROWS from "./rows.json";
 
@@ -40,7 +44,9 @@ type PState = {
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
   removed: string[]; // feed events the student deleted in Google Calendar; we stop showing and re-adding them
-  notes: string[]; // durable facts the student told Viva ("works Tue/Thu evenings"); sent with every turn instead of long history
+  notes: string[]; // (older) facts the student told Viva; now stored as preference nodes in `knowledge`
+  knowledge: Knowledge; // the course knowledge graph: files, facts with provenance, links. Local-first; Tiger when configured
+  seeded: string; // which seed file filled `knowledge` (so the demo profile starts full without uploads)
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
@@ -73,6 +79,8 @@ const empty = (profileId: string = "maya"): PState => {
     gids: {},
     removed: [],
     notes: [],
+    knowledge: emptyKnowledge(),
+    seeded: "",
   };
 };
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
@@ -97,7 +105,7 @@ export function featuresFor(c: CourseSeed, s: PState, classYear = ""): Features 
   if (grades && grades.kind === "grades") {
     const past = grades.items.filter((it) => it.due && new Date(`${it.due}T23:59:00`) < new Date(demo.now));
     if (past.length) {
-      const missed = past.filter((it) => it.status === "missing" || it.status === "not_submitted").length;
+      const missed = past.filter((it) => it.status === "missing" || it.status === "not_submitted").length; // past-due only: `past` is filtered above
       x.missed_deadlines = missed;
       x.on_time_submission_rate = +((past.length - missed) / past.length).toFixed(4);
     }
@@ -167,6 +175,33 @@ function useStore() {
   useEffect(() => {
     if (activeId) hydrate(activeId);
   }, [activeId, hydrate]);
+
+  // Demo profiles arrive already knowing their courses: the seed (public/knowledge/<id>.json) was
+  // built by sending the real syllabi and grade pages through the ingestion agent (npm run kb:seed).
+  // No upload is needed; the Knowledge/course tab shows where every fact came from.
+  const seedKey = activeId ? `${activeId}:${saved.by[activeId]?.seeded ?? ""}:${saved.by[activeId]?.knowledge?.sources.length ?? 0}` : "";
+  useEffect(() => {
+    if (!activeId) return;
+    const cur = saved.by[activeId];
+    if (cur?.seeded || cur?.knowledge?.sources.length) return;
+    let gone = false;
+    fetch(`/knowledge/${activeId}.json`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((seed: (Knowledge & { version?: string }) | null) => {
+        if (gone || !seed || !Array.isArray(seed.nodes)) return;
+        setSaved((v) => {
+          const st = { ...empty(activeId), ...(v.by[activeId] ?? {}) };
+          if (st.seeded || st.knowledge.sources.length) return v;
+          const kb = merge(st.knowledge, seed);
+          return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seed.version ?? "1" } } };
+        });
+      })
+      .catch(() => {});
+    return () => {
+      gone = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seedKey]);
 
   const profile = profiles.find((p) => p.id === saved.profile) ?? profiles[0];
   // Older saved state (or a database row) may lack newer fields; merge over a blank state. Memoized so `courses` is stable.
@@ -707,6 +742,38 @@ function useStore() {
       say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}.${rescored || " Viva can use it now."}`);
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
+    // ---- knowledge graph (docs/knowledge/PLAN.md) --------------------------------------------
+    knowledge: s.knowledge,
+    /** Send a file through the ingestion agent, stage by stage, then file its facts here. */
+    ingestFile: async (file: File, onStage?: (e: IngestEvent) => void, course?: string): Promise<DoneEvent> => {
+      const done = await ingestFile(file, { profile: profile.id, courses: courses.map((c) => c.code), course, existing: s.knowledge.nodes }, (e) => onStage?.(e));
+      const kb = merge(s.knowledge, { sources: [done.source], nodes: done.nodes, edges: done.edges });
+      update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
+      // A grade page changes the numbers the tree reads: re-score that course right away and say what moved.
+      const seed = done.source.kind === "grades" ? courses.find((c) => c.code === done.source.course) : undefined;
+      const after = seed ? view(seed, { ...s, sources: legacySources(kb) }) : null;
+      const label = (atRisk: boolean) => (atRisk ? "worth a check-in" : "on track");
+      const rescored = seed && after ? (after.result.atRisk === seed.result.atRisk ? ` The model re-read it: still ${label(after.result.atRisk)}.` : ` The model re-read it: ${label(seed.result.atRisk)} → ${label(after.result.atRisk)}.`) : "";
+      say(`${done.source.filename} filed under ${done.source.course}: ${ingestSummary(done)}.${rescored}`);
+      return done;
+    },
+    /** The review gate: confirm, edit or reject one fact. Only confirmed facts feed the Week, the tree and Viva. */
+    reviewNode: (id: string, review: Review, patch?: { title?: string; body?: Record<string, unknown> }) => {
+      const kb = reviewLocal(s.knowledge, id, review, patch);
+      update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
+      fetch("/api/knowledge/nodes", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ profile: profile.id, id, review, ...patch }) }).catch(() => {});
+    },
+    /** Move a file (and its facts) to another course. */
+    reassignSource: (sourceId: string, course: string) => {
+      const kb = reassign(s.knowledge, sourceId, course);
+      update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
+    },
+    /** Forget a file: its facts, links and telemetry go with it. */
+    removeKnowledgeSource: (sourceId: string) => {
+      const kb = dropSource(s.knowledge, sourceId);
+      update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
+      fetch("/api/knowledge/sources", { method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ profile: profile.id, id: sourceId }) }).catch(() => {});
+    },
     vivaThinking,
     chatSessions: s.chatSessions,
     activeChatId: s.activeChatId,
@@ -919,7 +986,7 @@ function useStore() {
     return { receipts, links, email, navigate };
   };
 
-  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat"): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string }> => {
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat"): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
     try {
       const ctx = coachContext({
         now: demo.now,
@@ -927,12 +994,16 @@ function useStore() {
         courses,
         todos: profile?.todos ?? [],
         blocks: s.blocks,
-        sources: s.sources,
+        sources: [], // the compiled knowledge pack below replaces the raw file dump (half the tokens, and citable)
         inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
         week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
         suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
       });
       const page = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+      const pageCourse = courses.find((c) => page.includes(`course=${c.slug}`))?.code;
+      const todayIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate()));
+      const weekAheadIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() + 7));
+      const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)));
       // Voice appends the student's turn before calling this; don't send it twice.
       const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
       const r = await askAgent(
@@ -941,8 +1012,11 @@ function useStore() {
           ...ctx,
           page,
           channel,
+          profileId: profile.id,
+          knowledge: pack.text,
           notes: s.notes,
-          weekIds: events.map((e) => ({ id: e.id, title: e.title, start: e.start })),
+          // the next seven days only: enough to plan with, half the tokens of the full fortnight
+          weekIds: events.filter((e) => e.end >= todayIso && e.start < weekAheadIso).map((e) => ({ id: e.id, title: e.title, start: e.start })),
           suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
           files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
           recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),
@@ -952,9 +1026,16 @@ function useStore() {
       setUsage((u) => ({ input: u.input + r.usage.input, output: u.output + r.usage.output, turns: u.turns + 1 }));
       console.info(`[viva] ${r.specialist} answered in ${r.ms}ms, ${r.usage.input}+${r.usage.output} tokens, ${r.actions.length} action(s)`);
       const done = await execute(r.actions);
-      if (r.remember.length) update((st) => ({ ...st, notes: [...new Set([...(st.notes ?? []), ...r.remember])].slice(-12) }));
+      // What the student told Viva becomes a visible, deletable preference fact (course-scoped when they named one).
+      if (r.remember.length) {
+        const course = courses.find((c) => text.toLowerCase().includes(c.code.toLowerCase()))?.code ?? "";
+        const nodes: KbNode[] = r.remember.map((t) => ({ id: nodeId(profile.id, course, "preference", t), profile: profile.id, course, type: "preference", title: t, body: {}, confidence: "high", review: "confirmed", locator: "you told Viva", createdBy: "viva", createdAt: new Date().toISOString() }));
+        update((st) => ({ ...st, knowledge: merge(st.knowledge, { nodes, edges: [] }) }));
+      }
+      const byId = new Map(s.knowledge.nodes.map((n) => [n.id, n]));
+      const citations = (r.used ?? []).map((id) => byId.get(id)).filter((n): n is KbNode => !!n).map((n) => ({ id: n.id, title: n.title, quote: n.quote, locator: n.locator, course: n.course }));
       const say = r.say.trim() || (done.receipts.length ? "Done." : "I don't have that.");
-      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate };
+      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations };
     } catch (e) {
       console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);
       return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
@@ -968,7 +1049,7 @@ function useStore() {
     setVivaThinking(true);
     const r = await coachTurn(text, "chat");
     setVivaThinking(false);
-    base.addTurn({ role: "viva", text: r.text, actions: r.actions, receipts: r.receipts, email: r.email });
+    base.addTurn({ role: "viva", text: r.text, actions: r.actions, receipts: r.receipts, email: r.email, citations: r.citations });
     return r;
   };
 

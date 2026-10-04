@@ -26,7 +26,7 @@ npm run dev
 | `public/models/` | `tree_early.json` (early tree v2: depth 4, 11 leaves, splits on a derived `warning_signs` count whose cutoffs ship inside the file), `tree_mid.json` (depth 3, 6 leaves), `evidence.json` (test metrics, capacity curve, 200-refit stability, subgroup audit). All exported from `notebooks/pathway_model.py`; `src/lib/rows.json` holds the dataset rows the demo profiles are built from |
 | `src/lib/viva.ts`, `src/lib/voice.ts` | Viva's persona + mock replies (with the causal-language filter), simulated voice session |
 | `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
-| `src/app/` | Home, Study, Insights (tree path + what would help + evidence), Viva (chat / voice), Study buddies |
+| `src/app/` | Home, Study, Insights (status + route to on track, four standing tiles on the tree's own cutoffs, grades by syllabus category and missing work from dropped files via `src/lib/standing.ts`; model path, what-ifs and evidence collapsed below), Viva (chat / voice), Study buddies |
 | `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
 | `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side) |
 | `src/app/device/` | The Raspberry Pi kiosk screen (1024×600, no app chrome). `scripts/kiosk.sh` launches it fullscreen on the Pi; setup docs: [docs/hardware](docs/hardware/README.md) |

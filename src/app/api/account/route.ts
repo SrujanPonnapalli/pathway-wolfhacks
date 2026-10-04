@@ -41,6 +41,11 @@ export async function DELETE(req: Request) {
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id}`; // hypertable: no foreign key to cascade from
     await tx`DELETE FROM buddies WHERE buddy_id = ${id}`;
+    // Knowledge tables are created lazily and keyed by profile_id without foreign keys.
+    for (const t of ["kb_nodes", "kb_sources", "viva_turns"]) {
+      const [exists] = await tx`SELECT to_regclass(${t}) AS r`;
+      if (exists.r) await tx`DELETE FROM ${tx(t)} WHERE profile_id = ${id}`; // nodes cascade edges; sources cascade their nodes
+    }
     await tx`DELETE FROM profiles WHERE id = ${id}`; // cascades: account, courses, blocks, todos, wallet, pot membership, tx log
   });
   return Response.json({ ok: true }, { headers: { "set-cookie": sessionCookie("", 0) } });

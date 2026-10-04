@@ -170,7 +170,15 @@ export function route(message: string): Specialist {
   if (/\b(email|e-mail|mail|write to|reply|respond|message (my|the|dr|prof)|note to|letter|extension|professor|advisor|ta\b)/.test(m))
     return { name: "writer", addendum: "WRITER: produce the email now as a draft_email action with a complete body. Keep the spoken reply to one sentence.", maxTokens: 900, temperature: 0.4 };
   if (/\b(sleep|slept|tired|exhausted|rest day|readiness|recover|heart rate|hrv|cardio|wind[- ]?down|google fit|fit says|fitbit|health|how('?s| is) my body)\b/.test(m))
-    return { name: "health", addendum: "HEALTH: answer from the Google Fit line in CONTEXT only (last night, the 7-night average, readiness, HRV, resting HR, steps, cardio, exercise days, today's calls). To act on a call, return health_call with its id as a proposal; say what it changes on the week. If there is no Google Fit line, say Fit isn't connected for this profile and change nothing.", maxTokens: 450, temperature: 0.3 };
+    return {
+      name: "health",
+      addendum:
+        "HEALTH: answer from the Google Fit line in CONTEXT only (last night, the 7-night average, readiness, HRV, resting HR, steps, cardio, exercise days, today's calls). " +
+        "Whenever the student wants a call on the week, or agrees to one you suggested (swap the gym, rest today, add the wind-down, add the walk), you MUST return one health_call action per call, with call set to its id from the Google Fit line (rest, winddown or cardio), in this same reply: the app holds them and asks the student to approve. " +
+        "Never say you proposed, added or swapped anything without returning the action; never use add_event or rename_event for a call. If there is no Google Fit line, say Fit isn't connected for this profile and change nothing.",
+      maxTokens: 450,
+      temperature: 0.2,
+    };
   if (/\b(add|move|reschedul|schedule|put|block|calendar|remove|delete|cancel|shift|free|clear|slot|plan my|approve|not now|dismiss|make it real|resize|longer|shorter|rename|repeat|every day|weekday|weekly)\b/.test(m))
     return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the calendar in CONTEXT, avoid overlaps, and return every calendar action needed (one per event). Say what you'd change and when, briefly, as a proposal the student approves. When you name an existing event's day or time, read it from that event in CONTEXT, never from earlier messages: the app may have moved it to a free slot.", maxTokens: 1200, temperature: 0.2 };
   if (/\b(quiz|explain|what is|what's|define|teach|study for|review|flashcard|slides|notes|chapter|concept)\b/.test(m))

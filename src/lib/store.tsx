@@ -655,7 +655,10 @@ function useStore() {
         if (!was) notice(`Heads up: "${g.title}" was added in Google Calendar for ${fmtWhen(g.start)}.`);
         else if (was.start.slice(0, 16) !== g.start.slice(0, 16)) notice(`Heads up: "${g.title}" moved to ${fmtWhen(g.start)} in Google Calendar. Your week is updated.`);
       }
-      for (const [id, was] of prev) if (!cur.has(id) && !ours(id.slice(2), "")) notice(`Heads up: "${was.title}" was removed in Google Calendar. Taking it off your week.`);
+      // A copy deleted in Google takes a Pathway block off the week. Classes, exams, due dates and the
+      // rest of the week come from Moodle and the seed, so their copies just come back on the next sync.
+      for (const [id, was] of prev)
+        if (!cur.has(id) && !ours(id.slice(2), "") && was.localId && s.blocks.some((b) => b.id === was.localId)) notice(`Heads up: "${was.title}" was removed in Google Calendar. Taking it off your week.`);
     }
     prevGoogle.current = cur;
     // local state follows Google for our tagged events
@@ -670,12 +673,14 @@ function useStore() {
           } else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
         }
       } else if (prev && [...prev.values()].some((p) => p.localId === e.id)) {
-        // it was in Google last poll and is gone now: someone deleted it there
+        // It was in Google last poll and is gone now: someone deleted it there. A Pathway block goes with it.
+        // Anything else on the week stays (another visitor's browser or an older build may have taken the
+        // copy off Google; the lecture, exam or due date is still real) and syncAll writes the copy again.
         if (s.blocks.some((b) => b.id === e.id)) {
           update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
           bury(e.id);
           if (profile) sync.blockRemove(profile.id, e.id);
-        } else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
+        }
         update((st) => {
           const gids = { ...st.gids };
           delete gids[e.id];
@@ -700,7 +705,10 @@ function useStore() {
       // what Google already holds (tagged by Pathway), fetched fresh so two visitors never double-write
       const all = await gcal.listWeek(monday);
       const localIds = new Set(localEvents.map((e) => e.id));
-      const stale = all.filter((g) => (g.localId ? (g.profile && g.profile !== profile.id) || (!localIds.has(g.localId) && !(g.kind === "study" && g.profile === profile.id)) : g.pathway));
+      // Stale: this profile's copies of things no longer on its week (study blocks planned on another
+      // device stay), and older copies with no id. Other profiles' copies are theirs: hidden here, never
+      // deleted, since deleting them made their owners' browsers think the student removed them.
+      const stale = all.filter((g) => (g.localId ? g.profile === profile.id && !localIds.has(g.localId) && g.kind !== "study" : g.pathway));
       if (stale.length) console.info(`[gcal] taking ${stale.length} stale cop${stale.length === 1 ? "y" : "ies"} off Google: ${stale.map((g) => `${g.title} (${g.localId}${g.profile ? ` · ${g.profile}` : ""})`).join(", ")}`);
       for (const g of stale) {
         markTouched(g.id.slice(2), "");
@@ -740,11 +748,23 @@ function useStore() {
     }
     return n;
   };
+  const syncRef = useRef(syncAll);
+  useEffect(() => {
+    syncRef.current = syncAll;
+  });
   const refreshGoogle = async () => {
     if (!gcal.isConnected()) return;
     const list = await gcal.listWeek(monday);
     setGoogleEvents(list);
     reconcile(list);
+    // The week is the source of truth for Moodle's and the seed's events: a copy that went missing from
+    // Google (deleted there, or by another browser) is written again, so the calendar stays complete.
+    const horizon = new Date(monday);
+    horizon.setDate(monday.getDate() + 14);
+    const onGoogle = new Set(list.filter((g) => g.localId && g.profile === profile?.id).map((g) => g.localId!));
+    const seen = new Set(list.map(same));
+    const missing = localEvents.some((e) => e.source === "demo" && !onGoogle.has(e.id) && !seen.has(same(e)) && new Date(e.start) >= monday && new Date(e.start) < horizon);
+    if (missing) void syncRef.current();
   };
   // Watch Google while connected: every 45 s and whenever the tab regains focus.
   const refreshRef = useRef(refreshGoogle);
@@ -768,10 +788,6 @@ function useStore() {
   }, [googleOn, profileId]);
   // Keep Google current while connected: whenever local events change, write the new ones.
   const localKey = localEvents.map((e) => e.id).join("|");
-  const syncRef = useRef(syncAll);
-  useEffect(() => {
-    syncRef.current = syncAll;
-  });
   useEffect(() => {
     if (!googleOn || !profile) return;
     // Defer a tick so the write happens after render, as an external-system sync.

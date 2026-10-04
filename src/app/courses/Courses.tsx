@@ -24,8 +24,13 @@ import {
   MapPin,
   Newspaper,
   Presentation,
+  RefreshCw,
   ScrollText,
+  Trash2,
+  Upload,
 } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
+import type { IngestEvent, KbSource } from "@/lib/knowledge/types";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PageHeader, StatusMark } from "@/components/ui";
 import { baseFeatures, courseInfo, fmtDueDay, recordFor } from "@/lib/coursework";
@@ -39,6 +44,7 @@ const TABS = [
   { id: "work", label: "Assignments" },
   { id: "attendance", label: "Attendance" },
   { id: "materials", label: "Materials" },
+  { id: "files", label: "Files" },
   { id: "syllabus", label: "Syllabus" },
   { id: "facts", label: "Facts" },
 ] as const;
@@ -128,8 +134,18 @@ function Course({
   tab: Tab;
   setTab: (t: Tab) => void;
 }) {
-  const { state, now, makeReal, knowledge } = usePathway();
+  const { state, now, makeReal, knowledge, syncNow } = usePathway();
   const info = courseInfo(c.code);
+  const [synced, setSynced] = useState<"idle" | "busy" | string>("idle");
+  const sync = async () => {
+    setSynced("busy");
+    try {
+      await syncNow();
+      setSynced(new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
+    } catch {
+      setSynced("idle");
+    }
+  };
   const src = useMemo(
     () => sourcesFor(state.sources, c.code),
     [state.sources, c.code],
@@ -195,6 +211,9 @@ function Course({
           >
             <Brain size={15} aria-hidden /> Study
           </Link>
+          <button onClick={sync} disabled={synced === "busy"} className="btn btn-ghost min-h-11 px-4 text-xs" title="Re-read Moodle, Gradescope and Google Calendar (sample sources in this demo)">
+            <RefreshCw size={15} aria-hidden className={synced === "busy" ? "animate-spin" : ""} /> {synced === "busy" ? "Syncing…" : synced === "idle" ? "Sync now" : `Synced ${synced}`}
+          </button>
         </div>
       </header>
 
@@ -297,6 +316,7 @@ function Course({
         <Attendance c={c} rec={rec} meets={info?.meets} lab={info?.lab} />
       )}
       {tab === "materials" && <Materials c={c} docs={docs} />}
+      {tab === "files" && <Files c={c} kb={knowledge} />}
       {tab === "facts" && <Facts c={c} kb={knowledge} />}
       {tab === "syllabus" && (
         <Syllabus
@@ -968,8 +988,103 @@ function factLine(n: KbNode): string {
   }
 }
 
+// ---- Files: every document this course's facts come from. Add one (it goes through the ingestion agent), or forget one. ----
+
+const STAGE_TEXT: Record<string, string> = { received: "Reading", classified: "Classified", extracted: "Extracting facts", linked: "Linking", reviewed: "Reviewing" };
+const fmtSize = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : n >= 1000 ? `${Math.round(n / 1000)} KB` : `${n} B`);
+
+function Files({ c, kb }: { c: CourseView; kb: Knowledge }) {
+  const { ingestFile, removeKnowledgeSource } = usePathway();
+  const [over, setOver] = useState(false);
+  const [jobs, setJobs] = useState<{ id: number; name: string; stage: string; detail: string; error?: string }[]>([]);
+  const files = kb.sources.filter((f) => f.course === c.code).sort((a, b) => (isSampleSource(a) === isSampleSource(b) ? a.uploadedAt.localeCompare(b.uploadedAt) : isSampleSource(a) ? 1 : -1));
+  const factsOf = (f: KbSource) => kb.nodes.filter((n) => n.source === f.id && n.review !== "rejected");
+
+  const take = (list: FileList | null) => {
+    if (!list) return;
+    for (const file of Array.from(list)) {
+      const id = Date.now() + Math.random();
+      setJobs((xs) => [...xs, { id, name: file.name, stage: "received", detail: "" }]);
+      ingestFile(
+        file,
+        (e: IngestEvent) => {
+          const detail = e.stage === "classified" ? `${e.kind} (${e.confidence})` : e.stage === "extracted" ? `${e.facts} facts` : e.stage === "linked" ? `${e.edges} links${e.conflicts ? `, ${e.conflicts} clash${e.conflicts === 1 ? "" : "es"}` : ""}` : e.stage === "reviewed" ? `${e.confirmed} confirmed${e.needsYou ? `, ${e.needsYou} need you` : ""}` : "";
+          setJobs((xs) => xs.map((x) => (x.id === id ? { ...x, stage: e.stage, detail: detail || x.detail } : x)));
+        },
+        c.code,
+      )
+        .then(() => setJobs((xs) => xs.filter((x) => x.id !== id)))
+        .catch((e: Error) => setJobs((xs) => xs.map((x) => (x.id === id ? { ...x, error: e.message } : x))));
+    }
+  };
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="panel p-5">
+        <h3 className="text-xl font-black">{files.length} file{files.length === 1 ? "" : "s"} for {c.code}</h3>
+        <p className="mt-1 text-sm text-muted">Everything the facts, the gradebook, the Week and Viva are read from. Sample files stand in for Moodle and Gradescope until yours are here.</p>
+        <ul className="mt-3 divide-y divide-line/70">
+          {files.map((f) => {
+            const n = factsOf(f).length;
+            const waiting = factsOf(f).filter((x) => x.review === "proposed").length;
+            const Icon = f.kind === "syllabus" ? ScrollText : f.kind === "grades" ? BarChart3 : f.kind === "slides" ? Presentation : f.kind === "reading" ? Newspaper : f.kind === "assignment" ? FlaskConical : FileText;
+            const sample = isSampleSource(f);
+            return (
+              <li key={f.id} className="flex items-center gap-3 py-2.5 text-sm">
+                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${sample ? "bg-polar text-muted" : "bg-sky-soft text-sky"}`}>
+                  <Icon size={18} aria-hidden />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-extrabold" title={f.filename}>{f.filename}</span>
+                  <span className="block text-xs text-muted">
+                    {f.kind} · {n} fact{n === 1 ? "" : "s"}{waiting ? ` · ${waiting} need you` : ""} · {fmtSize(f.size)} · {sample ? "sample" : `added ${fmtDay(f.uploadedAt)}`}
+                  </span>
+                </span>
+                {!sample && (
+                  <button onClick={() => removeKnowledgeSource(f.id)} aria-label={`Forget ${f.filename}`} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs text-sun-ink">
+                    <Trash2 size={14} aria-hidden /> Forget
+                  </button>
+                )}
+              </li>
+            );
+          })}
+          {jobs.map((j) => (
+            <li key={j.id} className="flex items-center gap-3 py-2.5 text-sm" aria-live="polite">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-sky-soft text-sky"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /></span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-extrabold">{j.name}</span>
+                <span className={`block text-xs ${j.error ? "font-bold text-sun-ink" : "text-muted"}`}>{j.error ?? `${STAGE_TEXT[j.stage] ?? j.stage}…${j.detail ? ` ${j.detail}` : ""}`}</span>
+              </span>
+              {j.error && (
+                <button onClick={() => setJobs((xs) => xs.filter((x) => x.id !== j.id))} aria-label={`Dismiss ${j.name}`} className="text-muted hover:text-ink">
+                  <Trash2 size={16} aria-hidden />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="space-y-4">
+        <label
+          onDragOver={(e) => (e.preventDefault(), setOver(true))}
+          onDragLeave={() => setOver(false)}
+          onDrop={(e) => (e.preventDefault(), setOver(false), take(e.dataTransfer.files))}
+          className={`flex cursor-pointer flex-col items-center gap-2 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-colors ${over ? "border-teal bg-teal-soft" : "border-line hover:bg-polar"}`}
+        >
+          <Upload size={24} strokeWidth={2.4} className="text-teal" aria-hidden />
+          <span className="font-bold">Add a {c.code} file</span>
+          <span className="text-sm text-muted">Syllabus, slides, notes or a Gradescope page. Gemini reads it stage by stage; every fact keeps the line it came from, and anything unsure waits for you under Facts.</span>
+          <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.txt,.csv" className="sr-only" onChange={(e) => take(e.target.files)} />
+        </label>
+        <p className="px-1 text-xs text-muted">A real syllabus or grade page replaces the sample one for this course the moment it is read.</p>
+      </div>
+    </div>
+  );
+}
+
 function Facts({ c, kb }: { c: CourseView; kb: Knowledge }) {
-  const { reviewNode, removeKnowledgeSource } = usePathway();
+  const { reviewNode } = usePathway();
   const params = useSearchParams();
   const highlight = params.get("fact");
   const [openType, setOpenType] = useState<string | null>(highlight ? (kb.nodes.find((n) => n.id === highlight)?.type ?? null) : "deadline");
@@ -981,7 +1096,7 @@ function Facts({ c, kb }: { c: CourseView; kb: Knowledge }) {
   const sourceName = (n: KbNode) => (n.source ? (byId.get(n.source)?.filename ?? "a file") : n.createdBy === "viva" ? "you told Viva" : "a note");
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-4">
       <div className="space-y-4">
         {waiting.length > 0 && (
           <div className="panel border-sun/60 bg-sun-soft/40 p-5">
@@ -1035,29 +1150,6 @@ function Facts({ c, kb }: { c: CourseView; kb: Knowledge }) {
         </div>
       </div>
 
-      <div className="panel h-fit p-5">
-        <h3 className="text-xl font-black">Files</h3>
-        <p className="mt-1 text-sm text-muted">What these facts were read from.</p>
-        <ul className="mt-3 divide-y divide-line/70 text-sm">
-          {files.map((f) => {
-            const n = kb.nodes.filter((x) => x.source === f.id && x.review !== "rejected").length;
-            const ms = f.steps.reduce((t, st) => t + (st.ms ?? 0), 0);
-            return (
-              <li key={f.id} className="py-2">
-                <p className="truncate font-extrabold" title={f.filename}>{f.filename}</p>
-                <p className="text-xs text-muted">
-                  {f.kind} · {n} fact{n === 1 ? "" : "s"} · {isSampleSource(f) ? "sample" : ms ? `read in ${(ms / 1000).toFixed(1)} s` : "yours"}
-                  {!isSampleSource(f) && (
-                    <button onClick={() => removeKnowledgeSource(f.id)} className="ml-2 font-extrabold text-muted hover:text-ink">Forget</button>
-                  )}
-                </p>
-              </li>
-            );
-          })}
-          {!files.length && <li className="py-2 text-muted">Nothing on file for {c.code} yet.</li>}
-        </ul>
-        <Link href="/" className="btn btn-ghost mt-3 min-h-9 w-full px-3 text-xs">Drop a file on Home</Link>
-      </div>
     </div>
   );
 }

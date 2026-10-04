@@ -16,12 +16,14 @@ import { compileContext, scopeFor } from "./knowledge/compile";
 import { dropSource, ingestFile, legacySources, merge, reassign, setReview as reviewLocal, summary as ingestSummary, type DoneEvent } from "./knowledge/client";
 import { emptyKnowledge, type IngestEvent, type KbNode, type Knowledge, type Review } from "./knowledge/types";
 import { nodeId } from "./knowledge/nodes";
-import { SAMPLE_VERSION, isSampleSource, sampleKnowledge } from "./knowledge/sample";
+import { SAMPLE_VERSION, isSampleSource, retireSuperseded, sampleKnowledge } from "./knowledge/sample";
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
-import { blocksAsEvents, demoWeek, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { pickExcerpts } from "./knowledge/excerpts";
+import { docsFor } from "./knowledge/sample";
 import type { Proposal } from "./intel/planner";
 import ROWS from "./rows.json";
 
@@ -201,7 +203,7 @@ function useStore() {
       const keepNodes = fresh ? [] : st.knowledge.nodes.filter((n) => (n.source ? keepIds.has(n.source) : n.createdBy !== "seed"));
       const nodeIds = new Set(keepNodes.map((n) => n.id));
       const keepEdges = fresh ? [] : st.knowledge.edges.filter((e) => nodeIds.has(e.from) && nodeIds.has(e.to));
-      const kb = merge({ sources: keepSources, nodes: keepNodes, edges: keepEdges }, sample);
+      const kb = retireSuperseded(merge({ sources: keepSources, nodes: keepNodes, edges: keepEdges }, sample));
       return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seedStamp } } };
     }), 0);
     return () => clearTimeout(t);
@@ -691,7 +693,9 @@ function useStore() {
       if (s.blocks.some((b) => b.id === id) || sharedBlocks.some((b) => b.id === id)) {
         const mine = s.blocks.some((b) => b.id === id);
         const shared = sharedBlocks.find((b) => b.id === id);
-        update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start } : b)) : [...st.blocks, { ...shared!, at: start }] }));
+        // The block keeps the length it was given (a resize is a move with a new end).
+        const minutes = Math.max(15, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000));
+        update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start, minutes } : b)) : [...st.blocks, { ...shared!, at: start, minutes }] }));
       } else if (!id.startsWith("g-")) update((st) => ({ ...st, moved: { ...st.moved, [id]: { start, end } } }));
       const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
       if (gid && gcal.isConnected()) {
@@ -737,12 +741,26 @@ function useStore() {
       say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}.${rescored || " Viva can use it now."}`);
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
+    /** Rename a block Pathway made. Returns false for Moodle or Google events, which keep their names. */
+    renameEvent: (id: string, title: string) => {
+      if (!s.blocks.some((b) => b.id === id)) return false;
+      update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === id ? { ...b, title } : b)) }));
+      return true;
+    },
+    /** Sync now: re-read the sample Moodle/Gradescope records, the database and Google Calendar. */
+    syncNow: async () => {
+      update((st) => ({ ...st, seeded: "" }));
+      const p = await getProfiles().catch(() => null);
+      if (p) setProfiles(p);
+      if (profile) hydrate(profile.id);
+      if (gcal.isConnected()) await refreshGoogle().catch(() => {});
+    },
     // ---- knowledge graph (docs/knowledge/PLAN.md) --------------------------------------------
     knowledge: s.knowledge,
     /** Send a file through the ingestion agent, stage by stage, then file its facts here. */
     ingestFile: async (file: File, onStage?: (e: IngestEvent) => void, course?: string): Promise<DoneEvent> => {
       const done = await ingestFile(file, { profile: profile.id, courses: courses.map((c) => c.code), course, existing: s.knowledge.nodes }, (e) => onStage?.(e));
-      const kb = merge(s.knowledge, { sources: [done.source], nodes: done.nodes, edges: done.edges });
+      const kb = retireSuperseded(merge(s.knowledge, { sources: [done.source], nodes: done.nodes, edges: done.edges }));
       update((st) => ({ ...st, knowledge: kb, sources: legacySources(kb) }));
       // A grade page changes the numbers the tree reads: re-score that course right away and say what moved.
       const seed = done.source.kind === "grades" ? courses.find((c) => c.code === done.source.course) : undefined;
@@ -887,22 +905,99 @@ function useStore() {
           case "add_event": {
             const minutes = Math.max(15, Math.min(240, Math.round((new Date(a.end!).getTime() - new Date(a.start!).getTime()) / 60_000) || 50));
             const course = slugOf(a.course) ?? courses.find((c) => a.title!.toUpperCase().includes(c.code))?.slug ?? "";
-            const b: Block = { id: `viva-${Date.now()}-${receipts.length}`, course, title: a.title!, at: a.start!, done: false, minutes };
-            update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
-            sync.blocks(profile.id, [b]);
-            receipts.push(`Added “${a.title}” ${when(a.start!)}${gnote()}`);
+            // Repeat: one block per day on the pattern, up to ten, through `until`.
+            const first = new Date(a.start!);
+            const until = a.until && /^\d{4}-\d{2}-\d{2}$/.test(a.until) ? new Date(`${a.until}T23:59:59`) : first;
+            const starts: Date[] = [];
+            for (let d = new Date(first); d <= until && starts.length < 10; d.setDate(d.getDate() + (a.repeat === "weekly" ? 7 : 1))) {
+              const dow = d.getDay();
+              if (a.repeat === "weekdays" && (dow === 0 || dow === 6)) continue;
+              starts.push(new Date(d));
+              if (!a.repeat || a.repeat === "none") break;
+            }
+            const made: Block[] = [];
+            const shifted: string[] = [];
+            for (const st of starts) {
+              // Taken? Slide to the next free slot that day and say so, rather than stacking on a class.
+              let at = localIso(st);
+              const probeEnd = localIso(new Date(st.getTime() + minutes * 60_000));
+              const busy = [...events, ...blocksAsEvents(made)].some((e) => e.start < probeEnd && at < e.end);
+              if (busy) {
+                const slot = freeSlot([...events, ...blocksAsEvents(made)], st, minutes, st.getHours() + (st.getMinutes() ? 1 : 0), 22) ?? freeSlot([...events, ...blocksAsEvents(made)], st, minutes, 8, 22);
+                if (slot) {
+                  shifted.push(`${when(at)} was taken, used ${when(slot.start)}`);
+                  at = slot.start;
+                }
+              }
+              made.push({ id: `viva-${Date.now()}-${receipts.length}-${made.length}`, course, title: a.title!, at, done: false, minutes });
+            }
+            if (!made.length) break;
+            update((st) => ({ ...st, blocks: [...st.blocks, ...made] })); // the sync effect writes them to Google
+            sync.blocks(profile.id, made);
+            receipts.push(made.length === 1 ? `Added “${a.title}” ${when(made[0].at)}${gnote()}` : `Added “${a.title}” ${made.length} times, ${when(made[0].at)} through ${fmtDay(made[made.length - 1].at)}${gnote()}`);
+            for (const x of shifted) receipts.push(x);
             break;
           }
           case "move_event": {
             const ev = events.find((e) => e.id === a.id);
+            if (!ev) {
+              receipts.push(`Couldn't find that event to move`);
+              break;
+            }
             await base.moveEvent(a.id!, a.start!, a.end!);
-            receipts.push(`Moved “${ev?.title ?? a.id}” to ${when(a.start!)}${gnote()}`);
+            receipts.push(`Moved “${ev.title}” to ${when(a.start!)}${gnote()}`);
+            break;
+          }
+          case "resize_event": {
+            const ev = events.find((e) => e.id === a.id);
+            if (!ev || a.end! <= ev.start) {
+              receipts.push(`Couldn't change that event's length`);
+              break;
+            }
+            await base.moveEvent(a.id!, ev.start, a.end!);
+            receipts.push(`“${ev.title}” now runs ${fmtTime(ev.start)} to ${fmtTime(a.end!)}${gnote()}`);
+            break;
+          }
+          case "rename_event": {
+            const ev = events.find((e) => e.id === a.id);
+            if (!ev) break;
+            if (!base.renameEvent(a.id!, a.title!)) {
+              receipts.push(`“${ev.title}” comes from Moodle or Google; only blocks Pathway made can be renamed`);
+              break;
+            }
+            receipts.push(`Renamed “${ev.title}” to “${a.title}”`);
             break;
           }
           case "remove_event": {
             const ev = events.find((e) => e.id === a.id);
+            if (!ev) {
+              receipts.push(`Couldn't find that event to remove`);
+              break;
+            }
             await base.removeEvent(a.id!);
-            receipts.push(`Removed “${ev?.title ?? a.id}”${gnote()}`);
+            receipts.push(`Removed “${ev.title}”${gnote()}`);
+            break;
+          }
+          case "clear_range": {
+            // Study blocks always; with kind "all" also the student's other events, never classes, exams or work.
+            const inRange = events.filter((e) => e.start < a.end! && a.start! < e.end && e.kind !== "class" && e.kind !== "exam" && e.kind !== "work" && (a.kind === "all" || e.kind === "study"));
+            for (const e of inRange) await base.removeEvent(e.id);
+            receipts.push(inRange.length ? `Cleared ${inRange.length} item${inRange.length === 1 ? "" : "s"} between ${when(a.start!)} and ${when(a.end!)}${gnote()}` : `Nothing of yours to clear between ${when(a.start!)} and ${when(a.end!)}`);
+            break;
+          }
+          case "approve_all": {
+            for (const sg of suggestions) await base.approveSuggestion(sg);
+            receipts.push(suggestions.length ? `Approved ${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"}` : "No suggestions were waiting");
+            break;
+          }
+          case "start_quiz": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            const code = courses.find((c) => c.slug === slug)?.code ?? "";
+            const want = (a.title ?? "").toLowerCase();
+            const doc = want ? docsFor(code, s.knowledge).find((d) => d.title.toLowerCase() === want) ?? docsFor(code, s.knowledge).find((d) => d.title.toLowerCase().includes(want) || want.includes(d.title.toLowerCase())) : undefined;
+            navigate = `/study?tool=${a.tool === "flashcards" ? "flashcards" : "quiz"}&course=${slug}${doc ? `&doc=${encodeURIComponent(doc.id)}` : ""}`;
+            receipts.push(doc ? `Opened a ${a.tool === "flashcards" ? "deck" : "quiz"} from “${doc.title}”` : `Opened Study for ${code}`);
             break;
           }
           case "approve_suggestion": {
@@ -997,8 +1092,8 @@ function useStore() {
       const page = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
       const pageCourse = courses.find((c) => page.includes(`course=${c.slug}`))?.code;
       const todayIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate()));
-      const weekAheadIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() + 7));
-      const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)));
+      const weekAheadIso = localIso(new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() + 14));
+      const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)), 6000, demo.now);
       // Voice appends the student's turn before calling this; don't send it twice.
       const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
       const r = await askAgent(
@@ -1010,8 +1105,11 @@ function useStore() {
           profileId: profile.id,
           knowledge: pack.text,
           notes: s.notes,
-          // the next seven days only: enough to plan with, half the tokens of the full fortnight
+          // the next two weeks: enough to plan around exams, nothing older
           weekIds: events.filter((e) => e.end >= todayIso && e.start < weekAheadIso).map((e) => ({ id: e.id, title: e.title, start: e.start })),
+          // Lecture files this message is about, by word overlap with their titles, summaries and text. No model call,
+          // and nothing is sent unless the overlap is real, so a scheduling question costs no extra tokens.
+          excerpts: pickExcerpts(text, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)).courses, s.knowledge),
           suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
           files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
           recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),

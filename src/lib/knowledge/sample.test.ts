@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docsFor, isSampleSource, sampleKnowledge } from "./sample.ts";
+import { docsFor, isSampleSource, retireSuperseded, sampleKnowledge } from "./sample.ts";
 import { legacySource } from "./nodes.ts";
 import { COURSES } from "../coursework-data.ts";
 import { JUDGE_COURSE, PROFILES } from "../mock.ts";
@@ -46,4 +46,17 @@ test("re-seeding is idempotent and materials keep their full text", () => {
   const docs = docsFor("BIO 181", a);
   assert.equal(docs.length, COURSES["BIO 181"].docs.length);
   assert.ok(docs.every((d) => d.sample && d.body.length > 500));
+});
+
+test("a real grade page retires the sample gradebook for its course and nothing else", () => {
+  const maya = profiles[0];
+  const kb = sampleKnowledge(maya.id, maya.courses);
+  const real = { id: "s1234abcd", profile: maya.id, course: "BIO 181", filename: "gradescope.pdf", mime: "application/pdf", size: 10, sha256: "x", kind: "grades" as const, kindConfidence: "high" as const, why: "", uploadedAt: "2026-10-06T09:00:00.000Z", steps: [] };
+  const node = { id: "n00000001", profile: maya.id, course: "BIO 181", type: "grade_item" as const, title: "HW 1", body: { score: 9, max: 10, status: "graded", due: "2026-09-04" }, confidence: "high" as const, review: "confirmed" as const, source: real.id, createdBy: "extractor" as const, createdAt: real.uploadedAt };
+  const after = retireSuperseded({ sources: [...kb.sources, real], nodes: [...kb.nodes, node], edges: kb.edges });
+  assert.equal(after.sources.filter((s) => s.course === "BIO 181" && s.kind === "grades").length, 1);
+  assert.equal(after.sources.find((s) => s.course === "BIO 181" && s.kind === "grades")?.id, real.id);
+  assert.equal(after.nodes.filter((n) => n.course === "BIO 181" && n.type === "grade_item").length, 1, "sample grade rows are gone");
+  assert.ok(after.sources.some((s) => s.course === "BIO 181" && s.kind === "syllabus" && isSampleSource(s)), "the sample syllabus stays");
+  assert.equal(after.sources.filter((s) => s.course === "ST 311").length, kb.sources.filter((s) => s.course === "ST 311").length, "other courses untouched");
 });

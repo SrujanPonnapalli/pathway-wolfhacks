@@ -93,3 +93,17 @@ export function docsFor(code: string, kb: Knowledge): (CourseDoc & { sample: boo
     });
   return [...dropped, ...sample];
 }
+
+/**
+ * A real syllabus or grade page retires the sample one for its course: the sample source and its
+ * facts go, so weights, dates and grade rows never come from two files at once. Lecture files stack.
+ */
+export function retireSuperseded(kb: Knowledge): Knowledge {
+  const real = new Set(kb.sources.filter((s) => !isSampleSource(s) && (s.kind === "syllabus" || s.kind === "grades")).map((s) => `${s.course}|${s.kind}`));
+  if (!real.size) return kb;
+  const drop = new Set(kb.sources.filter((s) => isSampleSource(s) && real.has(`${s.course}|${s.kind}`)).map((s) => s.id));
+  if (!drop.size) return kb;
+  const nodes = kb.nodes.filter((n) => !n.source || !drop.has(n.source));
+  const ids = new Set(nodes.map((n) => n.id));
+  return { sources: kb.sources.filter((s) => !drop.has(s.id)), nodes, edges: kb.edges.filter((e) => ids.has(e.from) && ids.has(e.to)) };
+}

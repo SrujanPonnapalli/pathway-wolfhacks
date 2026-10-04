@@ -1,12 +1,30 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { GoogleSignIn } from "@/components/Account";
+import { usePathway } from "@/lib/store";
 import { useEffect, useState } from "react";
+import { VivaAvatar } from "@/components/Viva";
 import {
   ArrowDownRight, ArrowRight, BookOpen, CalendarDays, Check, ChevronRight,
   Headphones, LockKeyhole, MapPinned, MessageCircleMore, Sparkles,
 } from "lucide-react";
+
+// The landing page's calls to action. Signed in: straight into the app. Otherwise: Sign in with
+// Google (the app is accounts-only; the sample students live behind the /demo link).
+function Cta({ className, children, label }: { className: string; children?: React.ReactNode; label: string }) {
+  const { profile } = usePathway();
+  const router = useRouter();
+  if (profile?.account)
+    return (
+      <Link href="/" className={className}>
+        {label}
+        {children}
+      </Link>
+    );
+  return <GoogleSignIn className={className} label="Sign in with Google" onSignedIn={() => router.push("/")}>{children}</GoogleSignIn>;
+}
 
 const turns = [
   {
@@ -80,6 +98,96 @@ function RouteStory() {
   );
 }
 
+function HeroRoute() {
+  return (
+    <div className="landing-hero-graphic" role="img" aria-label="A course check-in becomes a clear reason and a study block on Tuesday">
+      <div className="landing-graphic-heading"><span>YOUR WAY FORWARD</span><span>01 / 03</span></div>
+      <svg className="landing-graphic-path" viewBox="0 0 600 600" fill="none" preserveAspectRatio="none" aria-hidden="true">
+        <path className="landing-graphic-track" d="M 70 104 C 194 100, 104 250, 178 263 C 275 263, 335 290, 402 396" />
+        <path className="landing-graphic-progress" pathLength="1" d="M 70 104 C 194 100, 104 250, 178 263 C 275 263, 335 290, 402 396" />
+      </svg>
+      <span className="landing-graphic-dot landing-graphic-dot-one" aria-hidden="true" />
+      <span className="landing-graphic-dot landing-graphic-dot-two" aria-hidden="true" />
+      <span className="landing-graphic-dot landing-graphic-dot-three" aria-hidden="true" />
+      <div className="landing-graphic-node landing-graphic-node-one"><small>NOTICE</small><strong>Something needs<br />a check-in.</strong></div>
+      <div className="landing-graphic-node landing-graphic-node-two"><small>UNDERSTAND</small><strong>See the reason<br />behind the signal.</strong></div>
+      <div className="landing-graphic-node landing-graphic-node-three"><small>ACT</small><strong>Practice quiz</strong><em>Tuesday · 4:30 PM</em></div>
+      <div className="landing-graphic-footer"><span>ONE STEP AT A TIME</span><span className="landing-graphic-footer-mark"><Mark size={27} /></span></div>
+    </div>
+  );
+}
+
+const studentTools = [
+  { name: "Moodle", detail: "course records", mark: "moodle" },
+  { name: "Gradescope", detail: "grade pages", mark: "gradescope" },
+  { name: "Google Drive", detail: "course files", mark: "drive" },
+  { name: "Google Calendar", detail: "your week", mark: "calendar" },
+  { name: "Gmail", detail: "draft replies", mark: "gmail" },
+] as const;
+
+function ToolMark({ mark }: { mark: typeof studentTools[number]["mark"] }) {
+  return <span className={`landing-tool-mark landing-tool-${mark}`} aria-hidden="true" />;
+}
+
+function ToolRibbon() {
+  return (
+    <div className="landing-tool-ribbon" aria-label="Pathway uses uploaded Moodle and Gradescope records, Google Drive files, Google Calendar, and Gmail drafts; more direct connections are planned">
+      <div className="landing-tool-ribbon-intro">
+        <span className="landing-tool-ribbon-kicker">YOUR TOOLS, ONE WAY FORWARD</span>
+        <p>Works <span className="landing-tool-scratch">magically<svg aria-hidden="true" className="landing-tool-scratch-line" viewBox="0 0 200 32" preserveAspectRatio="none"><path pathLength="1" d="M 3 20 C 28 17, 47 12, 67 16 C 91 22, 111 14, 136 17 C 161 20, 179 13, 197 14" /></svg></span> <strong>seamlessly</strong> with<span className="landing-tool-colon">:</span></p>
+        <small>Uploads and Google tools now. More direct connections ahead.</small>
+      </div>
+      <div className="landing-tool-viewport">
+        <div className="landing-tool-track">
+          {[0, 1].map((copy) => <div className="landing-tool-set" key={copy} aria-hidden={copy === 1}>
+            {studentTools.map((tool) => <div className={`landing-tool-chip landing-tool-chip-${tool.mark}`} key={tool.name}>
+              <ToolMark mark={tool.mark} />
+              <span><strong>{tool.name}</strong><small>{tool.detail}</small></span>
+            </div>)}
+          </div>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const vivaPhases = [
+  { state: "listening", label: "Listening", line: "What should I focus on before Friday?" },
+  { state: "thinking", label: "Thinking", line: "Checking your course materials…" },
+  { state: "speaking", label: "Speaking", line: "Start with the practice quiz, then review the questions you miss." },
+] as const;
+
+function VivaStage() {
+  const [active, setActive] = useState(0);
+  const phase = vivaPhases[active];
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActive((current) => (current + 1) % vivaPhases.length), 3600);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="landing-viva-stage" data-reveal>
+      <div className="landing-viva-stage-top"><span>VIVA / A CONVERSATION</span><span>ILLUSTRATIVE DEMO</span></div>
+      <div className={`landing-viva-character landing-viva-character-${phase.state}`} aria-label={`Viva is ${phase.label.toLowerCase()}`}>
+        <VivaAvatar size={260} state={phase.state} input={phase.state === "listening" ? 0.35 : 0} output={phase.state === "speaking" ? 0.55 : 0} />
+      </div>
+      <div className="landing-viva-caption" aria-live="polite" key={phase.state}>
+        <span className="landing-viva-caption-label">{phase.state === "listening" ? "YOU ASK" : `VIVA IS ${phase.label.toUpperCase()}`}</span>
+        <p>{phase.line}</p>
+      </div>
+      <div className="landing-viva-states" aria-label="Viva demonstration states">
+        {vivaPhases.map((item, index) => (
+          <button key={item.state} type="button" className={active === index ? "is-active" : ""} aria-pressed={active === index} onClick={() => setActive(index)}>
+            <span className="landing-viva-state-dot" />{item.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   useEffect(() => {
     const root = document.querySelector(".landing");
@@ -112,7 +220,7 @@ export default function LandingPage() {
             <a href="#viva">Meet Viva</a>
             <a href="#inside">Inside Pathway</a>
           </nav>
-          <Link className="landing-nav-cta" href="/">Open the app <ArrowRight size={17} aria-hidden="true" /></Link>
+          <Cta className="landing-nav-cta" label="Open the app"> <ArrowRight size={17} aria-hidden="true" /></Cta>
         </div>
       </header>
 
@@ -122,13 +230,12 @@ export default function LandingPage() {
           <h1 id="landing-title">Know your<br /><em>next move.</em></h1>
           <p className="landing-hero-description">When a class starts to slip, Pathway shows you why and helps put a plan on the calendar.</p>
           <div className="landing-hero-actions">
-            <Link href="/" className="landing-button landing-button-primary">Open Pathway <ArrowRight size={21} aria-hidden="true" /></Link>
+            <Cta className="landing-button landing-button-primary" label="Open Pathway"> <ArrowRight size={21} aria-hidden="true" /></Cta>
             <a href="#how-it-works" className="landing-text-link">See how it works <ArrowDownRight size={20} aria-hidden="true" /></a>
           </div>
         </div>
-        <div className="landing-hero-photo">
-          <Image src="/landing/desk-route.jpg" alt="Open notes and a weekly planner connected by a teal line on a sunlit study desk" fill priority sizes="(max-width: 850px) 100vw, 56vw" />
-        </div>
+        <HeroRoute />
+        <ToolRibbon />
       </section>
 
       <section id="how-it-works" className="landing-way landing-shell" aria-labelledby="way-title">
@@ -160,11 +267,8 @@ export default function LandingPage() {
       </section>
 
       <section id="viva" className="landing-viva landing-shell" aria-labelledby="viva-title">
-        <div className="landing-viva-photo" data-reveal>
-          <Image src="/landing/viva-study.jpg" alt="A student talking through notes during a study session" fill sizes="(max-width: 800px) 100vw, 43vw" />
-        </div>
+        <VivaStage />
         <div className="landing-viva-copy" data-reveal>
-          <span className="landing-viva-orb" aria-hidden="true"><span /></span>
           <p className="landing-eyebrow">Meet Viva</p>
           <h2 id="viva-title">A study partner<br />who knows the course.</h2>
           <p>Talk through a tough concept, practice out loud, or ask what to tackle first. Viva can draw on your course materials and show where an answer came from.</p>
@@ -212,14 +316,14 @@ export default function LandingPage() {
           <div className="landing-final-mark"><Mark size={64} /></div>
           <h2 id="final-title">You have a way forward.</h2>
           <p>See where you stand. Understand why. Make the next move yours.</p>
-          <Link href="/" className="landing-button landing-button-light">Open Pathway <ArrowRight size={21} aria-hidden="true" /></Link>
+          <Cta className="landing-button landing-button-light" label="Open Pathway"> <ArrowRight size={21} aria-hidden="true" /></Cta>
         </div>
       </section>
 
       <footer className="landing-footer landing-shell">
         <Link href="/landing" className="landing-wordmark"><Mark size={30} /><span>pathway</span></Link>
         <p>One step at a time.</p>
-        <Link href="/">Go to the app <ChevronRight size={16} aria-hidden="true" /></Link>
+        <Cta className="landing-footer-cta" label="Go to the app"> <ChevronRight size={16} aria-hidden="true" /></Cta>
       </footer>
     </main>
   );

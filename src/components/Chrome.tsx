@@ -1,16 +1,25 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, type ReactNode } from "react";
 import { AccountMenu } from "@/components/Account";
+import { DemoBanner } from "@/components/DemoBanner";
 import { Sidebar } from "@/components/Sidebar";
 import { VivaDock, VivaProvider } from "@/components/VivaDock";
+import { usePathway } from "@/lib/store";
 
-// Standalone surfaces (the Pi kiosk and landing page) get no app sidebar or dock.
+// Standalone surfaces (the Pi kiosk, landing page, demo door) get no app sidebar or dock.
 // VivaProvider still wraps them so the kiosk can keep its voice session across pages.
+// The app is accounts-only: with no profile to show (not signed in, not in demo mode), every app
+// page sends you to the landing page to sign in. The demo door is /demo (see src/lib/demo.ts).
 export function Chrome({ children }: { children: ReactNode }) {
   const path = usePathname();
-  const fullscreen = path.startsWith("/device") || path === "/landing";
+  const router = useRouter();
+  const { entry } = usePathway();
+  const fullscreen = path.startsWith("/device") || path === "/landing" || path.startsWith("/demo");
+  useEffect(() => {
+    if (entry && path !== "/landing" && !path.startsWith("/demo")) router.replace("/landing");
+  }, [entry, path, router]);
   return (
     <VivaProvider>
       {fullscreen ? (
@@ -23,6 +32,7 @@ export function Chrome({ children }: { children: ReactNode }) {
             <div className="absolute right-6 top-5 z-30 hidden md:block">
               <AccountMenu />
             </div>
+            <DemoBanner />
             {children}
           </div>
           <VivaDock />

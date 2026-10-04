@@ -585,6 +585,8 @@ function useStore() {
 
   const base = {
     ready: !!trees && !!profile,
+    /** Loaded, but no profile to show: not signed in and not in demo mode. The app shows its front door. */
+    entry: !!trees && profiles.length === 0,
     draftAdvisorNote,
     error,
     now: demo.now,

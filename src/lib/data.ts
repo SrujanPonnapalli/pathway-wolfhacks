@@ -3,6 +3,7 @@
 // demo never depends on the network. Writes are fire-and-forget: the UI never waits on them.
 import { NOW, PROFILES, JUDGE_COURSE, JUDGE_CLASS, BUDDIES, type Profile } from "./mock";
 import type { Tree } from "./tree";
+import { isDemo } from "./demo";
 
 export type Horizon = "early" | "mid";
 export type RemoteState = {
@@ -24,11 +25,11 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 export async function getProfiles(): Promise<Profile[]> {
   try {
     const p = await api<Profile[]>("/api/profiles");
-    live = p.length > 0;
-    if (live) return p;
+    live = true; // an empty list is a real answer: not signed in and not in demo mode
+    return p;
   } catch {}
   live = false;
-  return PROFILES;
+  return isDemo() ? PROFILES : []; // offline: the local sample students, still only in demo mode
 }
 
 export async function getState(profileId: string): Promise<RemoteState | null> {

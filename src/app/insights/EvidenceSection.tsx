@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 
 export function EvidenceSection() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [advisorCapacity, setAdvisorCapacity] = useState(15);
 
   // Recall@k on the 160 held-out test students, ranked by the early tree's risk score

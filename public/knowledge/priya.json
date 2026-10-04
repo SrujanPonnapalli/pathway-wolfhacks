@@ -1,0 +1,2974 @@
+{
+ "version": "2026-10-04",
+ "sources": [
+  {
+   "id": "sa291e9d17a19",
+   "profile": "priya",
+   "course": "CH 101",
+   "filename": "CH101-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2727,
+   "sha256": "a291e9d17a1929e866201dc6c065e313ab75d07198ba0ec4589059a6e4a3af01",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document is a Gradescope student view showing a table of assignments, status, scores, and due dates for CH 101 Chemistry: A Molecular Science.",
+   "uploadedAt": "2026-10-04T03:14:20.740Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:13:33.910Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "a291e9d17a1929e866201dc6c065e313ab75d07198ba0ec4589059a6e4a3af01",
+      "size": 2727,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:13:57.308Z",
+     "ms": 23398,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 642,
+     "tokensOut": 84,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document is a Gradescope student view showing a table of assignments, status, scores, and due dates for CH 101 Chemistry: A Molecular Science."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:14:20.740Z",
+     "ms": 23432,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 595,
+     "tokensOut": 1374,
+     "detail": {
+      "facts": 22,
+      "types": {
+       "grade_item": 22
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:14:20.740Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:14:20.740Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 22,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "sf176333f03db",
+   "profile": "priya",
+   "course": "CH 101",
+   "filename": "CH101-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2843,
+   "sha256": "f176333f03dbbd965b31bdaff4af15bd059b9a7da36a6a53d257c68bf670fce4",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document contains course grading weights, an instructor list, course policies, and a complete schedule with assignment due dates, which clearly defines a course syllabus.",
+   "uploadedAt": "2026-10-04T03:14:26.575Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:14:20.749Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "f176333f03dbbd965b31bdaff4af15bd059b9a7da36a6a53d257c68bf670fce4",
+      "size": 2843,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:14:22.998Z",
+     "ms": 2249,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 641,
+     "tokensOut": 88,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document contains course grading weights, an instructor list, course policies, and a complete schedule with assignment due dates, which clearly defines a course syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:14:26.575Z",
+     "ms": 3577,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 20,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 4,
+       "deadline": 10,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:14:26.575Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:14:26.575Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 20,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "sd4c46970dae7",
+   "profile": "priya",
+   "course": "MA 241",
+   "filename": "MA241-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2617,
+   "sha256": "d4c46970dae7be41131d0bb58d9db11d1b98a649e0a62e23b93a91d2a9a230b3",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document is a Gradescope page listing assignments, statuses, and scores for MA 241 Calculus II.",
+   "uploadedAt": "2026-10-04T03:15:09.176Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:14:26.583Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "d4c46970dae7be41131d0bb58d9db11d1b98a649e0a62e23b93a91d2a9a230b3",
+      "size": 2617,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:14:30.529Z",
+     "ms": 3946,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 642,
+     "tokensOut": 74,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document is a Gradescope page listing assignments, statuses, and scores for MA 241 Calculus II."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:15:09.176Z",
+     "ms": 38647,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 595,
+     "tokensOut": 1265,
+     "detail": {
+      "facts": 19,
+      "types": {
+       "grade_item": 19
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:15:09.176Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:15:09.176Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 19,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "s7591deb9fded",
+   "profile": "priya",
+   "course": "BIO 181",
+   "filename": "BIO181-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2625,
+   "sha256": "7591deb9fdedf7dde1f462915c37359a61ddbf2ed14c71a8ef14dd64ca5da28e",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document clearly displays a Gradescope student view with assignment statuses, scores, and due dates.",
+   "uploadedAt": "2026-10-04T03:16:10.786Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:15:52.400Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "7591deb9fdedf7dde1f462915c37359a61ddbf2ed14c71a8ef14dd64ca5da28e",
+      "size": 2625,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:15:58.554Z",
+     "ms": 6154,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 642,
+     "tokensOut": 72,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document clearly displays a Gradescope student view with assignment statuses, scores, and due dates."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:16:10.786Z",
+     "ms": 12231,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 595,
+     "tokensOut": 1218,
+     "detail": {
+      "facts": 18,
+      "types": {
+       "grade_item": 18
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:16:10.786Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:16:10.786Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 18,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "se124b3e0de36",
+   "profile": "priya",
+   "course": "BIO 181",
+   "filename": "BIO181-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2938,
+   "sha256": "e124b3e0de369e0e4c0bf651b28cce63bedcc3d7bd4c4214eda0cc884b4645d0",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document contains course grading breakdown, a schedule of assignments and exams, instructor information, and course policies, which clearly defines it as a syllabus.",
+   "uploadedAt": "2026-10-04T03:16:16.902Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:16:10.796Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "e124b3e0de369e0e4c0bf651b28cce63bedcc3d7bd4c4214eda0cc884b4645d0",
+      "size": 2938,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:16:12.936Z",
+     "ms": 2140,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 641,
+     "tokensOut": 84,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document contains course grading breakdown, a schedule of assignments and exams, instructor information, and course policies, which clearly defines it as a syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:16:16.902Z",
+     "ms": 3966,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 20,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 5,
+       "deadline": 9,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:16:16.902Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:16:16.902Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 20,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "sc256ee7e3adb",
+   "profile": "priya",
+   "course": "MA 241",
+   "filename": "MA241-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2878,
+   "sha256": "c256ee7e3adb355a5ba89a7591c7229787f4e24ffe3149fc83c94d07a13e429c",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document explicitly contains grading weight breakdowns, a schedule and deadlines table, instructor information, and course policies, which defines a course syllabus.",
+   "uploadedAt": "2026-10-04T03:19:30.779Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:19:24.232Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "c256ee7e3adb355a5ba89a7591c7229787f4e24ffe3149fc83c94d07a13e429c",
+      "size": 2878,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:19:26.714Z",
+     "ms": 2482,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 641,
+     "tokensOut": 82,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document explicitly contains grading weight breakdowns, a schedule and deadlines table, instructor information, and course policies, which defines a course syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:19:30.778Z",
+     "ms": 4064,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 21,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 4,
+       "deadline": 11,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:19:30.778Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:19:30.779Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 21,
+      "needsYou": 0
+     }
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "id": "ne065cbbf",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 1: 16/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nb42285b1",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 1",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-30",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 1: 47/50 · graded · due 2026-08-30",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n52731988",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-30",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 1: 40/50 · graded · due 2026-08-30",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nde5f0cd4",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-01",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 2: 19/20 · graded · due 2026-09-01",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n5479d873",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 2: 40/50 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "ne46154dd",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 3",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 3: 19/20 · graded · due 2026-09-05",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nb224c122",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 2",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-06",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 2: 40/50 · graded · due 2026-09-06",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n56779d02",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 3",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-07",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 3: 47/50 · graded · due 2026-09-07",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "ne26e1daa",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 4",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 4: 16/20 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n586ad435",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 4",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-11",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 4: 47/50 · graded · due 2026-09-11",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nb026fc93",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 3",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-13",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 3: 0/50 · missing · due 2026-09-13",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "ne070591b",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 5",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-13",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 5: 19/20 · graded · due 2026-09-13",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n52688c2c",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 5",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 5: 40/50 · graded · due 2026-09-15",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nde680730",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 6",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-17",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 6: 19/20 · graded · due 2026-09-17",
+   "locator": "Gradescope · row 14",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n5470de17",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 6",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-19",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 6: 40/50 · graded · due 2026-09-19",
+   "locator": "Gradescope · row 15",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nae15b04c",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 4",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-20",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 4: 47/50 · graded · due 2026-09-20",
+   "locator": "Gradescope · row 16",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "ne46a4f39",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 7",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 7: 16/20 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 17",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n566d0fa6",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Practice set 7",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Practice set 7: 47/50 · graded · due 2026-09-23",
+   "locator": "Gradescope · row 18",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "ne2771806",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Reading check 8",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-25",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Reading check 8: 16/20 · graded · due 2026-09-25",
+   "locator": "Gradescope · row 19",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nb4198b55",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 5",
+   "body": {
+    "score": 47,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-27",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 5: 47/50 · graded · due 2026-09-27",
+   "locator": "Gradescope · row 20",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "nb21bc6c6",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Homework 6",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-11",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Homework 6: –/50 · not_submitted · due 2026-10-11",
+   "locator": "Gradescope · row 21",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n106097ed",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grade_item",
+   "title": "Exam 2",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-11-02",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sa291e9d17a19",
+   "quote": "Exam 2: –/50 · not_submitted · due 2026-11-02",
+   "locator": "Gradescope · row 22",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:20.740Z"
+  },
+  {
+   "id": "n71bdca82",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "contact",
+   "title": "Dr. Robert Lin",
+   "body": {
+    "email": "rlin@ncsu.edu",
+    "office_hours": "Wed 9–10 AM, Dabney 310"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "ne36cde91",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "course_info",
+   "title": "Chemistry: A Molecular Science",
+   "body": {
+    "code": "CH 101",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nc1abd59d",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grading",
+   "title": "Exams",
+   "body": {
+    "weight": 50,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n22ce753a",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grading",
+   "title": "Final exam",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n9717b170",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grading",
+   "title": "Online homework",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "ne76af74f",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "grading",
+   "title": "Recitation",
+   "body": {
+    "weight": 10,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n8cd80131",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 1",
+   "body": {
+    "date": "2026-08-30",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Aug 30, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nc8905b1a",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 2",
+   "body": {
+    "date": "2026-09-06",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Sep 6, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nb32533f1",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 3",
+   "body": {
+    "date": "2026-09-13",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Sep 13, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nb9ee60d8",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 4",
+   "body": {
+    "date": "2026-09-20",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Sep 20, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "ndc025d14",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 5",
+   "body": {
+    "date": "2026-09-27",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Sep 27, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nfbcb0f26",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Exam 1",
+   "body": {
+    "date": "2026-10-08",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Thu Oct 8, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nb6f3f684",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 6",
+   "body": {
+    "date": "2026-10-11",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Sun Oct 11, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n24797bb2",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Exam 2",
+   "body": {
+    "date": "2026-11-02",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Mon Nov 2, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nbb3d84c1",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Homework 7",
+   "body": {
+    "date": "2026-11-16",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Mon Nov 16, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nd0a9b667",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-11",
+    "time": "",
+    "kind": "exam",
+    "weight": 25
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Fri Dec 11, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nacc00946",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "Online homework has a 24-hour grace period at 80% credit."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Online homework has a 24-hour grace period at 80% credit.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nb2edcf6a",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Recitation attendance counts toward the recitation grade."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Recitation attendance counts toward the recitation grade.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n961e3fe5",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "Contact the instructor before the exam."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "Contact the instructor before the exam.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "n082882d3",
+   "profile": "priya",
+   "course": "CH 101",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sf176333f03db",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:14:26.574Z"
+  },
+  {
+   "id": "nda57ae2f",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 17,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 1: 17/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "na4b127ae",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "WebAssign 1",
+   "body": {
+    "score": 36,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-30",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "WebAssign 1: 36/50 · graded · due 2026-08-30",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "ne7043118",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 42,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-31",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Practice set 1: 42/50 · graded · due 2026-08-31",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "nd84f5c44",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 14,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 2: 14/20 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "n7fb8e9ec",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Quiz 1",
+   "body": {
+    "score": 17,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Quiz 1: 17/20 · graded · due 2026-09-05",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "ne90c8303",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 36,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-06",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Practice set 2: 36/50 · graded · due 2026-09-06",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "na6aeec3d",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "WebAssign 2",
+   "body": {
+    "score": 42,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "WebAssign 2: 42/50 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "nde51a44d",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 3",
+   "body": {
+    "score": 14,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 3: 14/20 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "neb0a4792",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Practice set 3",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-12",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Practice set 3: 0/50 · missing · due 2026-09-12",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "ndc5e6d1a",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 4",
+   "body": {
+    "score": 14,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 4: 14/20 · graded · due 2026-09-15",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "n1af75b07",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Test 1",
+   "body": {
+    "score": 8,
+    "max": 10,
+    "status": "graded",
+    "due": "2026-09-17",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Test 1: 8/10 · graded · due 2026-09-17",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "necfd7ec5",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Practice set 4",
+   "body": {
+    "score": 36,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-18",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Practice set 4: 36/50 · graded · due 2026-09-18",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "nda60a88b",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 5",
+   "body": {
+    "score": 17,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 5: 17/20 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "ne6fb36bc",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Practice set 5",
+   "body": {
+    "score": 36,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-24",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Practice set 5: 36/50 · graded · due 2026-09-24",
+   "locator": "Gradescope · row 14",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "na0aca434",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "WebAssign 3",
+   "body": {
+    "score": 42,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-25",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "WebAssign 3: 42/50 · graded · due 2026-09-25",
+   "locator": "Gradescope · row 15",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "nd859e9a0",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Reading check 6",
+   "body": {
+    "score": 14,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-27",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Reading check 6: 14/20 · graded · due 2026-09-27",
+   "locator": "Gradescope · row 16",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "n81bfa8d7",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "Quiz 2",
+   "body": {
+    "score": 17,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-10-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "Quiz 2: 17/20 · graded · due 2026-10-03",
+   "locator": "Gradescope · row 17",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "na2bdf07b",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "WebAssign 4",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "WebAssign 4: –/50 · not_submitted · due 2026-10-09",
+   "locator": "Gradescope · row 18",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "na4ba220a",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grade_item",
+   "title": "WebAssign 5",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-11-02",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sd4c46970dae7",
+   "quote": "WebAssign 5: –/50 · not_submitted · due 2026-11-02",
+   "locator": "Gradescope · row 19",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:15:09.176Z"
+  },
+  {
+   "id": "n458abc6a",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 18,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 1: 18/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n30cfd807",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-31",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 1: 40/50 · graded · due 2026-08-31",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "nd2628db0",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Quiz 1: Cells",
+   "body": {
+    "score": 18,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Quiz 1: Cells: 18/20 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n478880f9",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 2: 16/20 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n2ec9191c",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-06",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 2: 0/50 · missing · due 2026-09-06",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n418638f0",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 3",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 3: 16/20 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n34cb6125",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 3",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-12",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 3: 46/50 · graded · due 2026-09-12",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n4383fd7f",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 4",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 4: 16/20 · graded · due 2026-09-15",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n61fa2f72",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Quiz 2: Membranes",
+   "body": {
+    "score": 0,
+    "max": 20,
+    "status": "missing",
+    "due": "2026-09-17",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Quiz 2: Membranes: 0/20 · missing · due 2026-09-17",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n25252ca9",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Lab report 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-18",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Lab report 1: 40/50 · graded · due 2026-09-18",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n32d696f2",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 4",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-18",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 4: 46/50 · graded · due 2026-09-18",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n4581c20e",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 5",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 5: 16/20 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n30da6563",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 5",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-24",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 5: 0/50 · missing · due 2026-09-24",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n477df39d",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 6",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-27",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 6: 16/20 · graded · due 2026-09-27",
+   "locator": "Gradescope · row 14",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n2ed21378",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Practice set 6",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-30",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Practice set 6: 46/50 · graded · due 2026-09-30",
+   "locator": "Gradescope · row 15",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n417bab94",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Reading check 7",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-10-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Reading check 7: 16/20 · graded · due 2026-10-03",
+   "locator": "Gradescope · row 16",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n4d57ceaf",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Quiz 3: Energy",
+   "body": {
+    "score": null,
+    "max": 20,
+    "status": "not_submitted",
+    "due": "2026-10-06",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Quiz 3: Energy: –/20 · not_submitted · due 2026-10-06",
+   "locator": "Gradescope · row 17",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "n2327681a",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grade_item",
+   "title": "Lab report 2",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s7591deb9fded",
+   "quote": "Lab report 2: –/50 · not_submitted · due 2026-10-23",
+   "locator": "Gradescope · row 18",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:10.786Z"
+  },
+  {
+   "id": "nba561892",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "contact",
+   "title": "Dr. Lena Ortiz",
+   "body": {
+    "email": "lortiz@ncsu.edu",
+    "office_hours": "Tue 2–3 PM, Bostian 2722"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n857682ff",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "course_info",
+   "title": "Introductory Biology",
+   "body": {
+    "code": "BIO 181",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n2b95bbae",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grading",
+   "title": "Midterm",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n4a5ccaff",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grading",
+   "title": "Final exam",
+   "body": {
+    "weight": 30,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "na360c11e",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grading",
+   "title": "Lab reports",
+   "body": {
+    "weight": 20,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nd9efb054",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grading",
+   "title": "Weekly quizzes",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "ne0ff255d",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "grading",
+   "title": "Participation",
+   "body": {
+    "weight": 10,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n78a96533",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Quiz 1: Cells",
+   "body": {
+    "date": "2026-09-03",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Quiz 1: Cells",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nad2a92a0",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Quiz 2: Membranes",
+   "body": {
+    "date": "2026-09-17",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Quiz 2: Membranes",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n2a513e62",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Lab report 1",
+   "body": {
+    "date": "2026-09-18",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Lab report 1",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "na1cd2fe3",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Quiz 3: Energy",
+   "body": {
+    "date": "2026-10-06",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Quiz 3: Energy",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n1ae6e364",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Midterm (chapters 1–7)",
+   "body": {
+    "date": "2026-10-10",
+    "time": "",
+    "kind": "exam",
+    "weight": 25
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Midterm (chapters 1–7)",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nfa136425",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Lab report 2",
+   "body": {
+    "date": "2026-10-23",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Lab report 2",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n66225572",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Quiz 5: Cell respiration",
+   "body": {
+    "date": "2026-11-06",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Quiz 5: Cell respiration",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "ne4c86771",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Lab report 3",
+   "body": {
+    "date": "2026-12-04",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Lab report 3",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n3c829230",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-11",
+    "time": "",
+    "kind": "exam",
+    "weight": 30
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Final exam",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nf40b89d7",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "Late work loses 10% per day for up to 3 days; after that it is not accepted."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Late work loses 10% per day for up to 3 days; after that it is not accepted.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "n4d3f24b5",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Attendance is taken every lecture and counts toward participation."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Attendance is taken every lecture and counts toward participation.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "ncb732d82",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "Extensions need an email at least 24 hours before the deadline."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "Extensions need an email at least 24 hours before the deadline.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nf4312acc",
+   "profile": "priya",
+   "course": "BIO 181",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "se124b3e0de36",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:16:16.902Z"
+  },
+  {
+   "id": "nd3c675c5",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "contact",
+   "title": "Dr. Samuel Whitaker",
+   "body": {
+    "email": "swhitaker@ncsu.edu",
+    "office_hours": "Thu 10–11 AM, SAS 3220"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n0db9abc1",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "course_info",
+   "title": "Calculus II",
+   "body": {
+    "code": "MA 241",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n5ff2ba8a",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grading",
+   "title": "Tests",
+   "body": {
+    "weight": 45,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "na128630a",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grading",
+   "title": "Final exam",
+   "body": {
+    "weight": 30,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "nb9e6ea72",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grading",
+   "title": "WebAssign homework",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n7b810d72",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "grading",
+   "title": "Quizzes",
+   "body": {
+    "weight": 10,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "nb34ea840",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "WebAssign 1",
+   "body": {
+    "date": "2026-08-30",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign 1 assignment Sun Aug 30, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "na1a6fc21",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Quiz 1",
+   "body": {
+    "date": "2026-09-05",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Quiz 1 quiz Sat Sep 5, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "na9eb0af6",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "WebAssign 2",
+   "body": {
+    "date": "2026-09-09",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign 2 assignment Wed Sep 9, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "ncb1ec47d",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Test 1",
+   "body": {
+    "date": "2026-09-17",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Test 1 exam Thu Sep 17, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n324e1f61",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "WebAssign 3",
+   "body": {
+    "date": "2026-09-25",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign 3 assignment Fri Sep 25, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n15ede7c6",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Quiz 2",
+   "body": {
+    "date": "2026-10-03",
+    "time": "",
+    "kind": "quiz",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Quiz 2 quiz Sat Oct 3, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "nb6ee57fe",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "WebAssign 4",
+   "body": {
+    "date": "2026-10-09",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign 4 assignment Fri Oct 9, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "nc2602242",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Test 2",
+   "body": {
+    "date": "2026-10-20",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Test 2 exam Tue Oct 20, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n7b85699b",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "WebAssign 5",
+   "body": {
+    "date": "2026-11-02",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign 5 assignment Mon Nov 2, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n01c301aa",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Test 3",
+   "body": {
+    "date": "2026-11-20",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Test 3 exam Fri Nov 20, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n68cd6fb7",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-11",
+    "time": "",
+    "kind": "exam",
+    "weight": 30
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Final exam exam Fri Dec 11, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n321214f6",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "WebAssign closes at the deadline; the lowest homework score is dropped."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "WebAssign closes at the deadline; the lowest homework score is dropped.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n59cafb1a",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Attendance is recommended but not graded."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "Attendance is recommended but not graded.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n35d36e95",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "No extensions on tests; see the makeup policy."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "No extensions on tests; see the makeup policy.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  },
+  {
+   "id": "n4ed1c283",
+   "profile": "priya",
+   "course": "MA 241",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "sc256ee7e3adb",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:19:30.778Z"
+  }
+ ],
+ "edges": [
+  {
+   "from": "nb42285b1",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 1\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nb224c122",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 2\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nb026fc93",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 3\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nae15b04c",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 4\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nb4198b55",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 5\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nb21bc6c6",
+   "to": "n9717b170",
+   "rel": "counts_toward",
+   "why": "\"Homework 6\" looks like Online homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n106097ed",
+   "to": "nc1abd59d",
+   "rel": "counts_toward",
+   "why": "\"Exam 2\" looks like Exams",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na4b127ae",
+   "to": "nb9e6ea72",
+   "rel": "counts_toward",
+   "why": "\"WebAssign 1\" looks like WebAssign homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n7fb8e9ec",
+   "to": "n7b810d72",
+   "rel": "counts_toward",
+   "why": "\"Quiz 1\" looks like Quizzes",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na6aeec3d",
+   "to": "nb9e6ea72",
+   "rel": "counts_toward",
+   "why": "\"WebAssign 2\" looks like WebAssign homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n1af75b07",
+   "to": "n5ff2ba8a",
+   "rel": "counts_toward",
+   "why": "\"Test 1\" looks like Tests",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na0aca434",
+   "to": "nb9e6ea72",
+   "rel": "counts_toward",
+   "why": "\"WebAssign 3\" looks like WebAssign homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n81bfa8d7",
+   "to": "n7b810d72",
+   "rel": "counts_toward",
+   "why": "\"Quiz 2\" looks like Quizzes",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na2bdf07b",
+   "to": "nb9e6ea72",
+   "rel": "counts_toward",
+   "why": "\"WebAssign 4\" looks like WebAssign homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na4ba220a",
+   "to": "nb9e6ea72",
+   "rel": "counts_toward",
+   "why": "\"WebAssign 5\" looks like WebAssign homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nd2628db0",
+   "to": "nd9efb054",
+   "rel": "counts_toward",
+   "why": "\"Quiz 1: Cells\" looks like Weekly quizzes",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n61fa2f72",
+   "to": "nd9efb054",
+   "rel": "counts_toward",
+   "why": "\"Quiz 2: Membranes\" looks like Weekly quizzes",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n25252ca9",
+   "to": "na360c11e",
+   "rel": "counts_toward",
+   "why": "\"Lab report 1\" looks like Lab reports",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n4d57ceaf",
+   "to": "nd9efb054",
+   "rel": "counts_toward",
+   "why": "\"Quiz 3: Energy\" looks like Weekly quizzes",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n2327681a",
+   "to": "na360c11e",
+   "rel": "counts_toward",
+   "why": "\"Lab report 2\" looks like Lab reports",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n2a513e62",
+   "to": "nfa136425",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-18, syllabus · schedule says 2026-10-23",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n2a513e62",
+   "to": "ne4c86771",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-18, syllabus · schedule says 2026-12-04",
+   "createdBy": "linker"
+  },
+  {
+   "from": "ne4c86771",
+   "to": "nfa136425",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-12-04, syllabus · schedule says 2026-10-23",
+   "createdBy": "linker"
+  }
+ ]
+}

@@ -7,14 +7,17 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test src/lib/*.test.ts",
+    "test": "node --test src/lib/*.test.ts src/lib/knowledge/*.test.ts",
     "db:setup": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts setup",
     "db:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts seed",
     "db:check": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts check",
     "sol:keys": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts keys",
     "sol:mint": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts mint",
     "pots:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts seed",
-    "pots:settle": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts settle"
+    "pots:settle": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts settle",
+    "kb:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb-seed.ts",
+    "kb:materials": "python3 scripts/demo-materials.py",
+    "kb:export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb-export.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.2.0",

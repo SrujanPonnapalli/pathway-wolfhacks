@@ -24,8 +24,10 @@ const teachLink: Action = { label: "Teach Viva a topic", href: "/viva?mode=teach
 
 export type Action = { label: string; href: string };
 export type EmailDraft = { to: string; subject: string; body: string };
-/** One chat turn. Viva's turns can carry receipts (what she just did) and an email draft. */
-export type ChatMessage = { role: "you" | "viva"; text: string; actions?: Action[]; receipts?: string[]; email?: EmailDraft };
+/** A fact Viva relied on, shown as a chip under the reply with its source sentence. */
+export type Citation = { id: string; title: string; quote?: string; locator?: string; course: string };
+/** One chat turn. Viva's turns can carry receipts (what she just did), an email draft, and citations. */
+export type ChatMessage = { role: "you" | "viva"; text: string; actions?: Action[]; receipts?: string[]; email?: EmailDraft; citations?: Citation[] };
 export type Reply = { text: string; actions: Action[] };
 
 type Course = {

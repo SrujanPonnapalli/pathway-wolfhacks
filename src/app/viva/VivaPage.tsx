@@ -8,7 +8,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
-import { EmailCard, Receipts } from "@/components/VivaBits";
+import { Citations, EmailCard, Receipts } from "@/components/VivaBits";
 import { useViva } from "@/components/VivaDock";
 import { usePathway, type ChatMsg, type ChatSession } from "@/lib/store";
 import { VIVA, type Action } from "@/lib/viva";
@@ -204,6 +204,7 @@ function Message({
       <div className="group relative rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft pl-4 pr-8 py-3">
         <p className="whitespace-pre-wrap">{m.text}</p>
         <Receipts items={m.receipts} />
+        <Citations items={m.citations} />
         <EmailCard email={m.email} />
         {m.actions && m.actions.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2 pr-6">

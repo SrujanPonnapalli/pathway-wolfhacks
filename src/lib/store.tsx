@@ -21,7 +21,7 @@ import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
-import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, toLocal, type CalEvent, type Suggestion } from "./schedule";
 import { pickExcerpts } from "./knowledge/excerpts";
 import { docsFor } from "./knowledge/sample";
 import type { Proposal } from "./intel/planner";
@@ -29,7 +29,7 @@ import ROWS from "./rows.json";
 
 export type ChatMsg = ChatMessage;
 export type { ChatSession };
-export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string; minutes?: number };
+export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string; minutes?: number; synced?: boolean /* seen in the database at least once */ };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
   added: CourseSeed[];
@@ -150,6 +150,10 @@ function useStore() {
   });
   const [toast, setToast] = useState<{ id: number; text: string }>();
   const [vivaThinking, setVivaThinking] = useState(false);
+  const savedRef = useRef(saved);
+  useEffect(() => {
+    savedRef.current = saved;
+  });
 
   useEffect(() => {
     Promise.all([getProfiles(), getTree("early"), getTree("mid")])
@@ -164,14 +168,37 @@ function useStore() {
   }, [saved]);
 
   // When the database is reachable, it's the source of truth for a profile's logged activity:
-  // pull it on load and on every profile switch (local edits not yet confirmed stay local).
+  // pull it on load and on every profile switch. Blocks merge rather than replace: this device keeps
+  // the ones it hasn't been able to save (a block with no course, a write still in flight) and its
+  // own block lengths, the database adds what was planned elsewhere, and a block that was in the
+  // database before and is gone now was removed on another device.
+  const buried = useRef(new Map<string, number>()); // block id -> when it was removed here; a hydrate in flight must not bring it back
+  const bury = (id: string) => buried.current.set(id, Date.now());
   const hydrate = useCallback((id: string) => {
     getState(id).then((r) => {
       if (!r) return;
       setSaved((v) => {
         const cur = v.by[id] ?? empty(id);
-        return { ...v, by: { ...v.by, [id]: { ...cur, deltas: r.deltas, checkedIn: r.checkedIn, blocks: r.blocks, done: r.done, added: [], addedClasses: [] } } };
+        const curBlocks = cur.blocks ?? [];
+        const gone = (b: { id: string }) => Date.now() - (buried.current.get(b.id) ?? 0) < 60_000;
+        const db = new Map(r.blocks.filter((b) => !gone(b)).map((b) => [b.id, b]));
+        const blocks: Block[] = [
+          ...curBlocks
+            .filter((b) => db.has(b.id) || !b.synced)
+            .map((b) => {
+              const d = db.get(b.id);
+              // First meeting: what this device has is what the student set here (the database is told below). After that the database leads.
+              return d ? { ...b, ...(b.synced ? { at: d.at, title: d.title } : {}), done: b.done || d.done, synced: true } : b;
+            }),
+          ...r.blocks.filter((d) => db.has(d.id) && !curBlocks.some((b) => b.id === d.id)).map((d) => ({ ...d, synced: true })),
+        ];
+        return { ...v, by: { ...v.by, [id]: { ...cur, deltas: r.deltas, checkedIn: r.checkedIn, blocks, done: r.done, added: [], addedClasses: [] } } };
       });
+      // Blocks this device moved or renamed before the database learned to follow: bring the row up to date once.
+      for (const b of savedRef.current.by[id]?.blocks ?? []) {
+        const d = r.blocks.find((x) => x.id === b.id);
+        if (d && !b.synced && (d.at !== b.at || d.title !== b.title)) sync.blockEdit(id, b.id, { at: b.at, title: b.title });
+      }
     });
   }, []);
   const activeId = profiles.length ? (profiles.find((p) => p.id === saved.profile) ?? profiles[0]).id : null;
@@ -297,19 +324,40 @@ function useStore() {
     const base = [...feed, ...blocksAsEvents(s.blocks)].filter((e) => !s.removed.includes(e.id));
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
   }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
-  // Google copies of things we already render locally are skipped (they carry a Pathway tag).
+  // What Google adds to the week: the student's own entries (no Pathway tag), plus study blocks
+  // Pathway planned for this profile on another device. Copies of what's rendered locally are
+  // skipped, and Pathway's copies for other profiles or of things no longer on the week are not
+  // shown (syncAll takes them off Google). Two of the same thing at the same time show once.
+  const same = (e: { title: string; start: string }) => `${e.title.trim().toLowerCase()}|${e.start.slice(0, 16)}`;
   const events = useMemo<CalEvent[]>(() => {
     const localIds = new Set(localEvents.map((e) => e.id));
-    return [...localEvents, ...googleEvents.filter((g) => !g.localId || !localIds.has(g.localId))];
-  }, [localEvents, googleEvents]);
-  /** Study blocks in the shared calendar that this browser did not create: treat them as part of the plan. */
+    const seen = new Set(localEvents.map(same));
+    const extra = googleEvents.filter((g) => {
+      if (g.localId && (localIds.has(g.localId) || g.kind !== "study" || g.profile !== profile?.id)) return false;
+      const k = same(g);
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+    return [...localEvents, ...extra];
+  }, [localEvents, googleEvents, profile?.id]);
+  /** Study blocks Pathway planned for this profile that this browser does not have: part of the plan. */
   const sharedBlocks = useMemo<Block[]>(() => {
     const local = new Set(s.blocks.map((b) => b.id));
+    const seen = new Set(s.blocks.map((b) => same({ title: b.title, start: localIso(new Date(b.at)) })));
     return googleEvents
-      .filter((g) => g.localId && g.kind === "study" && !local.has(g.localId))
+      .filter((g) => g.localId && g.kind === "study" && g.profile === profile?.id && !local.has(g.localId) && !seen.has(same(g)))
       .map((g) => ({ id: g.localId!, course: courses.find((c) => g.title.startsWith(c.code))?.slug ?? "", title: g.title, at: g.start, done: false, googleId: g.id.slice(2) }));
-  }, [googleEvents, s.blocks, courses]);
-  const allBlocks = useMemo<Block[]>(() => [...s.blocks, ...sharedBlocks], [s.blocks, sharedBlocks]);
+  }, [googleEvents, s.blocks, courses, profile?.id]);
+  const allBlocks = useMemo<Block[]>(() => {
+    const seen = new Set<string>();
+    return [...s.blocks, ...sharedBlocks].filter((b) => {
+      const k = same({ title: b.title, start: localIso(new Date(b.at)) });
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }, [s.blocks, sharedBlocks]);
   /** Google's id for one of our events: from Google's own tag first (shared calendar, any visitor), then this browser's map. */
   const gidFor = (localId: string) => googleEvents.find((g) => g.localId === localId)?.id.slice(2) ?? s.gids[localId] ?? s.blocks.find((b) => b.id === localId)?.googleId;
   /** Same, but asks Google directly when the local copy is not loaded yet (e.g. a drag right after page load). */
@@ -426,7 +474,10 @@ function useStore() {
   // 1. Diff Google against the last poll: anything moved, added or removed there gets a notice.
   // 2. For our own tagged events, pull Google's version into local state so the week matches.
   const SEEN = "pathway:gcal-seen";
-  const reconcile = (fromGoogle: CalEvent[]) => {
+  const reconcile = (all: CalEvent[]) => {
+    if (!profile) return; // nothing to compare against until the profile is known
+    // Pathway's copies for another profile are not this student's news.
+    const fromGoogle = all.filter((g) => !g.localId || !g.profile || g.profile === profile.id);
     if (!prevGoogle.current) {
       try {
         const raw = sessionStorage.getItem(SEEN);
@@ -454,13 +505,18 @@ function useStore() {
       const g = byLocal.get(e.id);
       if (g) {
         if (g.start.slice(0, 16) !== e.start.slice(0, 16)) {
-          if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
-          else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
+          if (s.blocks.some((b) => b.id === e.id)) {
+            update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === e.id ? { ...b, at: g.start } : b)) }));
+            if (profile) sync.blockEdit(profile.id, e.id, { at: g.start });
+          } else update((st) => ({ ...st, moved: { ...st.moved, [e.id]: { start: g.start, end: g.end } } }));
         }
       } else if (prev && [...prev.values()].some((p) => p.localId === e.id)) {
         // it was in Google last poll and is gone now: someone deleted it there
-        if (s.blocks.some((b) => b.id === e.id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
-        else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
+        if (s.blocks.some((b) => b.id === e.id)) {
+          update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== e.id) }));
+          bury(e.id);
+          if (profile) sync.blockRemove(profile.id, e.id);
+        } else update((st) => ({ ...st, removed: [...st.removed, e.id] }));
         update((st) => {
           const gids = { ...st.gids };
           delete gids[e.id];
@@ -469,28 +525,43 @@ function useStore() {
       }
     }
   };
-  // Write every local event Google does not have yet. Idempotent: gids remembers what was written.
+  // Google Calendar mirrors the week on screen. Every local event Google does not have yet is
+  // written once (gids remembers what was written), and Pathway's own copies that no longer belong
+  // (another profile's, or something that left the week) are taken off. The student's own Google
+  // entries, which carry no Pathway tag, are never touched.
   const syncing = useRef(false);
+  const ready = !!trees && !!profile && (saved.by[profile.id]?.seeded ?? "") === seedStamp; // courses and files loaded, so the local week is complete
   const syncAll = async (): Promise<number> => {
-    if (!gcal.isConnected() || syncing.current) return 0;
+    if (!gcal.isConnected() || syncing.current || !ready || !profile) return 0;
     syncing.current = true;
     let n = 0;
     try {
       const have: Record<string, string> = { ...s.gids };
       for (const b of s.blocks) if (b.googleId && !have[b.id]) have[b.id] = b.googleId;
       // what Google already holds (tagged by Pathway), fetched fresh so two visitors never double-write
-      const fresh = await gcal.listWeek(monday);
+      const all = await gcal.listWeek(monday);
+      const localIds = new Set(localEvents.map((e) => e.id));
+      const stale = all.filter((g) => g.localId && ((g.profile && g.profile !== profile.id) || (!localIds.has(g.localId) && !(g.kind === "study" && g.profile === profile.id))));
+      if (stale.length) console.info(`[gcal] taking ${stale.length} stale cop${stale.length === 1 ? "y" : "ies"} off Google: ${stale.map((g) => `${g.title} (${g.localId}${g.profile ? ` · ${g.profile}` : ""})`).join(", ")}`);
+      for (const g of stale) {
+        markTouched(g.id.slice(2), "");
+        await gcal.remove(g.id.slice(2)).catch(() => {});
+      }
+      const fresh = stale.length ? all.filter((g) => !stale.includes(g)) : all;
       setGoogleEvents(fresh);
       reconcile(fresh); // keeps the diff baseline current so our own writes below stay silent later
       for (const g of fresh) if (g.localId) have[g.localId] = g.id.slice(2);
+      // One copy per thing: if Google already shows it at that time (an older copy, or one the student typed), don't add another.
+      const onGoogle = new Set(fresh.map(same));
       const horizon = new Date(monday);
       horizon.setDate(monday.getDate() + 14);
       for (const e of localEvents) {
         if (have[e.id]) continue;
         if (new Date(e.start) < monday || new Date(e.start) >= horizon) continue;
         if (e.kind === "study" && s.blocks.find((b) => b.id === e.id)?.done) continue;
+        if (onGoogle.has(same(e))) continue;
         const tag = e.source === "pathway" ? "Planned in Pathway" : "From Moodle via Pathway";
-        const id = await gcal.insert({ title: e.title, start: e.start, end: e.end }, `${tag}\nPathway:${e.id}`);
+        const id = await gcal.insert({ title: e.title, start: e.start, end: e.end }, `${tag}\nPathway:${e.id}\nProfile:${profile.id}`);
         have[e.id] = id;
         markTouched(id, e.start);
         n++;
@@ -521,8 +592,9 @@ function useStore() {
   useEffect(() => {
     refreshRef.current = refreshGoogle;
   });
+  const profileId = profile?.id;
   useEffect(() => {
-    if (!googleOn) return;
+    if (!googleOn || !profileId) return;
     const tick = () => void refreshRef.current().catch(() => {});
     tick(); // first fetch as soon as the calendar is known to be connected
     const id = setInterval(tick, 20_000);
@@ -534,7 +606,7 @@ function useStore() {
       document.removeEventListener("visibilitychange", onFocus);
       window.removeEventListener("focus", onFocus);
     };
-  }, [googleOn]);
+  }, [googleOn, profileId]);
   // Keep Google current while connected: whenever local events change, write the new ones.
   const localKey = localEvents.map((e) => e.id).join("|");
   const syncRef = useRef(syncAll);
@@ -684,16 +756,20 @@ function useStore() {
       let googleErr = "";
       for (const op of sg.ops) {
         if (op.op === "move") {
-          if (s.blocks.some((b) => b.id === op.id)) update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === op.id ? { ...b, at: op.start } : b)) }));
-          else update((st) => ({ ...st, moved: { ...st.moved, [op.id]: { start: op.start, end: op.end } } }));
+          if (s.blocks.some((b) => b.id === op.id)) {
+            update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === op.id ? { ...b, at: op.start } : b)) }));
+            sync.blockEdit(profile.id, op.id, { at: op.start });
+          } else update((st) => ({ ...st, moved: { ...st.moved, [op.id]: { start: op.start, end: op.end } } }));
           const gid = op.id.startsWith("g-") ? op.id.slice(2) : gidFor(op.id);
           if (gid && gcal.isConnected()) {
             markTouched(gid, op.start);
             await gcal.move(gid, op.start, op.end).catch((e) => (googleErr = e.message));
           }
         } else {
-          const b: Block = { id: op.event.id, course: op.event.course ?? "", title: op.event.title, at: op.event.start, done: false };
+          const minutes = Math.max(15, Math.round((new Date(op.event.end).getTime() - new Date(op.event.start).getTime()) / 60_000));
+          const b: Block = { id: op.event.id, course: op.event.course ?? "", title: op.event.title, at: op.event.start, done: false, minutes };
           update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
+          sync.blocks(profile.id, [b]);
         }
       }
       update((st) => ({ ...st, dismissed: [...st.dismissed, sg.id] }));
@@ -707,6 +783,8 @@ function useStore() {
         // The block keeps the length it was given (a resize is a move with a new end).
         const minutes = Math.max(15, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60_000));
         update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start, minutes } : b)) : [...st.blocks, { ...shared!, at: start, minutes }] }));
+        if (mine) sync.blockEdit(profile.id, id, { at: start });
+        else sync.blocks(profile.id, [{ ...shared!, at: start }]);
       } else if (!id.startsWith("g-")) update((st) => ({ ...st, moved: { ...st.moved, [id]: { start, end } } }));
       const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
       if (gid && gcal.isConnected()) {
@@ -721,8 +799,11 @@ function useStore() {
       if (id.startsWith("g-")) void refreshRef.current().catch(() => {});
     },
     removeEvent: async (id: string) => {
-      if (s.blocks.some((b) => b.id === id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== id) }));
-      else if (!id.startsWith("g-")) update((st) => ({ ...st, removed: [...st.removed, id] }));
+      if (s.blocks.some((b) => b.id === id) || sharedBlocks.some((b) => b.id === id)) {
+        update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== id) }));
+        bury(id);
+        sync.blockRemove(profile.id, id);
+      } else if (!id.startsWith("g-")) update((st) => ({ ...st, removed: [...st.removed, id] }));
       const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
       if (gid && gcal.isConnected()) {
         markTouched(gid, "");
@@ -756,6 +837,9 @@ function useStore() {
     renameEvent: (id: string, title: string) => {
       if (!s.blocks.some((b) => b.id === id)) return false;
       update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === id ? { ...b, title } : b)) }));
+      sync.blockEdit(profile.id, id, { title });
+      const gid = gidFor(id);
+      if (gid && gcal.isConnected()) gcal.rename(gid, title).catch(() => {});
       return true;
     },
     /** Sync now: re-read the sample Moodle/Gradescope records, the database and Google Calendar. */
@@ -910,7 +994,9 @@ function useStore() {
     const links: Action[] = [];
     let email: EmailDraft | undefined;
     let navigate: string | undefined;
-    for (const a of actions) {
+    for (const raw of actions) {
+      // The model writes times a few ways; the week compares them as text, so one form only.
+      const a: AgentAction = { ...raw, ...(raw.start ? { start: toLocal(raw.start) } : {}), ...(raw.end ? { end: toLocal(raw.end) } : {}) };
       try {
         switch (a.type) {
           case "add_event": {
@@ -1087,10 +1173,11 @@ function useStore() {
     return { receipts, links, email, navigate };
   };
 
-  // Voice confirmation: on voice turns, calendar-writing actions are held as a spoken
-  // proposal ("three blocks, Tue/Thu/Sat — want me to go ahead?") until the student says
-  // yes or no, instead of mutating the calendar mid-sentence. The Week page's manual
-  // approve/dismiss is untouched — this is the same gate, just spoken.
+  // Voice confirmation, off unless NEXT_PUBLIC_VIVA_CONFIRM=1: with it on, calendar-writing actions
+  // on voice turns are held as a spoken proposal ("three blocks, Tue/Thu/Sat — want me to go
+  // ahead?") until the student says yes or no. Off, Viva does what it was asked the moment it was
+  // asked, in chat and in voice alike, and says what it did. The Week page's approve/dismiss is untouched.
+  const VOICE_CONFIRM = process.env.NEXT_PUBLIC_VIVA_CONFIRM === "1";
   const pendingActions = useRef<AgentAction[] | null>(null);
   const MUTATING = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
   const CONFIRM = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|approve|confirm|sounds good|please)\b/i;
@@ -1149,7 +1236,7 @@ function useStore() {
       let actions = r.actions;
       let spoken = r.say;
       if (page.startsWith("/device")) actions = actions.filter((a) => a.type !== "navigate"); // the kiosk stays put — Viva speaks instead of moving you
-      if (act && channel === "voice") {
+      if (act && channel === "voice" && VOICE_CONFIRM) {
         const mut = actions.filter((a) => MUTATING.has(a.type));
         if (!mut.length && held?.length && CONFIRM.test(text)) {
           actions = held; // agent confirmed in words but dropped the actions — run the held proposal

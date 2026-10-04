@@ -134,7 +134,8 @@ export async function listWeek(monday: Date): Promise<CalEvent[]> {
     .map((e) => {
       const desc = e.description ?? "";
       const localId = desc.match(/Pathway:(\S+)/)?.[1];
-      return { id: `g-${e.id}`, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), kind: desc.includes("Planned in Pathway") ? "study" : kindOf(e.summary ?? ""), source: "google" as const, localId };
+      const profile = desc.match(/Profile:(\S+)/)?.[1];
+      return { id: `g-${e.id}`, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), kind: desc.includes("Planned in Pathway") ? "study" : kindOf(e.summary ?? ""), source: "google" as const, localId, profile };
     });
 }
 
@@ -151,4 +152,8 @@ export async function move(googleId: string, start: string, end: string): Promis
 
 export async function remove(googleId: string): Promise<void> {
   await call(`/${encodeURIComponent(googleId)}`, { method: "DELETE" });
+}
+
+export async function rename(googleId: string, title: string): Promise<void> {
+  await call(`/${encodeURIComponent(googleId)}`, { method: "PATCH", body: JSON.stringify({ summary: title }) });
 }

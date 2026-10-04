@@ -2,6 +2,7 @@
 // reachable, and falls back to the local demo content (src/lib/mock.ts) when it isn't, so the
 // demo never depends on the network. Writes are fire-and-forget: the UI never waits on them.
 import { NOW, PROFILES, JUDGE_COURSE, JUDGE_CLASS, BUDDIES, type Profile } from "./mock";
+import { toLocal, toUtc } from "./time";
 import type { Tree } from "./tree";
 
 export type Horizon = "early" | "mid";
@@ -21,20 +22,30 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
   return r.json();
 }
 
+// Everything dated arrives in the app's local form (src/lib/time.ts), whether the database sent a
+// UTC instant or the demo content a bare wall-clock time, so sorting and comparing stay plain text.
+const localize = (p: Profile): Profile => ({
+  ...p,
+  courses: p.courses.map((c) => ({ ...c, exam: { ...c.exam, date: toLocal(c.exam.date) } })),
+  classes: p.classes.map((m) => ({ ...m, at: toLocal(m.at) })),
+  todos: p.todos.map((t) => (t.due ? { ...t, due: toLocal(t.due) } : t)),
+});
+
 export async function getProfiles(): Promise<Profile[]> {
   try {
     const p = await api<Profile[]>("/api/profiles");
     live = p.length > 0;
-    if (live) return p;
+    if (live) return p.map(localize);
   } catch {}
   live = false;
-  return PROFILES;
+  return PROFILES.map(localize);
 }
 
 export async function getState(profileId: string): Promise<RemoteState | null> {
   if (!live) return null;
   try {
-    return await api<RemoteState>(`/api/state?profile_id=${encodeURIComponent(profileId)}`);
+    const r = await api<RemoteState>(`/api/state?profile_id=${encodeURIComponent(profileId)}`);
+    return { ...r, blocks: r.blocks.map((b) => ({ ...b, at: toLocal(b.at) })) };
   } catch {
     return null;
   }
@@ -63,8 +74,17 @@ export const sync = {
     const h = new Date().getHours();
     return send("/api/events", "POST", { profile_id, course_slug, ...e, late_night: h < 4 });
   },
-  blocks: (profile_id: string, blocks: RemoteState["blocks"]) => send("/api/blocks", "POST", { profile_id, blocks }),
+  // Blocks go out as UTC instants (the browser knows its zone; the server doesn't), ten per request.
+  blocks: (profile_id: string, blocks: RemoteState["blocks"]) => {
+    const rows = blocks.map((b) => ({ id: b.id, course: b.course, title: b.title, at: toUtc(b.at), done: b.done }));
+    const batches = Array.from({ length: Math.ceil(rows.length / 10) }, (_, i) => rows.slice(i * 10, i * 10 + 10));
+    return Promise.all(batches.map((batch) => send("/api/blocks", "POST", { profile_id, blocks: batch })));
+  },
   blockDone: (profile_id: string, id: string, done: boolean) => send("/api/blocks", "PATCH", { profile_id, id, done }),
+  /** A block moved or renamed here: the database follows, so a reload (or another device) shows the same week. */
+  blockEdit: (profile_id: string, id: string, patch: { at?: string; title?: string }) =>
+    send("/api/blocks", "PATCH", { profile_id, id, ...(patch.at ? { at: toUtc(patch.at) } : {}), ...(patch.title ? { title: patch.title } : {}) }),
+  blockRemove: (profile_id: string, id: string) => send("/api/blocks", "DELETE", { profile_id, id }),
   todo: (profile_id: string, id: string, done: boolean) => send("/api/todos", "PATCH", { profile_id, id, done }),
   addJudgeCourse: (profile_id: string) => send("/api/courses", "POST", { profile_id }),
   reset: (profile_id: string) => (live ? fetch(`/api/state?profile_id=${encodeURIComponent(profile_id)}`, { method: "DELETE" }).catch(() => undefined) : Promise.resolve(undefined)),

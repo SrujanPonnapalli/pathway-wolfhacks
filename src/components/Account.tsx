@@ -76,14 +76,11 @@ export function GoogleSignIn() {
   );
 }
 
-/** Top-right account button: your Google photo when signed in, with a small menu. */
-export function AccountMenu() {
-  const { profile, reloadProfiles } = usePathway();
+/** Who is signed in, when the active profile is a Google account's; null for the sample profiles. */
+export function useMe(): [Me, (m: Me) => void] {
+  const { profile } = usePathway();
   const [me, setMe] = useState<Me>(null);
-  const [open, setOpen] = useState(false);
-  const box = useRef<HTMLDivElement>(null);
   const signedIn = !!profile?.account;
-
   useEffect(() => {
     let live = true;
     (signedIn ? fetchMe() : Promise.resolve(null)).then((m) => live && setMe(m));
@@ -91,6 +88,34 @@ export function AccountMenu() {
       live = false;
     };
   }, [signedIn, profile?.id]);
+  return [me, setMe];
+}
+
+const initialOf = (profile: { account?: boolean; sample: boolean; name: string } | undefined, me: Me) => (profile ? (profile.account ? (me?.name?.[0] ?? profile.name[0] ?? "Y") : profile.sample ? profile.name[0] : "Y") : "");
+
+/** The round avatar: the Google photo when signed in, otherwise the profile's initial. */
+export function Avatar({ size = 9 }: { size?: 9 | 10 }) {
+  const { profile } = usePathway();
+  const [me] = useMe();
+  const initial = initialOf(profile, me);
+  return (
+    <span className={`grid ${size === 10 ? "size-10" : "size-9"} shrink-0 place-items-center overflow-hidden rounded-full border-2 border-line bg-polar text-sm font-black text-ink`}>
+      {me?.picture ? <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" /> : initial || <UserRound size={18} aria-hidden />}
+    </span>
+  );
+}
+
+/**
+ * The account button: your Google photo when signed in (otherwise the profile's initial), with a
+ * small menu. `placement` says where the menu opens: below the button (phone header) or above it
+ * (the desktop sidebar, where it sits at the bottom of the rail). `label` adds the name next to the
+ * button when there is room for it.
+ */
+export function AccountMenu({ placement = "below", label = false }: { placement?: "below" | "above"; label?: boolean }) {
+  const { profile, reloadProfiles } = usePathway();
+  const [me, setMe] = useMe();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -105,6 +130,8 @@ export function AccountMenu() {
     };
   }, [open]);
 
+  const initial = initialOf(profile, me);
+  const who = me ? me.name : profile ? (profile.account ? profile.name : profile.sample ? `${profile.name} (sample)` : "You") : "";
   return (
     <div ref={box} className="relative">
       <button
@@ -112,12 +139,20 @@ export function AccountMenu() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={me ? `Account: ${me.name}` : "Account and sign in"}
-        className="grid size-10 place-items-center overflow-hidden rounded-full border-2 border-line bg-white text-muted hover:text-ink"
+        className={`flex items-center gap-3 rounded-full text-left ${label ? "w-full" : ""}`}
       >
-        {me?.picture ? <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" /> : <UserRound size={18} aria-hidden />}
+        <span className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-line bg-polar text-sm font-black text-ink">
+          {me?.picture ? <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" /> : initial || <UserRound size={18} aria-hidden />}
+        </span>
+        {label && (
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-black text-ink">{who}</span>
+            <span className="block truncate text-xs font-bold text-muted">{me ? me.email : "Sign in to keep your semester"}</span>
+          </span>
+        )}
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-12 z-40 w-72 rounded-2xl border-2 border-line bg-white p-4 shadow-[0_8px_24px_rgb(0_0_0/0.12)]">
+        <div role="menu" className={`absolute z-50 rounded-2xl border-2 border-line bg-white p-4 shadow-[0_8px_24px_rgb(0_0_0/0.12)] ${placement === "above" ? "bottom-full left-0 mb-2 w-full" : "right-0 top-12 w-72"}`}>
           {me ? (
             <>
               <p className="font-black">{me.name}</p>

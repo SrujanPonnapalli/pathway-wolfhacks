@@ -68,15 +68,16 @@ function buildTurns(args: {
   const { now, focus, todos, done, blocks, completeBlock, makeReal } = args;
   const turns: Turn[] = [];
 
-  // Turn 1: the nearest hard deadline.
-  const due = todos.filter((t) => !done[t.id] && t.due).sort((a, b) => a.due!.localeCompare(b.due!))[0];
+  // Turn 1: the nearest hard deadline still ahead.
+  const due = todos.filter((t) => !done[t.id] && t.due && new Date(t.due) >= now).sort((a, b) => +new Date(a.due!) - +new Date(b.due!))[0];
   if (due) {
     const d = new Date(due.due!);
     turns.push({ when: sameDay(d, now) ? `Today, ${fmtTime(due.due!)}` : fmtDay(due.due!), title: due.title, action: { label: "Open", href: due.href } });
   }
 
-  // Turn 2: the next planned block, or the one change that would help most, as a plan.
-  const next = blocks.filter((b) => !b.done).sort((a, b) => a.at.localeCompare(b.at))[0];
+  // Turn 2: the next planned block (the first one still ahead), or the one change that would help most, as a plan.
+  const open = blocks.filter((b) => !b.done).sort((a, b) => +new Date(a.at) - +new Date(b.at));
+  const next = open.find((b) => new Date(b.at).getTime() >= now.getTime() - 50 * 60_000) ?? open[0];
   if (next) {
     turns.push({ when: `${fmtDay(next.at)}, ${fmtTime(next.at)}`, title: next.title, action: { label: "Done", onClick: () => completeBlock(next), primary: true } });
   } else if (focus?.rec) {
@@ -179,8 +180,10 @@ export function AskLine() {
 
 // ---- 4. This week: calendar strip, today, to-dos --------------------------------------
 
+type TodayItem = { at: string; kind: "class" | "study" | "due" | "exam" | "other"; title: string; course: string };
+
 export function WeekPanel() {
-  const { now, state, profile, checkIn, toggleTodo, googleOn } = usePathway();
+  const { now, state, profile, checkIn, toggleTodo, googleOn, events } = usePathway();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
   const days = Array.from({ length: 7 }, (_, i) => {
@@ -189,17 +192,25 @@ export function WeekPanel() {
     return d;
   });
   const blocksOn = (d: Date) => state.blocks.filter((b) => sameDay(new Date(b.at), d));
-  // Locally added classes may also arrive from the database; keep one of each.
-  const same = (a: { course: string; at: string }, b: { course: string; at: string }) => a.course === b.course && +new Date(a.at) === +new Date(b.at);
-  const classes = [...profile.classes, ...state.addedClasses.filter((c) => !profile.classes.some((p) => same(p, c)))].filter((c) => sameDay(new Date(c.at), now));
-  const today = [
-    ...classes.map((c) => ({ at: c.at, kind: "class" as const, title: c.title, course: c.course })),
-    ...blocksOn(now).map((b) => ({ at: b.at, kind: "study" as const, title: b.title, course: b.course })),
-    ...profile.todos.filter((t) => t.due && sameDay(new Date(t.due), now)).map((t) => ({ at: t.due!, kind: "due" as const, title: t.title, course: "" })),
-  ].sort((a, b) => a.at.localeCompare(b.at));
+  // Today is the week itself, for one day: classes, exams, study blocks, due dates, work and
+  // whatever Google Calendar holds, so a change Viva makes shows here the moment it's made.
+  const minute = (iso: string) => Math.floor(new Date(iso).getTime() / 60_000);
+  const sameSlot = (a: { course: string; at: string }, b: { course: string; at: string }) => a.course === b.course && minute(a.at) === minute(b.at);
+  const fromWeek: TodayItem[] = events
+    .filter((e) => sameDay(new Date(e.start), now))
+    .map((e) => ({ at: e.start, kind: e.kind === "class" || e.kind === "study" || e.kind === "exam" ? e.kind : e.title.startsWith("Due:") ? "due" : "other", title: e.title.replace(/^Due:\s*/, ""), course: e.course ?? "" }));
+  // The profile's own class meetings (what check-in is for), unless the week already lists that meeting.
+  const meetings: TodayItem[] = [...profile.classes, ...state.addedClasses]
+    .filter((c) => sameDay(new Date(c.at), now))
+    .map((c) => ({ at: c.at, kind: "class" as const, title: c.title, course: c.course }));
+  const today = [...fromWeek, ...meetings.filter((m) => !fromWeek.some((e) => sameSlot(e, m)))]
+    .filter((item, i, all) => all.findIndex((x) => x.title.toLowerCase() === item.title.toLowerCase() && minute(x.at) === minute(item.at)) === i)
+    .sort((a, b) => minute(a.at) - minute(b.at));
+  const checkedIn = (at: string) => Object.keys(state.checkedIn).some((k) => state.checkedIn[k] && minute(k) === minute(at));
   const later = profile.todos.filter((t) => !(t.due && sameDay(new Date(t.due), now)));
   const planned = state.blocks.length;
   const done = state.blocks.filter((b) => b.done).length;
+  const past = (at: string) => new Date(at).getTime() + 50 * 60_000 < now.getTime();
 
   return (
     <section aria-labelledby="this-week">
@@ -215,10 +226,11 @@ export function WeekPanel() {
             <li key={d.toISOString()} className="flex flex-col items-center gap-1">
               <span className="text-xs font-bold text-muted">{d.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 2)}</span>
               <span className={`grid size-8 place-items-center rounded-full text-sm font-extrabold tabular-nums ${isToday ? "bg-ink text-white" : ""}`}>{d.getDate()}</span>
-              <span className="flex h-1.5 gap-0.5" aria-hidden>
-                {bs.map((b) => (
+              <span className="flex h-1.5 items-center gap-0.5" aria-hidden>
+                {bs.slice(0, 5).map((b) => (
                   <span key={b.id} className={`size-1.5 rounded-full ${b.done ? "bg-teal-face" : "border-2 border-teal-face"}`} />
                 ))}
+                {bs.length > 5 && <span className="text-[9px] font-black leading-none text-teal">+{bs.length - 5}</span>}
               </span>
             </li>
           );
@@ -230,16 +242,17 @@ export function WeekPanel() {
       ) : (
         <ul>
           {today.map((a) => (
-            <li key={a.at + a.title} className="flex items-center gap-3 py-1.5">
+            <li key={a.at + a.title} className={`flex items-center gap-3 py-1.5 ${past(a.at) ? "text-muted" : ""}`}>
               <span className="w-16 shrink-0 text-right text-sm font-bold tabular-nums text-muted">{fmtTime(a.at)}</span>
-              <span className="min-w-0 flex-1 font-bold leading-snug">{a.title}</span>
+              <span className={`min-w-0 flex-1 truncate font-bold leading-snug ${a.kind === "study" ? "text-teal-lip" : ""}`}>{a.title}</span>
               {a.kind === "class" &&
-                (state.checkedIn[a.at] ? (
+                (checkedIn(a.at) ? (
                   <span className="flex items-center gap-1 text-sm font-bold text-teal"><Check size={15} strokeWidth={3} aria-hidden /> Here</span>
                 ) : (
                   <button onClick={() => checkIn(a.course, a.at)} className="btn btn-ghost min-h-8 px-2.5 text-xs">Check in</button>
                 ))}
               {a.kind === "due" && <span className="text-xs font-bold text-sun-ink">Due</span>}
+              {a.kind === "exam" && <span className="text-xs font-bold text-sun-ink">Exam</span>}
             </li>
           ))}
         </ul>

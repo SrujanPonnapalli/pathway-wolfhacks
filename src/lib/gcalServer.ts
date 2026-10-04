@@ -90,3 +90,12 @@ export async function remove(id: string): Promise<void> {
   }
   await call(`/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
+
+export async function rename(id: string, title: string): Promise<void> {
+  if (FAKE) {
+    const e = fake.get(id);
+    if (e) e.summary = title;
+    return;
+  }
+  await call(`/${encodeURIComponent(id)}`, { method: "PATCH", body: JSON.stringify({ summary: title }) });
+}

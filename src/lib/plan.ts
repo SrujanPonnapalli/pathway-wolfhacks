@@ -1,5 +1,6 @@
 // Make It Real: turn the chosen changes into up to 3 dated study blocks before the exam.
 // TODO: also offer these as an .ics download via /api/calendar.
+import { localIso } from "./time.ts";
 import type { Move } from "./tree";
 
 type Course = { slug: string; code: string; exam: { date: string } };
@@ -8,7 +9,7 @@ const at = (base: Date, dayOffset: number, hour: number) => {
   const d = new Date(base);
   d.setDate(d.getDate() + dayOffset);
   d.setHours(hour, 0, 0, 0);
-  return d.toISOString();
+  return localIso(d); // the app's local form; the database gets the UTC instant when the block is saved
 };
 
 export function planBlocks(c: Course, moves: Move[], now: Date) {

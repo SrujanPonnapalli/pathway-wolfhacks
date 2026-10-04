@@ -3,6 +3,7 @@
 // instantly; Viva can explain them in chat because they are also in its context.
 
 import type { Block } from "./store";
+import { localIso as iso } from "./time.ts";
 
 export type CalEvent = {
   id: string;
@@ -13,14 +14,12 @@ export type CalEvent = {
   course?: string; // slug
   source: "demo" | "google" | "pathway";
   localId?: string; // on a Google event: the local event it is a copy of (from the Pathway tag)
+  profile?: string; // on a Google event Pathway wrote: the profile it was written for
 };
 
 /** Local wall-clock ISO without a zone, the form the grid and Google (with timeZone) both read. */
-export const localIso = (d: Date) => iso(d);
-const iso = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:00`;
-};
+export const localIso = iso;
+export { toLocal } from "./time.ts";
 const at = (base: Date, dayOffset: number, h: number, m = 0) => {
   const d = new Date(base);
   d.setDate(d.getDate() + dayOffset);
@@ -116,7 +115,10 @@ export function sourceEvents(
       });
     });
   }
-  return found.filter((e) => !existing.some((x) => sameItem(x, e)));
+  // One item once: not twice because a syllabus and a grade page both list it, and not again when the Moodle feed has it.
+  const out: CalEvent[] = [];
+  for (const e of found) if (!existing.some((x) => sameItem(x, e)) && !out.some((x) => sameItem(x, e))) out.push(e);
+  return out;
 }
 
 // "Due: ST 311 HW 4" (Moodle to-do) and "Due: Homework 4" (gradebook) on the same day for the same
@@ -174,8 +176,8 @@ export function suggest(allEvents: CalEvent[], now: Date, courses: { slug: strin
   const fmt = (s: string) => new Date(s).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
 
   for (const b of study) {
-    // 1. A study block that collides with something else.
-    const clash = events.find((e) => e.kind !== "study" && overlaps(e, b));
+    // 1. A study block that collides with something else (a due marker is a deadline, not a meeting).
+    const clash = events.find((e) => e.kind !== "study" && !e.title.startsWith("Due:") && overlaps(e, b));
     if (clash) {
       const day = new Date(b.start);
       const slot = claim(freeSlot(withTaken(), day) ?? freeSlot(withTaken(), at(day, 1, 0)));

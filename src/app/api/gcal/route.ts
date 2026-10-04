@@ -3,6 +3,7 @@
 //   POST { op: "insert", ... }   -> { id }
 //   POST { op: "move", id, start, end }
 //   POST { op: "remove", id }
+//   POST { op: "rename", id, title }
 import { NextResponse } from "next/server";
 import * as g from "@/lib/gcalServer";
 
@@ -39,6 +40,10 @@ export async function POST(req: Request) {
     }
     if (body.op === "remove") {
       await g.remove(String(body.id));
+      return NextResponse.json({ ok: true });
+    }
+    if (body.op === "rename") {
+      await g.rename(String(body.id), String(body.title ?? "").slice(0, 200));
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "unknown op" }, { status: 400 });

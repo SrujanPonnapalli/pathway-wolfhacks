@@ -76,7 +76,7 @@ export function demoWeek(now: Date, courses: { slug: string; code: string; exam:
 
 /** Dated items from dropped syllabi (exams, quizzes, due work) become calendar events too. */
 export function sourceEvents(
-  sources: { kind: string; course: string; deadlines?: { title: string; date: string; kind: string; time?: string }[] }[],
+  sources: { kind: string; course: string; deadlines?: { title: string; date: string; kind: string; time?: string }[]; items?: { name: string; due: string; status: string }[] }[],
   courses: { slug: string; code: string }[],
   now: Date,
 ): CalEvent[] {
@@ -84,8 +84,18 @@ export function sourceEvents(
   const horizon = at(mon, 28, 0);
   const out: CalEvent[] = [];
   for (const src of sources) {
-    if (src.kind !== "syllabus" || !src.deadlines) continue;
     const course = courses.find((c) => c.code === src.course);
+    // Gradescope/Moodle grade pages: unsubmitted items with a future due date are due markers too
+    if (src.kind === "grades" && src.items) {
+      src.items.forEach((it, i) => {
+        if (!it.due || it.status === "graded" || it.status === "submitted") return;
+        const start = new Date(`${it.due}T23:30:00`);
+        if (isNaN(start.getTime()) || start < mon || start >= horizon) return;
+        out.push({ id: `src-g-${src.course.replace(/\s/g, "")}-${i}`, title: `Due: ${it.name}`, start: iso(start), end: iso(new Date(start.getTime() + 30 * 60_000)), kind: "other", course: course?.slug, source: "demo" });
+      });
+      continue;
+    }
+    if (src.kind !== "syllabus" || !src.deadlines) continue;
     src.deadlines.forEach((d, i) => {
       if (!d.date) return;
       const isExam = d.kind === "exam" || d.kind === "quiz";
@@ -220,7 +230,26 @@ export function suggest(allEvents: CalEvent[], now: Date, courses: { slug: strin
         });
     }
   }
-  return out.slice(0, 3);
+  // 5. Something is due within 10 days and no study block for that course sits in the 3 days before it.
+  for (const d of events.filter((e) => e.kind === "other" && e.title.startsWith("Due:") && e.course)) {
+    const due = new Date(d.start);
+    const days = (due.getTime() - now.getTime()) / 86_400_000;
+    if (days < 0.5 || days > 10) continue;
+    const covered = study.some((b) => b.course === d.course && new Date(b.start) < due && (due.getTime() - new Date(b.start).getTime()) / 86_400_000 <= 3);
+    if (covered) continue;
+    const target = at(due, -2, 0);
+    const day = target < now ? at(now, 0, 0) : target;
+    const slot = claim(freeSlot(withTaken(), day) ?? freeSlot(withTaken(), at(day, 1, 0)));
+    if (!slot) continue;
+    const code = courses.find((c) => c.slug === d.course)?.code ?? "";
+    out.push({
+      id: `due-${d.id}`,
+      title: `Add a ${code} work block ${fmt(slot.start)}`,
+      why: `${d.title.replace(/^Due: /, "")} is due ${fmt(d.start)} and nothing is scheduled for it.`,
+      ops: [{ op: "add", event: { id: `add-${d.id}`, title: `${code}: ${d.title.replace(/^Due: /, "")}`, start: slot.start, end: slot.end, kind: "study", course: d.course, source: "pathway" } }],
+    });
+  }
+  return out.slice(0, 4);
 }
 
 export function applyOps(events: CalEvent[], ops: Op[]): CalEvent[] {

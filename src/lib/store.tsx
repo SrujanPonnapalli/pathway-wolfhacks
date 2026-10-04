@@ -6,7 +6,7 @@
 // TODO: also POST each action to /api/events so Tiger has the timeline (inputs only, never the status).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from "./data";
-import { ACTIONABLE, meta } from "./features";
+import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
 import { soften, vivaReply, type Action } from "./viva";
@@ -15,6 +15,7 @@ import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
+import type { Proposal } from "./intel/planner";
 
 export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
 export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string };
@@ -43,6 +44,17 @@ const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves atten
 export function featuresFor(c: CourseSeed, s: PState): Features {
   const d = s.deltas[c.slug] ?? { quizzes: 0, checkins: 0, sessions: 0 };
   const x: Features = { ...c.x };
+  // A dropped Gradescope/Moodle grade page is the real record: it overrides the seeded
+  // deadline features for that course, so the tree re-scores on evidence.
+  const grades = (s.sources ?? []).find((src) => src.kind === "grades" && src.course === c.code);
+  if (grades && grades.kind === "grades") {
+    const past = grades.items.filter((it) => it.due && new Date(`${it.due}T23:59:00`) < new Date(demo.now));
+    if (past.length) {
+      const missed = past.filter((it) => it.status === "missing" || it.status === "not_submitted").length;
+      x.missed_deadlines = missed;
+      x.on_time_submission_rate = +((past.length - missed) / past.length).toFixed(4);
+    }
+  }
   x.practice_quizzes_taken = (x.practice_quizzes_taken ?? 0) + d.quizzes;
   x.attendance_rate = +(((x.attendance_rate ?? 0) * SCHEDULED_CLASSES + d.checkins) / (SCHEDULED_CLASSES + d.checkins)).toFixed(4);
   if (s.midterm[c.slug] != null) x.midterm_score = s.midterm[c.slug];
@@ -170,10 +182,91 @@ function useStore() {
   const allBlocks = useMemo<Block[]>(() => [...s.blocks, ...sharedBlocks], [s.blocks, sharedBlocks]);
   /** Google's id for one of our events: from Google's own tag first (shared calendar, any visitor), then this browser's map. */
   const gidFor = (localId: string) => googleEvents.find((g) => g.localId === localId)?.id.slice(2) ?? s.gids[localId] ?? s.blocks.find((b) => b.id === localId)?.googleId;
-  const suggestions = useMemo<Suggestion[]>(
+  /** Same, but asks Google directly when the local copy is not loaded yet (e.g. a drag right after page load). */
+  const gidForSure = async (localId: string) => {
+    const known = gidFor(localId);
+    if (known || !gcal.isConnected()) return known;
+    const fresh = await gcal.listWeek(monday).catch(() => [] as CalEvent[]);
+    return fresh.find((g) => g.localId === localId)?.id.slice(2);
+  };
+  const ruleSuggestions = useMemo<Suggestion[]>(
     () => suggest(events, demo.now, courses.map((c) => ({ slug: c.slug, code: c.code, exam: c.exam, atRisk: c.result.atRisk }))).filter((x) => !s.dismissed.includes(x.id)),
     [events, courses, s.dismissed],
   );
+
+  // ---- the planner: Gemini proposes changes only when the context changes (hash), one call per change,
+  // cached per hash, so dragging events around costs nothing and new mail or a new syllabus costs one call.
+  const [aiProposals, setAiProposals] = useState<Proposal[]>([]);
+  const inbox = useMemo(() => (profile ? inboxFor(courses.map((c) => c.code)) : []), [profile, courses]);
+  const planKey = useMemo(() => {
+    if (!profile || courses.length === 0) return "";
+    const parts = [
+      profile.id,
+      courses.map((c) => `${c.slug}:${c.result.atRisk ? 1 : 0}`).join(","),
+      s.sources.map((x) => `${x.kind}:${x.course}:${x.title}`).join("|"),
+      inbox.map((m) => m.id).join(","),
+      [...new Set(events.map((e) => e.title))].sort().join("|"),
+      ruleSuggestions.map((x) => x.id).join(","),
+    ];
+    let h = 0;
+    for (const ch of parts.join("#")) h = (h * 31 + ch.charCodeAt(0)) | 0;
+    return `${profile.id}:${h}`;
+  }, [profile, courses, s.sources, inbox, events, ruleSuggestions]);
+  const planRef = useRef<{ key: string; busy: boolean }>({ key: "", busy: false });
+  useEffect(() => {
+    if (!planKey || planRef.current.key === planKey || planRef.current.busy) return;
+    const t = setTimeout(async () => {
+      planRef.current = { key: planKey, busy: true };
+      try {
+        const cached = localStorage.getItem(`pathway:plan:${planKey}`);
+        if (cached) {
+          setAiProposals(JSON.parse(cached));
+          return;
+        }
+        const r = await fetch("/api/plan", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            now: demo.now.toISOString(),
+            courses: courses.map((c) => ({ slug: c.slug, code: c.code, status: c.result.atRisk ? "check_in" : "on_track", reason: reasonForSteps(c.steps), exam: c.exam, recourse: c.rec ? c.rec.moves.map(moveText).join("; ") : "" })),
+            week: events.map((e) => ({ id: e.id, title: e.title, start: e.start, end: e.end, kind: e.kind, course: e.course })),
+            dueSoon: events.filter((e) => e.title.startsWith("Due:")).map((e) => ({ title: e.title.slice(5), date: e.start, course: e.course ?? "", status: "not_submitted" })),
+            inbox: inbox.slice(0, 6).map((m) => ({ from: m.from, subject: m.subject, snippet: m.snippet, course: m.course })),
+            policies: s.sources.filter((x) => x.kind === "syllabus").map((x) => ({ course: x.course, late_work: x.kind === "syllabus" ? x.policies.late_work ?? "" : "" })),
+            existingSuggestions: ruleSuggestions.map((x) => x.title),
+          }),
+        });
+        const j = await r.json();
+        const proposals: Proposal[] = r.ok ? j.proposals ?? [] : [];
+        try {
+          localStorage.setItem(`pathway:plan:${planKey}`, JSON.stringify(proposals));
+        } catch {}
+        setAiProposals(proposals);
+      } catch {
+        /* planner is optional; rules still run */
+      } finally {
+        planRef.current.busy = false;
+      }
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planKey]);
+
+  const suggestions = useMemo<Suggestion[]>(() => {
+    const fromAi: Suggestion[] = aiProposals
+      .filter((p) => !s.dismissed.includes(p.id))
+      .map((p) => ({
+        id: p.id,
+        title: p.title,
+        why: `${p.why} (Viva)`,
+        ops: p.ops.map((o) =>
+          o.op === "move"
+            ? { op: "move" as const, id: o.id, start: o.start, end: o.end }
+            : { op: "add" as const, event: { id: `add-${p.id}-${o.start}`, title: o.title, start: o.start, end: o.end, kind: o.kind === "study" ? ("study" as const) : ("other" as const), course: o.course || undefined, source: "pathway" as const } },
+        ),
+      }));
+    return [...ruleSuggestions, ...fromAi];
+  }, [ruleSuggestions, aiProposals, s.dismissed]);
 
   const say = (text: string) => setToast({ id: Date.now(), text });
   const update = (fn: (st: PState) => PState) =>
@@ -438,6 +531,45 @@ function useStore() {
       }
       update((st) => ({ ...st, dismissed: [...st.dismissed, sg.id] }));
       say(googleErr ? `Changed here. Google Calendar said: ${googleErr}` : gcal.isConnected() ? "Done, here and in your Google Calendar." : "Done. Your week is updated.");
+    },
+    // Direct edits on the week grid. Same path as an approved suggestion: local state first, Google second.
+    moveEvent: async (id: string, start: string, end: string) => {
+      if (s.blocks.some((b) => b.id === id) || sharedBlocks.some((b) => b.id === id)) {
+        const mine = s.blocks.some((b) => b.id === id);
+        const shared = sharedBlocks.find((b) => b.id === id);
+        update((st) => ({ ...st, blocks: mine ? st.blocks.map((b) => (b.id === id ? { ...b, at: start } : b)) : [...st.blocks, { ...shared!, at: start }] }));
+      } else if (!id.startsWith("g-")) update((st) => ({ ...st, moved: { ...st.moved, [id]: { start, end } } }));
+      const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
+      if (gid && gcal.isConnected()) {
+        markTouched(gid, start);
+        try {
+          await gcal.move(gid, start, end);
+          say("Moved, here and in Google Calendar.");
+        } catch (e) {
+          say(`Moved here. Google Calendar said: ${(e as Error).message}`);
+        }
+      } else say("Moved.");
+      if (id.startsWith("g-")) void refreshRef.current().catch(() => {});
+    },
+    removeEvent: async (id: string) => {
+      if (s.blocks.some((b) => b.id === id)) update((st) => ({ ...st, blocks: st.blocks.filter((b) => b.id !== id) }));
+      else if (!id.startsWith("g-")) update((st) => ({ ...st, removed: [...st.removed, id] }));
+      const gid = id.startsWith("g-") ? id.slice(2) : await gidForSure(id);
+      if (gid && gcal.isConnected()) {
+        markTouched(gid, "");
+        try {
+          await gcal.remove(gid);
+          say("Removed, here and in Google Calendar.");
+        } catch (e) {
+          say(`Removed here. Google Calendar said: ${(e as Error).message}`);
+        }
+      } else say("Removed.");
+      update((st) => {
+        const gids = { ...st.gids };
+        delete gids[id];
+        return { ...st, gids };
+      });
+      void refreshRef.current().catch(() => {});
     },
     addSource: (src: Source) => {
       update((st) => ({ ...st, sources: [...st.sources.filter((x) => !(x.kind === src.kind && x.course === src.course && x.title === src.title)), src] }));

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowUp, Clock, FastForward, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, FastForward, GraduationCap, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
@@ -12,6 +12,7 @@ import { Citations, EmailCard, Receipts } from "@/components/VivaBits";
 import { useViva } from "@/components/VivaDock";
 import { usePathway, type ChatMsg, type ChatSession } from "@/lib/store";
 import { VIVA, type Action } from "@/lib/viva";
+import { Teach } from "./Teach";
 
 function fmtSessionDate(iso: string) {
   try {
@@ -31,25 +32,34 @@ function fmtSessionDate(iso: string) {
   }
 }
 
+type Mode = "chat" | "voice" | "teach";
+const MODES: { id: Mode; icon: typeof Mic }[] = [
+  { id: "chat", icon: MessageCircle },
+  { id: "voice", icon: Mic },
+  { id: "teach", icon: GraduationCap },
+];
+
 export function VivaPage() {
   const params = useSearchParams();
   const router = useRouter();
-  const mode = params.get("mode") === "voice" ? "voice" : "chat";
-  const setMode = (m: "chat" | "voice") => router.replace(m === "voice" ? "/viva?mode=voice" : "/viva", { scroll: false });
-  const { chatSessions, activeChatId, startNewChat, selectChat, deleteChat } = usePathway();
+  const asked = params.get("mode");
+  const mode: Mode = asked === "voice" || asked === "teach" ? asked : "chat";
+  const setMode = (m: Mode) => router.replace(m === "chat" ? "/viva" : `/viva?mode=${m}`, { scroll: false });
+  const { chatSessions, activeChatId, startNewChat, selectChat, deleteChat, profile } = usePathway();
+  const demoBanner = !!profile && !profile.account; // the demo banner sits across the top; the pinned controls go under it
   const [drawerOpen, setDrawerOpen] = useState(false);
 
-  // Track mode transitions so switching from voice to chat does not auto-scroll
-  const prevModeRef = useRef<"chat" | "voice">(mode);
+  // Track mode transitions so coming back to chat from voice or teach does not auto-scroll
+  const prevModeRef = useRef<Mode>(mode);
   const chatScrollYRef = useRef<number | null>(null);
   const switchedFromVoiceRef = useRef<boolean>(false);
 
-  const handleSetMode = (nextMode: "chat" | "voice") => {
+  const handleSetMode = (nextMode: Mode) => {
     if (nextMode === mode) return;
     if (mode === "chat") {
       chatScrollYRef.current = window.scrollY;
     }
-    if (mode === "voice" && nextMode === "chat") {
+    if (mode !== "chat" && nextMode === "chat") {
       switchedFromVoiceRef.current = true;
     } else {
       switchedFromVoiceRef.current = false;
@@ -59,7 +69,7 @@ export function VivaPage() {
   };
 
   useEffect(() => {
-    if (prevModeRef.current === "voice" && mode === "chat") {
+    if (prevModeRef.current !== "chat" && mode === "chat") {
       switchedFromVoiceRef.current = true;
       if (chatScrollYRef.current !== null) {
         const targetY = chatScrollYRef.current;
@@ -67,7 +77,7 @@ export function VivaPage() {
           window.scrollTo({ top: targetY, behavior: "instant" });
         });
       }
-    } else if (prevModeRef.current === "chat" && mode === "voice") {
+    } else if (prevModeRef.current === "chat" && mode !== "chat") {
       chatScrollYRef.current = window.scrollY;
     }
     prevModeRef.current = mode;
@@ -92,7 +102,7 @@ export function VivaPage() {
       {/* Pinned persistent top-right controls */}
       <aside
         aria-label="Viva chat controls"
-        className="fixed top-3 right-3 sm:top-4 sm:right-6 md:top-6 md:right-8 z-40 flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white/95 p-1 shadow-md backdrop-blur-md transition-all hover:bg-white"
+        className={`fixed right-3 sm:right-6 md:right-8 z-40 flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white/95 p-1 shadow-md backdrop-blur-md transition-all hover:bg-white ${demoBanner ? "top-[4.25rem] sm:top-[4.5rem] md:top-24" : "top-3 sm:top-4 md:top-6"}`}
       >
         <button
           onClick={handleStartNew}
@@ -122,12 +132,16 @@ export function VivaPage() {
           <VivaGlyph size={52} className="text-sky" />
           <div>
             <h1 className="text-[2rem] font-black leading-tight">{VIVA.name}</h1>
-            <p className="text-muted">Your study coach. Answers come only from your numbers and the model.</p>
+            <p className="text-muted">
+              {mode === "teach"
+                ? "Explain a topic from your course files. If you can teach it, you know it."
+                : "Your study coach. Answers come only from your numbers and the model."}
+            </p>
           </div>
         </div>
         <LiquidSelect active={mode} fill="#1a6fd1" shadow="inset 0 -4px 0 #12509a" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">
         <div role="group" aria-label="Mode" className="flex items-center">
-          {(["chat", "voice"] as const).map((m) => (
+          {MODES.map(({ id: m, icon: Icon }) => (
             <button
               key={m}
               onClick={() => handleSetMode(m)}
@@ -135,7 +149,7 @@ export function VivaPage() {
               data-liquid-key={m}
               className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold uppercase tracking-wider transition-colors duration-300 ${mode === m ? "text-white" : "text-muted hover:text-ink"}`}
             >
-              {m === "chat" ? <MessageCircle size={18} aria-hidden /> : <Mic size={18} aria-hidden />}
+              <Icon size={18} aria-hidden />
               {m}
             </button>
           ))}
@@ -145,13 +159,16 @@ export function VivaPage() {
       <div className={mode === "chat" ? "contents" : "hidden"}>
         <Chat
           onStartNew={handleStartNew}
-          isVoiceMode={mode === "voice"}
+          isVoiceMode={mode !== "chat"}
           switchedFromVoiceRef={switchedFromVoiceRef}
         />
       </div>
       {mode === "voice" && <Voice />}
+      {mode === "teach" && <Teach />}
       <p className="mt-4 text-sm text-muted">
-        Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven&apos;t logged, and it never stores your status.
+        {mode === "teach"
+          ? "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. In Teach it checks only against key ideas from your course files; your explanation goes to Gemini and, out loud, to ElevenLabs."
+          : "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven't logged, and it never stores your status."}
       </p>
 
       <ChatHistoryDrawer

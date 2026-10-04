@@ -29,8 +29,9 @@ const GoogleG = () => (
   </svg>
 );
 
-/** Our own button: Google's account picker opens in a popup, and the server verifies the token. */
-export function GoogleSignIn() {
+/** Our own button: Google's account picker opens in a popup, and the server verifies the token.
+ *  `className`/`label`/`children` let other surfaces (the landing page) style it their way. */
+export function GoogleSignIn({ className, label = "Sign in with Google", onSignedIn, children }: { className?: string; label?: string; onSignedIn?: () => void; children?: React.ReactNode } = {}) {
   const { reloadProfiles } = usePathway();
   // The store hands out a new function each render; always call the latest.
   const reload = useRef(reloadProfiles);
@@ -59,7 +60,10 @@ export function GoogleSignIn() {
           const res = await fetch("/api/auth", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ access_token: r.access_token }) });
           const j = await res.json().catch(() => ({}));
           if (!res.ok) setErr(j.error ?? "Sign-in didn't work. Try again.");
-          else await reload.current(j.profile_id);
+          else {
+            await reload.current(j.profile_id);
+            onSignedIn?.();
+          }
           setBusy(false);
         },
         error_callback: () => setBusy(false), // popup closed or blocked
@@ -68,8 +72,9 @@ export function GoogleSignIn() {
   };
   return (
     <div>
-      <button onClick={go} disabled={busy} className="btn btn-ghost min-h-11 w-full text-xs text-ink">
-        <GoogleG /> {busy ? "Signing in…" : "Sign in with Google"}
+      <button onClick={go} disabled={busy} className={className ?? "btn btn-ghost min-h-11 w-full text-xs text-ink"}>
+        <GoogleG /> {busy ? "Signing in…" : label}
+        {children}
       </button>
       {err && <p role="alert" className="mt-1.5 text-xs font-bold text-sun-ink">{err}</p>}
     </div>

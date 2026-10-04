@@ -19,6 +19,8 @@ import { nodeId } from "./knowledge/nodes";
 import { SAMPLE_VERSION, isSampleSource, retireSuperseded, sampleKnowledge } from "./knowledge/sample";
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
+import type { StudyMaterial } from "./intel/study";
+import type { ReviewItem } from "./teach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, toLocal, type CalEvent, type Suggestion } from "./schedule";
@@ -43,6 +45,8 @@ type PState = {
   chatSessions: ChatSession[];
   activeChatId: string;
   sources: Source[]; // dropped files, parsed by Gemini, kept on this device
+  materials: Record<string, StudyMaterial>; // latest slides/notes read per course: Study's quiz and Viva's Teach mode use them
+  toReview: ReviewItem[]; // key ideas a Teach session found fuzzy or missing; Study offers a quiz or deck on each
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
@@ -77,6 +81,8 @@ const empty = (profileId: string = "maya"): PState => {
     chatSessions: sessions,
     activeChatId: activeId,
     sources: [],
+    materials: {},
+    toReview: [],
     moved: {},
     dismissed: [],
     gids: {},
@@ -657,6 +663,8 @@ function useStore() {
 
   const base = {
     ready: !!trees && !!profile,
+    /** Loaded, but no profile to show: not signed in and not in demo mode. The app shows its front door. */
+    entry: !!trees && profiles.length === 0,
     draftAdvisorNote,
     error,
     now: demo.now,
@@ -688,6 +696,21 @@ function useStore() {
     },
     logQuiz: (slug: string) => bump(slug, "quizzes", "Practice quiz logged", {}, { kind: "quiz", minutes: 5 }),
     logSession: (slug: string) => bump(slug, "sessions", "Study session logged", {}, { kind: "study", minutes: 25 }),
+    // A finished Teach session counts as a practice quiz (the database counts only kind "quiz" as one,
+    // so hydrating keeps it); meta marks where it came from and the score rides along.
+    logTeach: (slug: string, topic: string, clear: number, total: number) =>
+      bump(slug, "quizzes", `You taught Viva ${topic}`, {}, { kind: "quiz", minutes: 5, score: Math.round((clear / total) * 100), meta: { via: "teach", topic, clear, total } }),
+    saveMaterial: (slug: string, m: StudyMaterial) => update((st) => ({ ...st, materials: { ...st.materials, [slug]: m } })),
+    // One review item per course + concept: a newer Teach session replaces it, and an all-clear one removes it.
+    saveReview: (item: Omit<ReviewItem, "id" | "at">): string => {
+      const id = item.points.length ? `rv-${Date.now()}` : "";
+      update((st) => {
+        const rest = (st.toReview ?? []).filter((r) => !(r.course === item.course && r.topic.toLowerCase() === item.topic.toLowerCase()));
+        return { ...st, toReview: id ? [{ ...item, id, at: new Date().toISOString() }, ...rest] : rest };
+      });
+      return id;
+    },
+    removeReview: (id: string) => update((st) => ({ ...st, toReview: (st.toReview ?? []).filter((r) => r.id !== id) })),
     checkIn: (slug: string, at: string) => {
       bump(slug, "checkins", "Checked in", { checkedIn: { ...s.checkedIn, [at]: true } }, { kind: "check_in", meta: { class_at: at } });
     },
@@ -948,6 +971,12 @@ function useStore() {
         };
       });
       say("Conversation deleted.");
+    },
+    // File a finished conversation (a Teach session) in Previous chats without switching to it.
+    archiveChat: (title: string, messages: ChatMsg[]) => {
+      if (!messages.length) return;
+      const at = new Date().toISOString();
+      update((st) => ({ ...st, chatSessions: [{ id: `chat-${Date.now()}`, title, createdAt: at, updatedAt: at, messages }, ...(st.chatSessions ?? [])] }));
     },
     reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
     addTurn: (m: ChatMsg) =>

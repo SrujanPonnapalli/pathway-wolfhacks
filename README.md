@@ -12,6 +12,14 @@ npm run dev
 
 `npm test` runs the unit tests. For the database, put `DATABASE_URL` in `.env.local`, then run `npm run db:setup` and `npm run db:check`; see [docs/database](docs/database/README.md). Without a database the app runs on local demo data.
 
+## Accounts and the demo
+
+The app is accounts-only: visitors land on `/landing` and sign in with Google. The sample students
+(Maya, Jordan, Priya) and the blank judge profile live behind the demo door, which isn't linked
+anywhere: **`/demo`** (Maya), `/demo/jordan`, `/demo/priya`, `/demo/judge`, with an optional
+`?next=/insights`. A banner then marks the sample data, switches students and exits the demo.
+The Pi kiosk opens `/demo/maya?next=/device`.
+
 ## Layout
 
 | Path | What |

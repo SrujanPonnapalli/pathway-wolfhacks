@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType, type FocusEvent } from "react";
-import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, MonitorSmartphone, RotateCcw, Users } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, MonitorSmartphone, Users } from "lucide-react";
 import { AccountMenu, Avatar } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
@@ -44,30 +44,6 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
       </svg>
       <span className={`text-[1.65rem] font-black tracking-tight transition-[opacity,transform] duration-200 ease-out ${compact ? "-translate-x-1 opacity-0" : "translate-x-0 opacity-100 delay-75"}`}>pathway</span>
     </Link>
-  );
-}
-
-function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
-  const { profiles, profile, setProfile, reset } = usePathway();
-  if (!profile) return null;
-  return (
-    <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
-      <label className={compact ? "sr-only" : "block px-1 text-xs font-extrabold uppercase tracking-wider text-muted"} htmlFor={compact ? "who-m" : "who"}>
-        Profile
-      </label>
-      <select id={compact ? "who-m" : "who"} value={profile.id} onChange={(e) => setProfile(e.target.value)} className="w-full rounded-xl border-2 border-b-4 border-line bg-white px-3 py-2 font-extrabold">
-        {profiles.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.account ? `${p.name} (you)` : p.sample ? `${p.name} (sample)` : "You (judge, live)"}
-          </option>
-        ))}
-      </select>
-      {!compact && (
-        <button onClick={reset} className="flex items-center gap-1.5 px-1 text-sm font-bold text-muted hover:text-ink">
-          <RotateCcw size={14} aria-hidden /> Reset demo data
-        </button>
-      )}
-    </div>
   );
 }
 
@@ -167,10 +143,7 @@ export function Sidebar() {
     <>
       <header className="flex items-center justify-between gap-3 border-b-2 border-line px-4 py-3 md:hidden">
         <Wordmark />
-        <div className="flex max-w-[60%] items-center gap-2">
-          <ProfileSwitcher compact />
-          <AccountMenu />
-        </div>
+        <AccountMenu />
       </header>
       <nav
         ref={navRef}
@@ -205,15 +178,15 @@ export function Sidebar() {
           </ul>
         </LiquidSelect>
 
-        {/* Bottom of the rail. Both versions stay mounted: the open one folds its height away when the
-            rail is closed (grid rows 1fr → 0fr animate), and the icons for the closed rail fold away when it's open. */}
+        {/* Bottom of the rail: Viva and the account. Both versions stay mounted: the open one folds its height
+            away when the rail is closed (grid rows 1fr → 0fr animate), and the icons for the closed rail fold away
+            when it's open. Demo profiles switch in the demo banner, not here. */}
         <div className="hidden md:block">
           <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.45,0,0.15,1)] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!open || undefined}>
             <div className={`min-h-0 overflow-hidden ${fade(open)}`}>
               <div className="mb-4">
                 <VivaCard />
               </div>
-              <ProfileSwitcher />
               <div className="mt-4 border-t-2 border-line pt-3">
                 <AccountMenu placement="above" label />
               </div>

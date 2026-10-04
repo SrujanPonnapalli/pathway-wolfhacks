@@ -16,9 +16,10 @@ import type { CourseDoc } from "@/lib/coursework-data";
 import { docsFor } from "@/lib/knowledge/sample";
 import type { StudyMaterial } from "@/lib/intel/study";
 import { usePathway } from "@/lib/store";
+import { ReviewList } from "./ReviewList";
 
 export function Study() {
-  const { courses, logQuiz, logSession, knowledge } = usePathway();
+  const { courses, logQuiz, logSession, knowledge, saveMaterial } = usePathway();
   const params = useSearchParams();
   const [course, setCourse] = useState(params.get("course") ?? courses[0]?.slug ?? "");
   const focus = params.get("tool") ?? "quiz";
@@ -29,12 +30,14 @@ export function Study() {
   // The course's own materials (Courses tab): no upload needed to start a quiz or a deck.
   const docs = useMemo(() => (code ? docsFor(code, knowledge) : []), [code, knowledge]);
 
-  const read = async (f: File | null) => {
+  const read = async (f: File | null, focus?: string) => {
     if (!f) return;
     setBusy(true);
     setErr("");
     try {
-      setMaterial(await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8 }));
+      const m = await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8, concepts: 4 }, focus);
+      setMaterial(m);
+      if (course) saveMaterial(course, m); // Viva's Teach mode reads its concepts from here
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -93,6 +96,7 @@ export function Study() {
         <section className="mb-6">
           {!material ? (
             <>
+              <ReviewList course={course} tool={focus} busy={busy} docs={docs} onPick={(f, why) => void read(f, why)} />
               {docs.length > 0 && (
                 <div className="mb-3 rounded-2xl border-2 border-line p-3">
                   <p className="flex items-center justify-between gap-3 px-1 text-sm font-bold">
@@ -139,9 +143,9 @@ export function Study() {
       {focus === "flashcards" && <Flashcards key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logSession(course)} />}
       {focus === "timer" && <FocusTimer course={course} onDone={() => course && logSession(course)} />}
 
-      <Link href="/viva?mode=voice" className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
+      <Link href={`/viva?mode=teach&course=${course}`} className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
         <VivaGlyph size={36} className="shrink-0 text-sky" />
-        <span className="text-sm text-muted">Want to talk it through? Viva can quiz you out loud.</span>
+        <span className="text-sm text-muted">Think you&apos;ve got it? Teach it to Viva: explain a concept from these slides out loud and Viva tells you what&apos;s still fuzzy.</span>
       </Link>
     </main>
   );

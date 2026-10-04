@@ -14,10 +14,12 @@ type Who = "you" | "viva";
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const now = () => performance.now(); // module-level so the React compiler doesn't treat it as render work
 
-// End-of-speech detection, tuned for a quiet-ish room.
+// End-of-speech detection, tuned for a quiet-ish room. A session can stretch the turn
+// (Teach mode: explaining takes pauses to think and runs longer than a question).
 const SPEECH_LEVEL = 0.06; // input level that counts as talking (0..1)
 const SILENCE_MS = 900; // this much quiet after speech ends a turn
 const MAX_TURN_MS = 15000;
+export type TurnTiming = { silenceMs: number; maxMs: number };
 
 function level(an: AnalyserNode | null, buf: Float32Array<ArrayBuffer> | null) {
   if (!an || !buf) return 0;
@@ -33,6 +35,7 @@ export function useVoiceSession(opts: {
   onTurn: (who: Who, text: string) => void;
   /** Playback speed for Viva's voice, 0.8 to 1.6; read at speak time so a slider applies to the next line. */
   speed?: () => number;
+  turn?: Partial<TurnTiming>;
 }) {
   const [state, setState] = useState<OrbState>("idle");
   const [caption, setCaption] = useState<Caption>(null);
@@ -52,6 +55,7 @@ export function useVoiceSession(opts: {
   const recorder = useRef<MediaRecorder | null>(null);
   const fakeOut = useRef(false); // simulated mouth movement when real audio isn't available
   const skips = useRef(0); // bumped by skip(): the current line stops and Viva listens
+  const doneTalking = useRef(false); // the student said they're finished: end the turn now
 
   useEffect(() => {
     optsRef.current = opts;
@@ -178,17 +182,20 @@ export function useVoiceSession(opts: {
     recorder.current = rec;
     rec.start(250);
 
+    const { silenceMs = SILENCE_MS, maxMs = MAX_TURN_MS } = optsRef.current.turn ?? {};
+    doneTalking.current = false;
     let spoke = false;
     let quietSince = now();
     const t0 = now();
     while (run.current === id && recorder.current === rec) {
       await sleep(80);
+      if (doneTalking.current) break;
       if (level(micAn.current, buf.current) > SPEECH_LEVEL) {
         spoke = true;
         quietSince = now();
       }
       const t = now();
-      if (spoke && (t - quietSince > SILENCE_MS || t - t0 > MAX_TURN_MS)) break;
+      if (spoke && (t - quietSince > silenceMs || t - t0 > maxMs)) break;
     }
     if (recorder.current !== rec) return; // stopped or replaced by a tapped question
     await new Promise<void>((done) => ((rec.onstop = () => done()), rec.stop()));
@@ -285,6 +292,10 @@ export function useVoiceSession(opts: {
     skip() {
       skips.current++;
       audio.current?.pause();
+    },
+    // End the student's turn now instead of waiting for silence ("Done explaining").
+    finish() {
+      doneTalking.current = true;
     },
     // A tapped question stands in for speech (and is the fallback when there's no microphone).
     say(question: string) {

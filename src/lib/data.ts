@@ -4,6 +4,7 @@
 import { NOW, PROFILES, JUDGE_COURSE, JUDGE_CLASS, BUDDIES, type Profile } from "./mock";
 import { toLocal, toUtc } from "./time";
 import type { Tree } from "./tree";
+import { isDemo } from "./demo";
 
 export type Horizon = "early" | "mid";
 export type RemoteState = {
@@ -34,11 +35,11 @@ const localize = (p: Profile): Profile => ({
 export async function getProfiles(): Promise<Profile[]> {
   try {
     const p = await api<Profile[]>("/api/profiles");
-    live = p.length > 0;
-    if (live) return p.map(localize);
+    live = true; // an empty list is a real answer: not signed in and not in demo mode
+    return p.map(localize);
   } catch {}
   live = false;
-  return PROFILES.map(localize);
+  return (isDemo() ? PROFILES : []).map(localize); // offline: the local sample students, still only in demo mode
 }
 
 export async function getState(profileId: string): Promise<RemoteState | null> {
@@ -62,7 +63,7 @@ export async function getBuddies(profileId: string) {
     try {
       return await api<typeof BUDDIES>(`/api/buddies?profile_id=${encodeURIComponent(profileId)}`);
     } catch {}
-  return BUDDIES;
+  return isDemo() ? BUDDIES : []; // the sample buddies are demo data, never a real account's
 }
 
 const send = (path: string, method: string, body: unknown) =>

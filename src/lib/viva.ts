@@ -17,8 +17,10 @@ export const VIVA = {
   role: "your study coach",
   greeting: (name?: string) =>
     `Hey${name ? ` ${name}` : ""}, I'm Viva! I can explain why a class has its status, plan your week, or quiz you. What's on your mind?`,
-  suggestions: ["What should I focus on this week?", "Why is my class worth a check-in?", "Plan my week", "Quiz me"],
+  suggestions: ["What should I focus on this week?", "Why is my class worth a check-in?", "Plan my week", "Let me teach you a topic"],
 };
+
+const teachLink: Action = { label: "Teach Viva a topic", href: "/viva?mode=teach" };
 
 export type Action = { label: string; href: string };
 export type EmailDraft = { to: string; subject: string; body: string };
@@ -74,6 +76,9 @@ export function vivaReply(input: string, ctx: { name?: string; courses: Course[]
       `Your work hours are context. I'll never suggest cutting them. ${top.rec ? `The bigger lever for ${top.code} is ${goalText(top.rec.moves[0])}.` : "Your study habits are doing the heavy lifting right now."}`,
       [pathLink(top)],
     );
+
+  if (/\b(teach (you|viva)|let me teach|explain (a|this) (topic|concept))\b/.test(q))
+    return out("Love that: teaching it is the best test of knowing it. Open Teach, tell me the topic and the class, and explain it to me like I've never heard of it.", [teachLink]);
 
   if (/\b(quiz|test me|flashcard|practice)\b/.test(q))
     return out(

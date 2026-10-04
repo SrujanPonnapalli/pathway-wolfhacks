@@ -694,12 +694,23 @@ function useStore() {
         return { ...v, by, profile: select ?? (p.some((x) => x.id === v.profile) ? v.profile : p[0]?.id) };
       });
     },
+    // Reset: the profile starts over here, in the database, and in Google Calendar (every study
+    // block Pathway planned for it comes off there too, so the week is the seed week again).
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
       if (isLive()) {
         setProfiles(await getProfiles());
         hydrate(profile.id);
+      }
+      if (gcal.isConnected()) {
+        const list = await gcal.listWeek(monday).catch(() => [] as CalEvent[]);
+        for (const g of list) {
+          if (!g.localId || g.kind !== "study" || (g.profile && g.profile !== profile.id)) continue;
+          markTouched(g.id.slice(2), "");
+          await gcal.remove(g.id.slice(2)).catch(() => {});
+        }
+        await refreshGoogle().catch(() => {});
       }
       say("Demo data reset.");
     },

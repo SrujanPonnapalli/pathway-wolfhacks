@@ -4,7 +4,8 @@ import { isDemoRequest } from "@/lib/demo";
 
 // Profiles in the same shape as src/lib/mock.ts PROFILES, so the client can swap sources.
 // The signed-in account's own profile, plus the demo profiles when this browser is in demo mode
-// (entered through /demo). Never anyone else's account. Neither → [] and the app shows its front door.
+// (entered through /demo): the sample students, even the one the demo account signs in as, and any
+// open profile. Never anyone else's account. Neither → [] and the app shows its front door.
 export async function GET(req: Request) {
   const sql = db();
   if (!sql) return noDb();
@@ -12,7 +13,7 @@ export async function GET(req: Request) {
   const demo = isDemoRequest(req);
   const [profiles, courses, exams, classes, todos, streaks] = await Promise.all([
     sql`SELECT id, name, class_year, sample FROM profiles p
-        WHERE (${demo} AND NOT EXISTS (SELECT 1 FROM accounts a WHERE a.profile_id = p.id)) OR p.id = ${me}
+        WHERE (${demo} AND (p.sample OR NOT EXISTS (SELECT 1 FROM accounts a WHERE a.profile_id = p.id))) OR p.id = ${me}
         ORDER BY (p.id = ${me}) DESC NULLS LAST, sample DESC, created_at, id`,
     sql`SELECT profile_id, slug, code, name, dataset_row, baseline FROM courses ORDER BY created_at, slug`,
     // Next exam per course (or the latest past one if none are ahead).

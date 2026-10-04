@@ -207,10 +207,28 @@ function useStore() {
       }
     });
   }, []);
+  // Files the student dropped on another device (Tiger keeps them by profile): merged into this
+  // device's graph on load, so the demo account and /demo, or the Pi and the laptop, see the same files.
+  const hydrateKnowledge = useCallback((id: string) => {
+    fetch(`/api/knowledge?profile=${encodeURIComponent(id)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? (r.json() as Promise<Partial<Knowledge>>) : null))
+      .then((kb) => {
+        if (!kb || (!kb.sources?.length && !kb.nodes?.length)) return;
+        setSaved((v) => {
+          const cur = { ...empty(id), ...(v.by[id] ?? {}) };
+          const merged = retireSuperseded(merge(cur.knowledge, { sources: kb.sources ?? [], nodes: kb.nodes ?? [], edges: kb.edges ?? [] }));
+          return { ...v, by: { ...v.by, [id]: { ...cur, knowledge: merged, sources: legacySources(merged) } } };
+        });
+      })
+      .catch(() => {});
+  }, []);
   const activeId = profiles.length ? (profiles.find((p) => p.id === saved.profile) ?? profiles[0]).id : null;
   useEffect(() => {
-    if (activeId) hydrate(activeId);
-  }, [activeId, hydrate]);
+    if (activeId) {
+      hydrate(activeId);
+      hydrateKnowledge(activeId);
+    }
+  }, [activeId, hydrate, hydrateKnowledge]);
 
   // Every profile arrives already knowing its courses: syllabus, gradebook and lecture files as
   // graph facts, built in code from src/lib/coursework-data.ts (src/lib/knowledge/sample.ts). No
@@ -890,7 +908,10 @@ function useStore() {
       update((st) => ({ ...st, seeded: "" }));
       const p = await getProfiles().catch(() => null);
       if (p) setProfiles(p);
-      if (profile) hydrate(profile.id);
+      if (profile) {
+        hydrate(profile.id);
+        hydrateKnowledge(profile.id);
+      }
       if (gcal.isConnected()) await refreshGoogle().catch(() => {});
     },
     // ---- knowledge graph (docs/knowledge/PLAN.md) --------------------------------------------

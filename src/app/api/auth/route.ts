@@ -1,13 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { bad, db, noDb } from "@/lib/db";
 import { sessionCookie, sessionProfile, sign, verifyAccessToken } from "@/lib/auth";
-import { isDemoAccount, seedDemoAccount } from "@/lib/demoAccount";
+import { adoptDemoProfile, isDemoAccount } from "@/lib/demoAccount";
 
 const notSetUp = () => Response.json({ error: "Google sign-in isn't set up (NEXT_PUBLIC_GOOGLE_CLIENT_ID, SESSION_SECRET)." }, { status: 503 });
 
 // Sign in with Google: { access_token } from Google Identity Services' popup (scopes openid email profile).
-// First sign-in creates a fresh profile owned by this Google account. A demo account (DEMO_ACCOUNT_EMAILS,
-// src/lib/demoAccount.ts) gets the sample semester on every sign-in, so it is never empty.
+// First sign-in creates a fresh profile owned by this Google account. The demo account (DEMO_ACCOUNT_EMAILS,
+// src/lib/demoAccount.ts) signs in as the demo student instead: one profile, shared with /demo both ways.
 export async function POST(req: Request) {
   const sql = db();
   if (!sql) return noDb();
@@ -23,14 +23,15 @@ export async function POST(req: Request) {
   }
   const first = (g.name ?? g.email).split(/[\s@]/)[0];
   const profileId = await sql.begin(async (tx) => {
-    const [had] = await tx`UPDATE accounts SET last_login = now(), email = ${g.email}, picture = ${g.picture ?? null} WHERE google_sub = ${g.sub} RETURNING profile_id`;
-    let id = had?.profile_id as string | undefined;
-    if (!id) {
-      id = `g-${randomUUID().slice(0, 8)}`;
-      await tx`INSERT INTO profiles (id, name, sample) VALUES (${id}, ${first}, false)`;
-      await tx`INSERT INTO accounts (google_sub, profile_id, email, picture) VALUES (${g.sub}, ${id}, ${g.email}, ${g.picture ?? null})`;
+    if (isDemoAccount(g.email)) {
+      const id = await adoptDemoProfile(tx, g.sub, g.email, g.picture ?? null);
+      if (id) return id;
     }
-    if (isDemoAccount(g.email)) await seedDemoAccount(tx, id);
+    const [had] = await tx`UPDATE accounts SET last_login = now(), email = ${g.email}, picture = ${g.picture ?? null} WHERE google_sub = ${g.sub} RETURNING profile_id`;
+    if (had) return had.profile_id as string;
+    const id = `g-${randomUUID().slice(0, 8)}`;
+    await tx`INSERT INTO profiles (id, name, sample) VALUES (${id}, ${first}, false)`;
+    await tx`INSERT INTO accounts (google_sub, profile_id, email, picture) VALUES (${g.sub}, ${id}, ${g.email}, ${g.picture ?? null})`;
     return id;
   });
   return Response.json({ profile_id: profileId, name: first, email: g.email }, { headers: { "set-cookie": sessionCookie(sign(profileId)) } });

@@ -39,6 +39,12 @@ export async function DELETE(req: Request) {
   if (!sql) return noDb();
   const id = sessionProfile(req);
   if (!id) return signedOut();
+  // The demo account signs in as a sample student: deleting the account unlinks it and leaves her be.
+  const [p] = await sql`SELECT sample FROM profiles WHERE id = ${id}`;
+  if (p?.sample) {
+    await sql`DELETE FROM accounts WHERE profile_id = ${id}`;
+    return Response.json({ ok: true }, { headers: { "set-cookie": sessionCookie("", 0) } });
+  }
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id}`; // hypertable: no foreign key to cascade from
     await tx`DELETE FROM buddies WHERE buddy_id = ${id}`;

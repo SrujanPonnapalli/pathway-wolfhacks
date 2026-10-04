@@ -8,7 +8,9 @@ import { AccountMenu } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
 import { useViva } from "@/components/VivaDock";
+import { useVivaAsks } from "@/components/VivaCheckIn";
 import { usePathway } from "@/lib/store";
+import { MobileNavigation } from "@/components/MobileNavigation";
 
 const VivaIcon = ({ size }: { size?: number; strokeWidth?: number }) => <VivaGlyph size={size} />;
 
@@ -72,6 +74,7 @@ export function Sidebar() {
   const path = usePathname();
   const { googleOn } = usePathway();
   const { show, open: dockOpen, view, voice } = useViva();
+  const { asks } = useVivaAsks(); // Viva's check-in count, shown on her icon
   const vivaLabel = voice.active ? (({ listening: "Listening…", thinking: "Thinking…", speaking: "Speaking…", connecting: "Connecting…" } as Record<string, string>)[voice.state] ?? "On a call") : "Ask, plan, or talk";
   // Move the highlight on click, not when the next page finishes loading. The pick only
   // counts while we're still on the page it was made from, so it clears itself after navigation.
@@ -142,10 +145,11 @@ export function Sidebar() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-3 border-b-2 border-line px-4 py-3 md:hidden">
+      <header className="mobile-header flex items-center justify-between gap-3 border-b-2 border-line px-4 py-2 md:hidden">
         <Wordmark />
         <AccountMenu />
       </header>
+      <MobileNavigation />
       <nav
         ref={navRef}
         aria-label="Main"
@@ -161,7 +165,7 @@ export function Sidebar() {
           // Closed: show the rail only. Open: the whole panel plus room for its shadow.
           ["--clip" as string]: open ? "inset(-64px -64px -64px 0)" : "inset(0 calc(var(--open) - var(--rail)) 0 0)",
         }}
-        className="fixed z-40 flex bg-white max-md:inset-x-0 max-md:bottom-0 max-md:border-t-2 max-md:border-line md:inset-y-0 md:left-0 md:w-[var(--open)] md:flex-col md:overflow-hidden md:rounded-r-3xl md:px-3 md:py-5 md:shadow-[16px_0_40px_-20px_rgb(51_56_61/0.35)] md:transition-[clip-path] md:duration-300 md:ease-[cubic-bezier(0.45,0,0.15,1)] md:[clip-path:var(--clip)] md:[will-change:clip-path]"
+        className="fixed z-40 hidden bg-white md:flex md:inset-y-0 md:left-0 md:w-[var(--open)] md:flex-col md:overflow-hidden md:rounded-r-3xl md:px-3 md:py-5 md:shadow-[16px_0_40px_-20px_rgb(51_56_61/0.35)] md:transition-[clip-path] md:duration-300 md:ease-[cubic-bezier(0.45,0,0.15,1)] md:[clip-path:var(--clip)] md:[will-change:clip-path]"
       >
         <div className="hidden px-3 pb-6 md:block">
           <Wordmark compact={!open} />
@@ -184,10 +188,16 @@ export function Sidebar() {
             reveals the words and buttons beside them. Demo profiles switch in the demo banner, not here. */}
         <div className="hidden md:block">
           <div className={`flex items-start gap-2 rounded-2xl transition-colors ${open ? "bg-polar" : ""}`}>
-            <button onClick={() => show("chat")} aria-label="Open Viva" title="Viva" className="grid size-12 shrink-0 place-items-center rounded-xl text-sky hover:bg-sky-soft">
+            <button onClick={() => show("chat")} aria-label={asks.length ? `Open Viva, ${asks.length} waiting for you on Home` : "Open Viva"} title="Viva" className="grid size-12 shrink-0 place-items-center rounded-xl text-sky hover:bg-sky-soft">
               <span className="relative">
                 <VivaGlyph size={30} />
                 {voice.active && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-teal" aria-hidden />}
+                {/* Viva's check-in (Home): how many things are waiting for the student. */}
+                {!voice.active && asks.length > 0 && (
+                  <span className="absolute -right-2 -top-1.5 grid min-w-[18px] place-items-center rounded-full border-2 border-white bg-sun px-1 text-[10px] font-black leading-[14px] text-sun-ink" aria-hidden>
+                    {asks.length}
+                  </span>
+                )}
               </span>
             </button>
             <div className={`min-w-0 flex-1 py-1.5 pr-2 ${fade(open)}`}>

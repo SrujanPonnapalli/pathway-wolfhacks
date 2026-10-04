@@ -335,10 +335,10 @@ export function Calendar() {
                 <ul className="mt-2 divide-y divide-line/70">
                   {es.map((e) => (
                     <li key={e.id}>
-                      <button type="button" onClick={() => setOpen(e)} className="flex w-full items-center gap-3 py-2 text-left text-sm">
+                      <button type="button" onClick={() => setOpen(e)} className="flex min-h-11 w-full items-center gap-3 py-2 text-left text-sm">
                         <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dot[e.kind]}`} aria-hidden />
                         <span className="w-16 shrink-0 tabular-nums text-muted">{fmtTime(e.start)}</span>
-                        <span className="min-w-0 flex-1 truncate font-bold">{e.title}</span>
+                        <span className="min-w-0 flex-1 font-bold">{e.title}</span>
                       </button>
                     </li>
                   ))}
@@ -385,7 +385,7 @@ function Details({ ev, onClose, onMove, onRemove, googleOn }: { ev: CalEvent; on
     onClose();
   };
   return (
-    <div role="dialog" aria-label={ev.title} className="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-md rounded-2xl border-2 border-line bg-white p-4 shadow-[0_12px_32px_rgb(0_0_0/0.18)] md:bottom-8">
+    <div role="dialog" aria-label={ev.title} className="mobile-event-details fixed inset-x-4 z-30 mx-auto max-w-md rounded-2xl border-2 border-line bg-white p-4 shadow-[0_12px_32px_rgb(0_0_0/0.18)] md:bottom-8">
       <div className="flex items-start gap-3">
         <span className={`mt-1.5 h-3 w-3 shrink-0 rounded-full ${dot[ev.kind]}`} aria-hidden />
         <div className="min-w-0 flex-1">
@@ -544,6 +544,7 @@ function EventViva({ ev, fixed, onDone }: { ev: CalEvent; fixed: boolean; onDone
           <ArrowUp size={14} strokeWidth={3} aria-hidden />
         </button>
       </form>
+      <p className="mt-1.5 text-[11px] font-bold text-muted">Viva is AI (Gemini) and can be wrong. Nothing moves until you approve it.</p>
     </div>
   );
 }

@@ -223,7 +223,8 @@ function spot(c: Corner) {
   const left = (desktop ? 72 : 0) + PAD; // the collapsed rail is 4.5rem (Sidebar.tsx RAIL)
   const right = window.innerWidth - PAD - SIZE;
   const top = (desktop ? 0 : 64) + PAD; // the phone header
-  const bottom = window.innerHeight - (desktop ? 0 : 80) - PAD - SIZE; // the phone's bottom nav
+  const navHeight = desktop ? 0 : document.querySelector('[aria-label="Mobile main"]')?.getBoundingClientRect().height ?? 72;
+  const bottom = window.innerHeight - navHeight - PAD - SIZE;
   return { x: c.endsWith("l") ? left : right, y: c.startsWith("t") ? top : bottom };
 }
 const nearest = (x: number, y: number): Corner => {

@@ -22,7 +22,7 @@ export function DemoBanner() {
   };
 
   return (
-    <div role="region" aria-label="Demo mode" className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-line bg-polar px-4 py-2 text-sm font-bold md:min-h-20 md:px-10">
+    <div role="region" aria-label="Demo mode" className="demo-banner hidden min-h-20 flex-wrap items-center gap-x-3 gap-y-2 border-b-2 border-line bg-polar px-10 py-2 text-sm font-bold md:flex">
       <span className="rounded-lg bg-ink px-2 py-0.5 text-xs font-black uppercase tracking-wider text-white">Demo</span>
       {samples.length > 1 ? (
         <label className="flex items-center gap-2">
@@ -42,7 +42,7 @@ export function DemoBanner() {
         </span>
       )}
       <span className="text-muted max-md:hidden">Synthetic data, for trying Pathway out.</span>
-      <span className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-1">
+      <span className="hidden flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-1 md:flex">
         <button onClick={reset} className="flex items-center gap-1.5 text-muted hover:text-ink">
           <RotateCcw size={14} aria-hidden /> Reset
         </button>

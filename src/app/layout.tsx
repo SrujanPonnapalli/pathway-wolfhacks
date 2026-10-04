@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import { Chrome } from "@/components/Chrome";
 import { Toast } from "@/components/ui";
@@ -10,6 +10,17 @@ const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: [
 export const metadata: Metadata = {
   title: "Pathway",
   description: "Your status is calculated on your device and never stored by Pathway.",
+  applicationName: "Pathway",
+  appleWebApp: { capable: true, title: "Pathway", statusBarStyle: "default" },
+  other: { "apple-mobile-web-app-capable": "yes" },
+  formatDetection: { telephone: false },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

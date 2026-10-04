@@ -7,6 +7,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { PinnedTimer, StudyTimerProvider } from "@/components/StudyTimer";
 import { VivaDock, VivaProvider } from "@/components/VivaDock";
 import { usePathway } from "@/lib/store";
+import { MobileViewport } from "@/components/MobileViewport";
 
 // Standalone surfaces (the Pi kiosk, landing page, demo door) get no app sidebar or dock.
 // VivaProvider still wraps them so the kiosk can keep its voice session across pages.
@@ -22,6 +23,7 @@ export function Chrome({ children }: { children: ReactNode }) {
   }, [entry, path, router]);
   return (
     <VivaProvider>
+      <MobileViewport />
       <StudyTimerProvider>
       {fullscreen ? (
         children
@@ -30,7 +32,7 @@ export function Chrome({ children }: { children: ReactNode }) {
           <Sidebar />
           {/* Desktop pads for the collapsed icon rail only; the open sidebar overlays the page.
               The account menu lives in the sidebar (and the phone header), not over page headers. */}
-          <div className="relative pb-24 md:pb-0 md:pl-[4.5rem]">
+          <div className="app-content relative md:pl-[4.5rem]">
             <DemoBanner />
             {children}
           </div>

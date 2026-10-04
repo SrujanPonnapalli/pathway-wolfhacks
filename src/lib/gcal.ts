@@ -10,16 +10,14 @@ let mode: "shared" | "personal" | "unknown" = "unknown";
 let sharedId: string | null = null;
 
 /** Call on load and on profile switch. Resolves true when a calendar is already connected.
- *  A signed-in Google account always uses its own calendar, never the shared demo one. */
-export async function init(personalOnly = false): Promise<boolean> {
-  if (personalOnly) {
-    mode = "personal";
-    return personal.isConnected();
-  }
+ *  A signed-in Google account uses its own calendar through the browser, unless the shared
+ *  calendar is that very account's (the demo account): then it is already connected for it. */
+export async function init(personalOnly = false, email?: string): Promise<boolean> {
   try {
     const r = await fetch("/api/gcal", { cache: "no-store" });
     const j = (await r.json()) as { connected: boolean; calendarId: string | null };
-    if (j.connected) {
+    const own = !!email && !!j.calendarId && j.calendarId.trim().toLowerCase() === email.trim().toLowerCase();
+    if (j.connected && (!personalOnly || own)) {
       mode = "shared";
       sharedId = j.calendarId;
       return true;

@@ -315,11 +315,19 @@ function useStore() {
   const [googleShared, setGoogleShared] = useState(false);
   const isAccount = !!profile?.account;
   useEffect(() => {
-    gcal.init(isAccount).then(async (on) => {
+    let live = true;
+    (async () => {
+      // A signed-in account's email decides whether the shared calendar is its own (the demo account).
+      const email = isAccount ? ((await fetch("/api/auth").then((r) => r.json(), () => null)) as { email?: string } | null)?.email : undefined;
+      const on = await gcal.init(isAccount, email);
+      if (!live) return;
       setGoogleOn(on);
       setGoogleShared(gcal.isShared());
       setGoogleWho(on ? await gcal.whoAmI().catch(() => null) : null);
-    });
+    })();
+    return () => {
+      live = false;
+    };
   }, [isAccount]);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 

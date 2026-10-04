@@ -1,10 +1,10 @@
 "use client";
 
 // /device — the Raspberry Pi kiosk: a desk-companion screen for a 7" touchscreen
-// (~1024×600, landscape, fullscreen, no browser chrome). No app chrome either (see
-// components/Chrome). Left = the assistant: Viva's face, her read of the route, live
-// captions, and the Talk button — the same voice session as the Viva page, so she
-// listens and answers right here. Right = live student status.
+// (designed at 1024×600 landscape and scaled to the real screen by Stage.tsx, fullscreen,
+// no browser chrome). No app chrome either (see components/Chrome). Left = the assistant:
+// Viva's face, her read of the route, live captions, and the Talk button — the same voice
+// session as the Viva page, so she listens and answers right here. Right = live student status.
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -379,7 +379,7 @@ export function WakeWord() {
   return (
     <div
       aria-live="polite"
-      className="fixed bottom-3 left-1/2 z-50 flex -translate-x-1/2 items-center gap-1.5 rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-md"
+      className="absolute left-1/2 top-[22px] z-50 flex -translate-x-[calc(100%+3px)] items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-sm"
     >
       <Mic size={13} strokeWidth={2.8} aria-hidden className={voice.state === "idle" ? "text-muted" : "text-sky"} />
       {label}
@@ -455,7 +455,7 @@ export function CameraAwareness() {
 
   const status = err ? "Camera off" : !obs ? "Aware" : obs.personPresent ? "Person present" : "Away";
   return (
-    <div className="fixed bottom-3 right-3 z-50 flex flex-col items-end gap-1.5">
+    <div className="absolute left-1/2 top-[22px] z-50 flex translate-x-[3px] flex-col items-start gap-1.5">
       {/* The video stays mounted (and decoding) even when the preview is hidden —
           the snapshot canvas draws from it. */}
       <div className={debug ? "w-[220px] overflow-hidden rounded-xl border-2 border-line bg-black shadow-lg" : "hidden"}>
@@ -471,7 +471,7 @@ export function CameraAwareness() {
 
       <div
         aria-live="polite"
-        className="flex items-center gap-1.5 rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-md"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-sm"
       >
         <Eye size={13} strokeWidth={2.8} aria-hidden className={err ? "text-muted" : obs?.personPresent ? "text-teal" : "text-sun-ink"} />
         {status}
@@ -497,7 +497,7 @@ export function Device() {
 
   if (!c)
     return (
-      <main className="grid h-screen w-screen place-items-center overflow-hidden bg-polar p-6">
+      <main className="grid h-full w-full place-items-center overflow-hidden bg-polar p-6">
         <div className="panel max-w-md p-8 text-center">
           <div className="flex justify-center"><Wordmark /></div>
           <p className="mt-4 text-lg font-bold text-muted">No courses yet. Add one on the Home page first.</p>
@@ -557,12 +557,12 @@ export function Device() {
         : "Voice idle";
 
   return (
-    // Kiosk hardening: exact 100vw×100vh, no scroll/overscroll, no text selection,
+    // Kiosk hardening: fills the 1024×600 stage exactly, no scroll/overscroll, no text selection,
     // no long-press context menu, no tap highlight, no pinch zoom (viewport meta),
     // no cursor on touchscreens — this is a dedicated device, not a web page.
     <main
       onContextMenu={(e) => e.preventDefault()}
-      className="flex h-screen w-screen touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar pointer-coarse:cursor-none [-webkit-tap-highlight-color:transparent]"
+      className="flex h-full w-full touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar pointer-coarse:cursor-none [-webkit-tap-highlight-color:transparent]"
     >
       <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
         <Wordmark />
@@ -588,7 +588,7 @@ export function Device() {
               style={{ background: "radial-gradient(closest-side, var(--color-sky-soft), transparent)" }}
             />
             <div className="relative block">
-              <VivaAvatar size={132} state={avatarState} input={voice.input} output={voice.output} />
+              <VivaAvatar size={148} state={avatarState} input={voice.input} output={voice.output} />
             </div>
             <h1 className={`relative mt-2 text-[1.6rem] font-black leading-tight tracking-tight text-balance ${tone}`}>{line}</h1>
             <p className="relative mt-0.5 font-bold text-muted">{sub}</p>
@@ -629,7 +629,7 @@ export function Device() {
                     <button
                       onClick={() => voice.say(s)}
                       disabled={voice.state !== "listening"}
-                      className="whitespace-nowrap rounded-full border-2 border-line bg-white px-3 py-1.5 text-xs font-bold text-sky hover:border-sky/40 disabled:opacity-50"
+                      className="min-h-11 whitespace-nowrap rounded-full border-2 border-line bg-white px-3.5 py-2 text-sm font-bold text-sky hover:border-sky/40 disabled:opacity-50"
                     >
                       {s}
                     </button>

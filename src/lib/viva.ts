@@ -23,6 +23,9 @@ export const VIVA = {
 const teachLink: Action = { label: "Teach Viva a topic", href: "/viva?mode=teach" };
 
 export type Action = { label: string; href: string };
+export type EmailDraft = { to: string; subject: string; body: string };
+/** One chat turn. Viva's turns can carry receipts (what she just did) and an email draft. */
+export type ChatMessage = { role: "you" | "viva"; text: string; actions?: Action[]; receipts?: string[]; email?: EmailDraft };
 export type Reply = { text: string; actions: Action[] };
 
 type Course = {
@@ -113,7 +116,7 @@ export type ChatSession = {
   title: string;
   createdAt: string;
   updatedAt: string;
-  messages: { role: "you" | "viva"; text: string; actions?: Action[] }[];
+  messages: ChatMessage[];
 };
 
 export function sampleChatSessions(profileId: string = "maya"): ChatSession[] {

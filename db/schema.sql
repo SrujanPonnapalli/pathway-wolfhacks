@@ -224,6 +224,79 @@ FROM profiles p
 LEFT JOIN study_blocks b ON b.profile_id = p.id
 GROUP BY p.id, p.name;
 
+-- ── Study Pots on Solana devnet (docs/solana) ─────────────────────────────────────────
+-- Weekly accountability pots staked in PATH, a devnet test token with no value. The chain holds
+-- the stakes and payouts; this maps wallets to profiles and keeps a log of every transaction.
+
+-- App-made (custodial) wallets. secret_enc = AES-256-GCM(iv ‖ ciphertext ‖ tag) of the 64-byte key.
+CREATE TABLE IF NOT EXISTS wallets (
+  profile_id  TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  pubkey      TEXT NOT NULL UNIQUE,
+  secret_enc  BYTEA NOT NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS pots (
+  address      TEXT PRIMARY KEY,                   -- Pot PDA on devnet
+  pot_id       BYTEA NOT NULL UNIQUE,              -- random 16 bytes, no meaning
+  creator_id   TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  stake        INT  NOT NULL CHECK (stake BETWEEN 1 AND 100),
+  week_start   DATE NOT NULL,                      -- Monday, America/New_York: the plan's week
+  lock_at      TIMESTAMPTZ NOT NULL,               -- stakes lock; the plan freezes
+  settle_after TIMESTAMPTZ NOT NULL,
+  phase        TEXT NOT NULL DEFAULT 'open' CHECK (phase IN ('open', 'settled', 'cancelled')),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS pot_members (
+  pot        TEXT NOT NULL REFERENCES pots(address) ON DELETE CASCADE,
+  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  joined_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  payout     INT,                                  -- PATH received at settlement
+  PRIMARY KEY (pot, profile_id)
+);
+
+-- 100 PATH per profile per week, claimed lazily.
+CREATE TABLE IF NOT EXISTS allowance_grants (
+  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  week_start DATE NOT NULL,
+  amount     INT  NOT NULL,
+  PRIMARY KEY (profile_id, week_start)
+);
+
+-- Every devnet transaction Pathway sent, for the activity feed and Explorer links.
+CREATE TABLE IF NOT EXISTS chain_txs (
+  sig        TEXT PRIMARY KEY,
+  at         TIMESTAMPTZ NOT NULL DEFAULT now(),
+  kind       TEXT NOT NULL CHECK (kind IN ('allowance', 'create', 'join', 'leave', 'attest', 'settle', 'cancel')),
+  pot        TEXT,
+  profile_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
+  detail     JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS chain_txs_pot ON chain_txs (pot, at DESC);
+
+-- Effort per pot member, the numbers Pathway attests on-chain. Planned = blocks in the pot's week
+-- created before the lock. Backed = planned blocks marked done with real logged activity for the
+-- same course within a day of marking them done (a quiz, flashcards, or 15+ minutes of study/viva).
+CREATE OR REPLACE VIEW pot_progress AS
+SELECT
+  m.pot,
+  m.profile_id,
+  count(b.id)::int AS planned,
+  (count(b.id) FILTER (WHERE b.done_at IS NOT NULL AND EXISTS (
+    SELECT 1 FROM events e
+    WHERE e.profile_id = b.profile_id AND e.course_slug = b.course_slug
+      AND e.time BETWEEN b.done_at - INTERVAL '1 day' AND b.done_at + INTERVAL '1 day'
+      AND (e.kind IN ('quiz', 'flashcards') OR (e.kind IN ('study', 'viva') AND e.minutes >= 15))
+  )))::int AS backed
+FROM pot_members m
+JOIN pots p ON p.address = m.pot
+LEFT JOIN study_blocks b ON b.profile_id = m.profile_id
+  AND b.starts_at >= (p.week_start::timestamp AT TIME ZONE 'America/New_York')
+  AND b.starts_at <  ((p.week_start + 7)::timestamp AT TIME ZONE 'America/New_York')
+  AND b.created_at < p.lock_at
+GROUP BY m.pot, m.profile_id;
+
 -- ── Course material for Viva (pgvector) ───────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS documents (

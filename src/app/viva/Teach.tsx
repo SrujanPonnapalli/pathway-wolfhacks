@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "rea
 import { ArrowRight, ArrowUp, BookOpen, Check, CircleDashed, FastForward, Keyboard, Loader2, Mic, PhoneOff, RotateCcw, Sparkles, Square } from "lucide-react";
 import { VoiceBeam } from "voice-glow";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
+import { useViva } from "@/components/VivaDock";
 import { teachFeedback } from "@/lib/api";
 import type { Concept } from "@/lib/intel/study";
 import { usePathway, type ChatMsg } from "@/lib/store";
@@ -138,8 +139,11 @@ function Session({ concept, onFinish, onBack }: { concept: Concept; onFinish: (r
     return spoken(feedback, tally(concept, next), next.length);
   };
 
+  // The dock's voice call (Voice mode, mini Viva) is a separate session: end it before Teach listens.
+  const { voice: dock, speed } = useViva();
   const v = useVoiceSession({
     greeting: () => roundsRef.current.at(-1)?.feedback.follow_up || opener,
+    speed: () => speed,
     reply: explain,
     onTurn: (who, text) => {
       transcript.current.push({ role: who, text });
@@ -224,7 +228,7 @@ function Session({ concept, onFinish, onBack }: { concept: Concept; onFinish: (r
               </>
             ) : (
               !over && (
-                <button onClick={v.start} className="btn btn-sky">
+                <button onClick={() => (dock.stop(), v.start())} className="btn btn-sky">
                   <Mic size={18} aria-hidden /> {rounds.length ? "Keep talking" : "Start talking"}
                 </button>
               )

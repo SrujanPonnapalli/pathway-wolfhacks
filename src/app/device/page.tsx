@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Gate } from "@/components/ui";
-import { Device } from "./Device";
+import { CameraTest, Device } from "./Device";
 
 export const metadata: Metadata = { title: "Pathway Device" };
 
@@ -16,10 +16,13 @@ export const viewport: Viewport = {
 
 export default function Page() {
   return (
-    <Gate>
-      <Suspense>
-        <Device />
-      </Suspense>
-    </Gate>
+    <>
+      <Gate>
+        <Suspense>
+          <Device />
+        </Suspense>
+      </Gate>
+      <CameraTest />
+    </>
   );
 }

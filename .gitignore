@@ -48,3 +48,6 @@ next-env.d.ts
 .venv/
 __pycache__/
 .ipynb_checkpoints/
+
+# impeccable CLI binaries (downloaded per machine)
+.claude/skills/impeccable/scripts/bin/

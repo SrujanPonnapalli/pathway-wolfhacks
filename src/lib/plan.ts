@@ -35,6 +35,10 @@ export function planBlocks(c: Course, moves: Move[], now: Date) {
       case "practice_quizzes_taken":
         for (let i = 0; i < Math.min(3, m.to - m.from); i++) add(`${c.code} practice quiz`, i + 1, 17);
         break;
+      case "on_time_submission_rate":
+        add(`${c.code}: finish the next assignment a day early`, 1, 15);
+        add(`${c.code}: submit before the deadline`, 4, 15);
+        break;
       case "late_night_study_pct":
         add(`${c.code} study block, done by 10 PM`, 1, 19);
         add(`${c.code} study block, done by 10 PM`, 2, 19);

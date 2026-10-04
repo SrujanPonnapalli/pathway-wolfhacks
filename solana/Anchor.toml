@@ -1,0 +1,19 @@
+skip_local_validator = true
+
+[toolchain]
+
+[features]
+resolution = true
+skip-lint = false
+
+[programs.devnet]
+study_pots = "EzDQkSW3fEqD8Pea3cSvFn1C9mRNhtZ5JGUUJJEwdT43"
+
+[provider]
+cluster = "devnet"
+wallet = "~/.config/solana/pathway-authority.json"
+
+[scripts]
+test = "cargo test"
+
+[hooks]

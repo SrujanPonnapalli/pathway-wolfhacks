@@ -1,330 +1,163 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import {
-  ExternalLink,
-  ShieldCheck,
-  Check,
-  Clock,
-  Award,
-  ChevronDown,
-  ChevronUp,
-  Wallet,
-  ArrowUpRight,
-} from "lucide-react";
-import { Burst, Gate, PageHeader } from "@/components/ui";
-import { getBuddies } from "@/lib/data";
+import { useCallback, useEffect, useState } from "react";
+import { ArrowUpRight, Award, Check, CircleDashed, ExternalLink, Link2, LogIn, LogOut, Radio, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { Burst, Gate, PageHeader, Pending } from "@/components/ui";
+import { getBuddies, getPots, potAction, type Pot, type PotsView } from "@/lib/data";
+import { blocksToGo, finished } from "@/lib/solana/payout";
+import { useNow, watchPots, type ChainPot } from "@/lib/solana/live";
 import { usePathway } from "@/lib/store";
 
 type Buddy = Awaited<ReturnType<typeof getBuddies>>[number];
+type Notice = { text: string; sig?: string; error?: boolean };
 
-// Mock Solana Devnet constants from docs/solana/PLAN.md
-const MOCK_DEVNET_WALLET = "7xKZp8g3M4rV1N6t9W2sL0yB5dE7qU4mA8cF3hJ6vQ2";
-const MOCK_POT_ADDRESS = "8yPZk9Fq2A1bX5C7mD3eR6wT4uV8nE9sL0pM1q2r3t4y";
-const MOCK_SETTLE_TX = "4xL7kQ3vN8aZ1bX5C7mD3eR6wT4uV8nE9sL0pM1q2r3t4y";
+const short = (s: string) => `${s.slice(0, 4)}…${s.slice(-4)}`;
+const txUrl = (sig: string) => `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+const addrUrl = (a: string) => `https://explorer.solana.com/address/${a}?cluster=devnet`;
+const weekLabel = (monday: string) => `Week of ${new Date(`${monday}T12:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
+const when = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+function until(iso: string, now: number) {
+  const m = Math.round((Date.parse(iso) - now) / 60_000);
+  if (m <= 0) return "now";
+  if (m < 60) return `in ${m} min`;
+  if (m < 48 * 60) return `in ${Math.round(m / 60)} h`;
+  return `in ${Math.round(m / 1440)} days`;
+}
+function ago(iso: string, now: number) {
+  const s = Math.round((now - Date.parse(iso)) / 1000);
+  return s < 60 ? `${Math.max(1, s)}s ago` : s < 3600 ? `${Math.round(s / 60)}m ago` : s < 86400 ? `${Math.round(s / 3600)}h ago` : `${Math.round(s / 86400)}d ago`;
+}
 
 export default function Page() {
   return (
     <Gate>
-      <Buddies />
+      <ForProfile />
     </Gate>
   );
 }
 
+// Keyed by profile, so switching profiles starts from a clean slate.
+function ForProfile() {
+  const { profile } = usePathway();
+  return <Buddies key={profile.id} />;
+}
+
 function Buddies() {
   const { state, profile } = usePathway();
+  const now = useNow();
   const [buddies, setBuddies] = useState<Buddy[]>([]);
-
-  // Solana Mock State
-  const [userJoined, setUserJoined] = useState(false);
-  const [balance, setBalance] = useState(100);
-  const [showRecap, setShowRecap] = useState(true);
-  const [burstKey, setBurstKey] = useState(0);
+  const [view, setView] = useState<PotsView | null | undefined>(undefined); // undefined: loading, null: unavailable
+  const [onchain, setOnchain] = useState<Record<string, ChainPot>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [burst, setBurst] = useState(0);
 
   useEffect(() => void getBuddies(profile.id).then(setBuddies), [profile.id]);
 
-  // Effort board data
-  const me = {
-    name: "You",
-    streak: profile.streakDays,
-    blocksDone: state.blocks.filter((b) => b.done).length,
-    blocksPlanned: Math.max(state.blocks.length, 3), // ensure demo planned baseline
+  const refresh = useCallback(() => getPots(profile.id).then(setView), [profile.id]);
+  useEffect(() => {
+    refresh();
+    const t = setInterval(refresh, 15_000);
+    return () => clearInterval(t);
+  }, [refresh]);
+  useEffect(() => {
+    if (!view?.wallet.allowancePending) return;
+    const t = setTimeout(refresh, 4000); // this week's 100 PATH is being minted
+    return () => clearTimeout(t);
+  }, [view, refresh]);
+
+  // Live: subscribe to every open pot on devnet. A confirmed change refreshes the page's data.
+  const recap = view?.pots.find((p) => p.mine && p.phase !== "open");
+  const watched = [...(view?.pots.filter((p) => p.phase === "open") ?? []), ...(recap ? [recap] : [])].map((p) => p.address).join(",");
+  useEffect(
+    () =>
+      watchPots(watched ? watched.split(",") : [], (address, pot, changed) => {
+        setOnchain((s) => ({ ...s, [address]: pot }));
+        if (changed) refresh();
+      }),
+    [watched, refresh],
+  );
+
+  const act = async (key: string, body: Parameters<typeof potAction>[0], done: string) => {
+    setBusy(key);
+    setNotice(null);
+    try {
+      const r = await potAction(body);
+      setNotice({ text: `${done} Confirmed on Solana devnet in ${r.seconds.toFixed(1)} s.`, sig: r.sig });
+      if (body.action !== "leave") setBurst((k) => k + 1);
+      await refresh();
+    } catch (e) {
+      setNotice({ text: (e as Error).message, error: true });
+    } finally {
+      setBusy(null);
+    }
   };
+
+  const mine = view?.pots.filter((p) => p.mine) ?? [];
+  const open = mine.filter((p) => p.phase === "open");
+  const joinable = view?.pots.filter((p) => !p.mine && p.phase === "open" && Date.parse(p.lockAt) > now && p.members.length < 6) ?? [];
+  const canStart = !!view && !mine.some((p) => p.weekStart === view.upcoming.weekStart);
+
+  // Effort board (study blocks this week): you and your buddies.
+  const me = { name: "You", streak: profile.streakDays, blocksDone: state.blocks.filter((b) => b.done).length, blocksPlanned: state.blocks.length };
   const board = [me, ...buddies].sort((a, b) => b.blocksDone - a.blocksDone);
 
-  // Active Pot mock members (fixed 20 PATH stake)
-  const initialMembers = [
-    { name: "Maya", backed: 4, planned: 5, streak: 4 },
-    { name: "Priya", backed: 3, planned: 4, streak: 9 },
-    { name: "Sam", backed: 2, planned: 3, streak: 3 },
-  ];
-
-  const currentMembers = userJoined
-    ? [
-        ...initialMembers,
-        {
-          name: "You",
-          backed: me.blocksDone,
-          planned: me.blocksPlanned,
-          streak: me.streak,
-        },
-      ]
-    : initialMembers;
-
-  const totalPot = currentMembers.length * 20;
-
-  const handleJoin = () => {
-    setUserJoined(true);
-    setBalance((prev) => Math.max(0, prev - 20));
-    setBurstKey((k) => k + 1);
-  };
-
-  const handleLeave = () => {
-    setUserJoined(false);
-    setBalance((prev) => prev + 20);
-  };
-
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
-      <PageHeader
-        title="Study buddies"
-        lead="Keep each other going. Buddies see effort, like study blocks and streaks, never your status."
-      >
-        {/* Wallet & Allowance Pill */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex items-center gap-2 rounded-2xl border-2 border-line bg-polar px-3.5 py-2">
-            <span className="flex size-2 rounded-full bg-teal animate-pulse" aria-hidden />
-            <Wallet size={16} className="text-grape" aria-hidden />
-            <span className="text-sm font-black text-ink">{balance} PATH</span>
-            <span className="rounded-lg bg-grape-soft px-2 py-0.5 text-xs font-black text-grape">
-              Devnet
-            </span>
-          </div>
-
-          <a
-            href={`https://explorer.solana.com/address/${MOCK_DEVNET_WALLET}?cluster=devnet`}
-            target="_blank"
-            rel="noreferrer"
-            className="hidden sm:inline-flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white px-3 py-2 text-xs font-bold text-muted transition-colors hover:text-ink"
-            title="View wallet on Solana Explorer"
-          >
-            <span>{MOCK_DEVNET_WALLET.slice(0, 4)}...{MOCK_DEVNET_WALLET.slice(-4)}</span>
-            <ArrowUpRight size={13} aria-hidden />
-          </a>
-        </div>
+    <main className="relative mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
+      {burst > 0 && <Burst key={burst} />}
+      <PageHeader title="Study buddies" lead="Keep each other going. Buddies see effort, like study blocks and streaks, never your status.">
+        {view && <WalletChip wallet={view.wallet} />}
       </PageHeader>
 
-      {/* 1. Active Weekly Study Pot (Grape Theme) */}
-      <section
-        className="panel relative mb-8 overflow-hidden border-2 border-grape/30 p-5 md:p-6 shadow-sm"
-        aria-labelledby="active-pot-heading"
-      >
-        {burstKey > 0 && <Burst key={burstKey} />}
-        
-        {/* Top Header of Pot */}
-        <div className="flex flex-wrap items-baseline justify-between gap-3 border-b-2 border-line pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-grape text-white px-2.5 py-1 text-xs font-black uppercase tracking-wider">
-                Active Study Pot
-              </span>
-              <span className="flex items-center gap-1 text-xs font-extrabold text-muted">
-                <Clock size={13} aria-hidden /> Locks Monday 00:00 ET · 2d left
-              </span>
-            </div>
-            <h2 id="active-pot-heading" className="mt-2 text-2xl font-black text-ink">
-              This Week&apos;s Pot
-            </h2>
-          </div>
-
-          <div className="flex items-baseline gap-3">
-            <div className="text-right">
-              <span className="block text-xs font-black uppercase tracking-wider text-muted">
-                Total Staked
-              </span>
-              <span className="text-2xl font-black text-grape">{totalPot} PATH</span>
-            </div>
-            <a
-              href={`https://explorer.solana.com/address/${MOCK_POT_ADDRESS}?cluster=devnet`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded-xl border-2 border-line bg-polar px-2.5 py-1.5 text-xs font-bold text-muted transition-colors hover:text-ink"
-            >
-              <span>Explorer</span>
-              <ExternalLink size={12} aria-hidden />
+      {notice && (
+        <p role="status" className={`mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border-2 px-4 py-3 text-sm font-bold ${notice.error ? "border-sun bg-sun-soft text-sun-ink" : "border-grape/30 bg-grape-soft text-ink"}`}>
+          <span className="flex-1">{notice.text}</span>
+          {notice.sig && (
+            <a href={txUrl(notice.sig)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-grape underline underline-offset-4">
+              View transaction <ExternalLink size={13} aria-hidden />
             </a>
-          </div>
+          )}
+        </p>
+      )}
+
+      {view === undefined && <p className="mb-8 text-muted" aria-live="polite">Loading Study Pots from Solana devnet…</p>}
+      {view === null && (
+        <div className="mb-8">
+          <Pending what="Study Pots" wire="they need the database and Solana devnet (see docs/solana/README.md). Your study blocks below still count." />
         </div>
+      )}
 
-        {/* Pot Rules & Context */}
-        <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-bold text-muted">
-          <div className="rounded-xl bg-polar p-3">
-            <span className="text-ink font-black block">Fixed Stake</span>
-            20 PATH per member
-          </div>
-          <div className="rounded-xl bg-polar p-3">
-            <span className="text-ink font-black block">Target Rule</span>
-            Finish ≥80% of planned study blocks
-          </div>
-          <div className="rounded-xl bg-polar p-3">
-            <span className="text-ink font-black block">Sunday Settle</span>
-            Finishers split forfeits equally
-          </div>
-        </div>
+      {open.map((p) => (
+        <PotCard key={p.address} pot={p} chain={onchain[p.address]} me={profile.id} now={now} busy={busy} onLeave={() => act(`leave-${p.address}`, { profile_id: profile.id, action: "leave", pot: p.address }, `Left the pot; ${p.stake} PATH refunded.`)} />
+      ))}
 
-        {state.blocks.length === 0 && (
-          <div className="mt-4 rounded-xl border border-sun/40 bg-sun-soft/50 p-3 text-xs text-ink flex items-center justify-between gap-3">
-            <span>
-              <strong>No blocks on your calendar yet:</strong> The pot requires at least 1 planned study block before Monday lock.
-            </span>
-            <Link href="/insights" className="shrink-0 font-extrabold text-teal underline underline-offset-4">
-              Make It Real &rarr;
-            </Link>
-          </div>
-        )}
-
-        {/* Member Progress Bars */}
-        <div className="mt-6 space-y-4">
-          <div className="flex items-center justify-between text-xs font-extrabold text-muted">
-            <span className="uppercase tracking-wider">Members ({currentMembers.length})</span>
-            <span>Target: 80% line</span>
-          </div>
-
-          {currentMembers.map((m) => {
-            const pct = Math.min(100, Math.round((m.backed / m.planned) * 100));
-            const isFinishing = pct >= 80;
-            const isMe = m.name === "You";
-
-            return (
-              <div key={m.name} className={`rounded-xl p-3 ${isMe ? "bg-grape-soft/60 border border-grape/20" : "bg-polar"}`}>
-                <div className="flex items-center justify-between text-sm">
-                  <span className={`font-black flex items-center gap-2 ${isMe ? "text-grape" : "text-ink"}`}>
-                    {m.name}
-                    {isMe && <span className="rounded bg-grape text-white text-[10px] px-1.5 py-0.2 uppercase">You</span>}
-                    {isFinishing && (
-                      <span className="inline-flex items-center gap-1 text-xs font-extrabold text-teal">
-                        <Check size={14} strokeWidth={3} aria-hidden /> Finish line reached
-                      </span>
-                    )}
-                  </span>
-                  <span className="text-xs font-extrabold text-muted">
-                    {m.backed} of {m.planned} backed ({pct}%) &middot;{" "}
-                    {isFinishing ? (
-                      <span className="text-teal font-black">Qualified</span>
-                    ) : (
-                      <span className="text-sun-ink font-bold">
-                        {Math.max(1, Math.ceil(m.planned * 0.8) - m.backed)} more needed
-                      </span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Progress bar with 80% threshold marker */}
-                <div className="relative mt-2 h-3.5 w-full overflow-hidden rounded-full bg-line">
-                  <div
-                    className={`h-full rounded-full transition-all duration-300 ${isFinishing ? "bg-teal" : "bg-grape"}`}
-                    style={{ width: `${pct}%` }}
-                  />
-                  {/* 80% marker line */}
-                  <div
-                    className="absolute top-0 bottom-0 left-[80%] w-0.5 bg-ink/50 z-10"
-                    title="80% qualification threshold"
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Join / Leave Interaction Bar */}
-        <div className="mt-6 border-t-2 border-line pt-4 flex flex-wrap items-center justify-between gap-4">
-          <p className="text-sm text-muted max-w-md">
-            {userJoined
-              ? "You're in! You have staked 20 PATH. Complete at least 80% of your planned study blocks by Sunday night to qualify for the split."
-              : "Stakes are locked on Monday at 00:00 ET. If everyone finishes, all stakes are fully refunded."}
+      {view && canStart && (
+        <section className="panel mb-8 border-2 border-grape/30 p-5 md:p-6" aria-labelledby="start-pot">
+          <h2 id="start-pot" className="text-xl font-black">
+            Study Pot · <span className="text-grape">{weekLabel(view.upcoming.weekStart)}</span>
+          </h2>
+          <p className="mt-1 max-w-[60ch] text-muted">
+            Stake PATH on finishing your study plan. Finish 80% of the blocks you planned and you keep your stake, plus a share of any stake from buddies who don&apos;t. If everyone or no one finishes, everyone&apos;s refunded. Joining and leaving are free until {when(view.upcoming.lockAt)}.
           </p>
-
-          <div>
-            {userJoined ? (
-              <button
-                type="button"
-                onClick={handleLeave}
-                className="btn btn-ghost text-xs"
-              >
-                Leave Pot · Refund 20 PATH
+          {joinable.map((p) => (
+            <div key={p.address} className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-grape-soft/60 p-4">
+              <div>
+                <p className="font-black">{p.members.map((m) => m.name).join(" & ")}&apos;s pot</p>
+                <p className="text-sm font-bold text-muted">
+                  {p.stake} PATH each · {p.members.length} of 6 · locks {until(p.lockAt, now)}
+                </p>
+              </div>
+              <button className="btn btn-grape min-h-11 text-xs" disabled={!!busy} onClick={() => act(`join-${p.address}`, { profile_id: profile.id, action: "join", pot: p.address }, `You're in. ${p.stake} PATH staked on your plan.`)}>
+                <LogIn size={16} aria-hidden /> {busy === `join-${p.address}` ? "Confirming…" : `Join · stake ${p.stake} PATH`}
               </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleJoin}
-                className="btn bg-grape text-white border-b-[5px] border-[#6035b8] hover:brightness-105 active:translate-y-[3px] active:border-b-[2px] text-xs font-black"
-              >
-                Join Pot · Stake 20 PATH
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Last Week's Recap (Settled Pot) */}
-      <section className="panel mb-8 p-5" aria-labelledby="recap-heading">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Award size={18} className="text-grape" aria-hidden />
-            <h2 id="recap-heading" className="text-lg font-black text-ink">
-              Last Week&apos;s Settle Recap
-            </h2>
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowRecap(!showRecap)}
-            className="flex items-center gap-1 text-xs font-bold text-muted hover:text-ink"
-            aria-expanded={showRecap}
-          >
-            <span>{showRecap ? "Hide" : "Show"}</span>
-            {showRecap ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-          </button>
-        </div>
-
-        {showRecap && (
-          <div className="mt-4 space-y-3">
-            <p className="text-sm text-muted">
-              Pot settled on Sunday, Oct 4. Maya and Priya finished their plans (≥80%), splitting Jordan&apos;s 20 PATH forfeit.
-            </p>
-
-            <div className="rounded-xl border border-line bg-polar p-3.5 text-xs font-bold space-y-2">
-              <div className="flex justify-between items-center text-ink">
-                <span>Maya (5/5 blocks · 100%)</span>
-                <span className="font-black text-teal">+30 PATH returned (split bonus)</span>
-              </div>
-              <div className="flex justify-between items-center text-ink">
-                <span>Priya (4/5 blocks · 80%)</span>
-                <span className="font-black text-teal">+30 PATH returned (split bonus)</span>
-              </div>
-              <div className="flex justify-between items-center text-muted">
-                <span>Jordan (2/5 blocks · 40%)</span>
-                <span className="font-extrabold text-sun-ink">20 PATH forfeited</span>
-              </div>
             </div>
+          ))}
+          <StartPot busy={busy} first={!joinable.length} onStart={(stake) => act("create", { profile_id: profile.id, action: "create", stake }, `Pot started with ${stake} PATH. Buddies can join until Monday.`)} />
+        </section>
+      )}
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
-              <span className="text-muted">Jordan&apos;s next week is a fresh start with 100 new PATH.</span>
-              <a
-                href={`https://explorer.solana.com/tx/${MOCK_SETTLE_TX}?cluster=devnet`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-grape font-bold hover:underline"
-              >
-                <span>View settle tx</span>
-                <ExternalLink size={12} aria-hidden />
-              </a>
-            </div>
-          </div>
-        )}
-      </section>
+      {recap && <Recap pot={recap} chain={onchain[recap.address]} me={profile.id} />}
 
-      {/* 3. Overall Study Blocks Effort Leaderboard */}
       <section className="panel mb-8 p-5" aria-labelledby="week">
         <h2 id="week" className="mb-4 text-lg font-black">
           This week&apos;s study blocks
@@ -339,29 +172,224 @@ function Buddies() {
                 </span>
               </div>
               <div className="mt-1.5 h-3 overflow-hidden rounded-full bg-line">
-                <div
-                  className="h-full rounded-full bg-grape"
-                  style={{ width: `${b.blocksPlanned ? (b.blocksDone / b.blocksPlanned) * 100 : 0}%` }}
-                />
+                <div className="h-full rounded-full bg-grape" style={{ width: `${b.blocksPlanned ? (b.blocksDone / b.blocksPlanned) * 100 : 0}%` }} />
               </div>
             </li>
           ))}
         </ul>
       </section>
 
-      {/* 4. Responsible Design & Trust Model Footer */}
-      <footer className="rounded-2xl border-2 border-line bg-polar p-5 text-xs text-muted space-y-2">
-        <div className="flex items-center gap-2 font-black text-ink">
-          <ShieldCheck size={16} className="text-teal" aria-hidden />
-          <span>Solana Devnet &middot; Responsible Study Pots</span>
-        </div>
-        <p>
-          <strong>PATH is a Solana devnet test token.</strong> It has no real monetary value, cannot be bought or sold, and exists solely as a friendly accountability commitment between study buddies.
+      <footer className="space-y-2 rounded-2xl border-2 border-line bg-polar p-5 text-xs text-muted">
+        <p className="flex items-center gap-2 font-black text-ink">
+          <ShieldCheck size={16} className="text-teal" aria-hidden /> How Study Pots work
         </p>
         <p>
-          <strong>Trust model:</strong> The on-chain program holds stakes in escrow and guarantees funds can only be returned to members or split according to fixed completion rules. Pathway attests block completion from study events logged in your private dashboard. No academic risk scores or model predictions ever touch the blockchain.
+          <strong>PATH is a Solana devnet test token.</strong> It has no value and can&apos;t be bought, sold or cashed out. Every student gets 100 PATH a week; you can only lose what you stake.
+        </p>
+        <p>
+          <strong>The program holds the pot.</strong> Stakes sit in an on-chain escrow that can only pay pot members, by the split rule. Nobody, including Pathway, can withdraw it. After the week, anyone can trigger settlement, and the program itself works out who finished.
+        </p>
+        <p>
+          <strong>Pathway attests effort.</strong> When you plan or finish a study block, Pathway&apos;s server records your planned and backed block counts on-chain within seconds. After the lock, your plan is frozen and finished blocks can&apos;t be taken back. Only wallet addresses, block counts and amounts go on-chain: no names, courses or status.
+        </p>
+        <p>
+          <strong>Your wallet is app-made.</strong> Pathway holds its key (encrypted) and signs for you, which is fine for a test token. Connecting your own wallet is next.
         </p>
       </footer>
     </main>
+  );
+}
+
+function WalletChip({ wallet }: { wallet: PotsView["wallet"] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="inline-flex items-center gap-2 rounded-2xl border-2 border-line bg-white px-3.5 py-2">
+        <Wallet size={16} className="text-grape" aria-hidden />
+        <span className="text-sm font-black tabular-nums">{wallet.balance} PATH</span>
+        <span className="rounded-lg bg-grape-soft px-2 py-0.5 text-xs font-black text-grape">Devnet</span>
+      </div>
+      <a href={wallet.explorer} target="_blank" rel="noreferrer" title="Your wallet on Solana Explorer" className="inline-flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white px-3 py-2 text-xs font-bold text-muted hover:text-ink">
+        {short(wallet.address)} <ArrowUpRight size={13} aria-hidden />
+      </a>
+      {wallet.allowancePending && <span className="text-xs font-bold text-grape" aria-live="polite">Adding this week&apos;s 100 PATH…</span>}
+    </div>
+  );
+}
+
+function StartPot({ busy, first, onStart }: { busy: string | null; first: boolean; onStart: (stake: number) => void }) {
+  const [stake, setStake] = useState(20);
+  return (
+    <div className={`mt-4 flex flex-wrap items-center justify-between gap-3 ${first ? "" : "border-t-2 border-line pt-4"}`}>
+      <fieldset className="flex flex-wrap items-center gap-2">
+        <legend className="sr-only">Stake per member</legend>
+        <span className="mr-1 text-sm font-bold text-muted">{first ? "Start a pot:" : "Or start your own:"}</span>
+        {[10, 20, 30, 50].map((s) => (
+          <label key={s} className={`cursor-pointer rounded-xl border-2 px-3 py-1.5 text-sm font-black ${stake === s ? "border-grape bg-grape-soft text-grape" : "border-line text-muted hover:text-ink"}`}>
+            <input type="radio" name="stake" value={s} checked={stake === s} onChange={() => setStake(s)} className="sr-only" />
+            {s} PATH
+          </label>
+        ))}
+      </fieldset>
+      <button className={`btn min-h-11 text-xs ${first ? "btn-grape" : "btn-ghost"}`} disabled={!!busy} onClick={() => onStart(stake)}>
+        <Sparkles size={16} aria-hidden /> {busy === "create" ? "Confirming…" : "Start a pot"}
+      </button>
+    </div>
+  );
+}
+
+function PotCard({ pot, chain, me, now, busy, onLeave }: { pot: Pot; chain?: ChainPot; me: string; now: number; busy: string | null; onLeave: () => void }) {
+  const locked = Date.parse(pot.lockAt) <= now;
+  const inPot = pot.members.some((m) => m.id === me);
+  return (
+    <section className="panel mb-8 border-2 border-grape/30 p-5 md:p-6" aria-labelledby={`pot-${pot.address}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b-2 border-line pb-4">
+        <div>
+          <p className="flex flex-wrap items-center gap-2 text-xs font-extrabold text-muted">
+            <span className="rounded-lg bg-grape px-2.5 py-1 font-black uppercase tracking-wider text-white">Study Pot</span>
+            {locked ? `Locked · settles ${when(pot.settleAfter)} (${until(pot.settleAfter, now)})` : `Open · locks ${when(pot.lockAt)} (${until(pot.lockAt, now)})`}
+          </p>
+          <h2 id={`pot-${pot.address}`} className="mt-2 text-2xl font-black">
+            {weekLabel(pot.weekStart)}
+          </h2>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-black uppercase tracking-wider text-muted">In the pot</p>
+          <p className="text-2xl font-black tabular-nums text-grape">{pot.stake * pot.members.length} PATH</p>
+          <a href={addrUrl(pot.address)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-muted underline underline-offset-4 hover:text-ink">
+            Escrow on Solana Explorer <ExternalLink size={12} aria-hidden />
+          </a>
+        </div>
+      </div>
+
+      <p className="mt-4 text-sm text-muted">
+        {pot.stake} PATH each. Finish 80% of the study blocks you planned for the week. Finishers split the stakes of anyone who doesn&apos;t; if everyone or no one finishes, everyone&apos;s refunded.
+      </p>
+
+      <ul className="mt-5 space-y-3">
+        {pot.members.map((m) => {
+          const c = chain?.members[m.wallet];
+          const planned = c?.planned ?? m.planned;
+          const backed = c?.backed ?? m.backed;
+          const synced = c && c.planned === m.planned && c.backed === m.backed;
+          const done = finished(planned, backed);
+          const isMe = m.id === me;
+          return (
+            <li key={m.id} className={`rounded-xl p-3 ${isMe ? "border border-grape/20 bg-grape-soft/60" : "bg-polar"}`}>
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+                <span className={`flex items-center gap-2 font-black ${isMe ? "text-grape" : ""}`}>
+                  {isMe ? "You" : m.name}
+                  {done && (
+                    <span className="inline-flex items-center gap-1 text-xs font-extrabold text-teal">
+                      <Check size={14} strokeWidth={3} aria-hidden /> Plan finished
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-2 text-xs font-extrabold text-muted">
+                  {planned === 0 ? "No blocks planned yet" : `${backed} of ${planned} blocks backed${done ? "" : ` · ${blocksToGo(planned, backed)} to go`}`}
+                  {c?.frozen && <span title="Plan frozen at the lock">· plan locked</span>}
+                  {c && (synced ? (
+                    <span className="inline-flex items-center gap-1 text-teal" title="These numbers are read live from the pot's on-chain account">
+                      <Link2 size={12} aria-hidden /> on-chain
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-grape">
+                      <CircleDashed size={12} className="animate-spin" aria-hidden /> attesting…
+                    </span>
+                  ))}
+                </span>
+              </div>
+              <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-line" role="img" aria-label={`${backed} of ${planned} planned blocks backed; the finish line is 80%`}>
+                <div className={`h-full rounded-full transition-[width] duration-500 ${done ? "bg-teal-face" : "bg-grape"}`} style={{ width: `${planned ? Math.min(100, (backed / planned) * 100) : 0}%` }} />
+                <span className="absolute inset-y-0 left-[80%] w-0.5 bg-ink/50" aria-hidden />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+
+      {pot.txs.length > 0 && <Feed txs={pot.txs} now={now} />}
+
+      {inPot && !locked && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t-2 border-line pt-4">
+          <p className="max-w-md text-sm text-muted">Plans freeze at the lock. Until then you can leave for a full refund.</p>
+          <button className="btn btn-ghost min-h-11 text-xs" disabled={!!busy} onClick={onLeave}>
+            <LogOut size={16} aria-hidden /> {busy === `leave-${pot.address}` ? "Confirming…" : `Leave · refund ${pot.stake} PATH`}
+          </button>
+        </div>
+      )}
+    </section>
+  );
+}
+
+const verb: Record<string, (t: Pot["txs"][number]) => string> = {
+  create: (t) => `${t.name} started the pot`,
+  join: (t) => `${t.name} joined`,
+  leave: (t) => `${t.name} left (refunded)`,
+  attest: (t) => {
+    const d = t.detail as { planned: number; backed: number };
+    return `Effort attested for ${t.name}: ${d.backed} of ${d.planned} blocks`;
+  },
+  settle: () => "Settled by the program",
+  cancel: () => "Cancelled and refunded",
+};
+
+function Feed({ txs, now }: { txs: Pot["txs"]; now: number }) {
+  return (
+    <div className="mt-5">
+      <p className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-muted">
+        <Radio size={13} className="text-grape" aria-hidden /> On-chain activity
+      </p>
+      <ol className="mt-2 divide-y-2 divide-line rounded-xl border-2 border-line">
+        {txs.slice(0, 6).map((t) => (
+          <li key={t.sig} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+            <span className="min-w-0 truncate font-bold">{verb[t.kind]?.(t) ?? t.kind}</span>
+            <a href={txUrl(t.sig)} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 font-mono text-xs text-muted hover:text-grape">
+              {ago(t.at, now)} · {short(t.sig)} <ExternalLink size={11} aria-hidden />
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function Recap({ pot, chain, me }: { pot: Pot; chain?: ChainPot; me: string }) {
+  // The settled Pot account keeps each member's final attested numbers and payout: prefer the chain's.
+  const members = pot.members.map((m) => ({ ...m, ...(chain?.members[m.wallet] ?? {}) }));
+  const done = members.map((m) => finished(m.planned, m.backed));
+  const all = done.every(Boolean);
+  const mine = members.find((m) => m.id === me);
+  const settleTx = pot.txs.find((t) => t.kind === "settle" || t.kind === "cancel");
+  return (
+    <section className="panel mb-8 p-5" aria-labelledby={`recap-${pot.address}`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={`recap-${pot.address}`} className="flex items-center gap-2 text-lg font-black">
+          <Award size={18} className="text-grape" aria-hidden /> {weekLabel(pot.weekStart)}: {pot.phase === "cancelled" ? "pot cancelled" : "pot settled"}
+        </h2>
+        {all && pot.phase === "settled" && <span className="rounded-lg bg-teal-soft px-2 py-1 text-xs font-black text-teal-lip">Everyone finished their plan</span>}
+      </div>
+      {mine?.payout != null && (
+        <p className="mt-2 text-muted">
+          {pot.phase === "cancelled" ? `Not enough members joined, so your ${mine.payout} PATH came back.` : `You received ${mine.payout} PATH from the pot.`}
+          {mine.payout === 0 && " Next week's a fresh start, with 100 new PATH."}
+        </p>
+      )}
+      <ul className="mt-3 space-y-2 rounded-xl border-2 border-line bg-polar p-3.5 text-sm font-bold">
+        {members.map((m, i) => (
+          <li key={m.id} className="flex flex-wrap items-center justify-between gap-2">
+            <span className="flex items-center gap-2">
+              {done[i] ? <Check size={15} strokeWidth={3} className="text-teal" aria-label="Finished" /> : <CircleDashed size={15} className="text-muted" aria-label="Didn't finish" />}
+              {m.id === me ? "You" : m.name} · {m.backed} of {m.planned} blocks
+            </span>
+            <span className={done[i] || all ? "font-black text-teal" : "text-muted"}>{m.payout == null ? "…" : m.payout > 0 ? `${m.payout} PATH back` : "stake shared with finishers"}</span>
+          </li>
+        ))}
+      </ul>
+      {settleTx && (
+        <a href={txUrl(settleTx.sig)} target="_blank" rel="noreferrer" className="mt-3 inline-flex items-center gap-1 text-sm font-bold text-grape underline underline-offset-4">
+          View the payout transaction on Solana Explorer <ExternalLink size={13} aria-hidden />
+        </a>
+      )}
+    </section>
   );
 }

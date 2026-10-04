@@ -1,8 +1,31 @@
 {
  "feature_names": [
-  "midterm_score",
   "attendance_rate",
-  "missed_deadlines"
+  "avg_days_started_before_exam",
+  "practice_quizzes_taken",
+  "on_time_submission_rate",
+  "missed_deadlines",
+  "late_night_study_pct",
+  "avg_weekly_study_hours",
+  "study_sessions_logged",
+  "credit_hours",
+  "work_hours_per_week",
+  "work_hours_missing",
+  "class_year_ord",
+  "avg_practice_quiz_score",
+  "materials_uploaded",
+  "flashcards_reviewed",
+  "avg_sleep_hours",
+  "sleep_missing",
+  "course_BIO_181",
+  "course_CH_101",
+  "course_CSC_216",
+  "course_EC_201",
+  "course_ECE_200",
+  "course_MA_241",
+  "course_PY_205",
+  "course_ST_311",
+  "midterm_score"
  ],
  "class_names": [
   "on_track",
@@ -11,69 +34,109 @@
  "children_left": [
   1,
   2,
-  -1,
-  -1,
-  5,
-  -1,
-  -1
- ],
- "children_right": [
-  4,
   3,
   -1,
   -1,
   6,
   -1,
+  -1,
+  9,
+  -1,
+  -1
+ ],
+ "children_right": [
+  8,
+  5,
+  4,
+  -1,
+  -1,
+  7,
+  -1,
+  -1,
+  10,
+  -1,
   -1
  ],
  "feature": [
-  0,
+  25,
+  3,
   1,
   -2,
   -2,
-  2,
+  1,
+  -2,
+  -2,
+  0,
   -2,
   -2
  ],
  "threshold": [
-  62.5,
-  0.85,
+  64.5,
+  0.795,
+  1.95,
   -2.0,
   -2.0,
-  3.5,
+  3.45,
+  -2.0,
+  -2.0,
+  0.785,
   -2.0,
   -2.0
  ],
  "value": [
   [
-   578,
-   222
+   462,
+   178
   ],
   [
-   131,
-   173
+   133,
+   152
   ],
   [
-   65,
-   137
+   34,
+   111
   ],
   [
-   66,
-   36
+   12,
+   83
   ],
   [
-   447,
-   49
+   22,
+   28
   ],
   [
-   419,
-   37
+   99,
+   41
   ],
   [
-   28,
-   12
+   56,
+   38
+  ],
+  [
+   43,
+   3
+  ],
+  [
+   329,
+   26
+  ],
+  [
+   22,
+   13
+  ],
+  [
+   307,
+   13
   ]
  ],
- "_note": "SAMPLE tree hand-built for the UI scaffold; leaf counts are from data/student_outcomes.csv. Replace with the notebook export.",
- "risk_threshold": 0.4
+ "risk_threshold": 0.2529,
+ "depth": 3,
+ "n_leaves": 6,
+ "features_used": [
+  "attendance_rate",
+  "avg_days_started_before_exam",
+  "midterm_score",
+  "on_time_submission_rate"
+ ],
+ "_note": "Mid tree from notebooks/pathway_model.py (seed 42, refit on train+validation)."
 }

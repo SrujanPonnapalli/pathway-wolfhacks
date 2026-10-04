@@ -12,16 +12,10 @@ export function EvidenceSection() {
   const [open, setOpen] = useState(true);
   const [advisorCapacity, setAdvisorCapacity] = useState(15);
 
-  // Capacity math curve based on held-out test predictions
-  // k: 5..40% -> recall@k
-  const getRecallAtK = (k: number) => {
-    if (k <= 5) return Math.round(k * 7.5);
-    if (k <= 10) return Math.round(37.5 + (k - 5) * 5.3);
-    if (k <= 15) return Math.round(64 + (k - 10) * 2.9);
-    if (k <= 20) return Math.round(78.5 + (k - 15) * 1.5);
-    if (k <= 30) return Math.round(86 + (k - 20) * 0.7);
-    return Math.min(99, Math.round(93 + (k - 30) * 0.4));
-  };
+  // Recall@k on the 160 held-out test students, ranked by the early tree's risk score
+  // (public/models/evidence.json, from notebooks/pathway_model.py). Index 0 is k = 5%.
+  const RECALL_AT_K = [18, 23, 23, 27, 27, 30, 32, 34, 39, 41, 45, 50, 52, 52, 55, 59, 61, 64, 66, 66, 68, 68, 68, 68, 70, 70, 70, 73, 73, 75, 77, 80, 80, 82, 84, 84];
+  const getRecallAtK = (k: number) => RECALL_AT_K[Math.min(RECALL_AT_K.length - 1, Math.max(0, Math.round(k) - 5))];
 
   const currentRecall = getRecallAtK(advisorCapacity);
 
@@ -70,11 +64,11 @@ export function EvidenceSection() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-black text-ink">Catching Struggling Students</span>
                   <span className="rounded bg-teal-soft text-teal-lip text-[11px] font-extrabold px-2 py-0.5">
-                    Recall 84.4%
+                    Recall 72.7%
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  Test performance vs. the default majority baseline (72% accuracy, catches 0).
+                  160 held-out students, 44 of them struggling, scored once. The majority baseline is 72.5% accurate and catches none.
                 </p>
 
                 <div className="mt-4 space-y-2 text-xs font-bold">
@@ -91,27 +85,27 @@ export function EvidenceSection() {
                   <div>
                     <div className="flex justify-between text-muted mb-1">
                       <span>Logistic Regression</span>
-                      <span>71.4% Recall</span>
+                      <span>81.8% Recall</span>
                     </div>
                     <div className="h-2 rounded-full bg-line overflow-hidden">
-                      <div className="h-full bg-sky w-[71.4%]" />
+                      <div className="h-full bg-sky w-[81.8%]" />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-ink mb-1 font-extrabold">
                       <span className="text-teal">Pathway Decision Tree</span>
-                      <span className="text-teal">84.4% Recall</span>
+                      <span className="text-teal">72.7% Recall</span>
                     </div>
                     <div className="h-2 rounded-full bg-line overflow-hidden">
-                      <div className="h-full bg-teal w-[84.4%]" />
+                      <div className="h-full bg-teal w-[72.7%]" />
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-line text-[11px] text-muted">
-                Threshold chosen on out-of-fold predictions with an $F_2$ objective: missing a struggling student is penalized 4&times; more than a false alarm.
+                Cutoff chosen on out-of-fold predictions to catch at least 80% of struggling students, assuming a miss costs about 4 false alarms. On the test set it caught 32 of 44 with 19 false alarms (precision 62.7%).
               </div>
             </div>
 
@@ -125,18 +119,18 @@ export function EvidenceSection() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  Early warning (Weeks 1–7) gives up 7 points of recall for ~6 more weeks to act.
+                  Early warning (weeks 1–7) gives up about 20 points of recall for ~6 more weeks to act.
                 </p>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 text-center">
                   <div className="rounded-xl border border-line bg-polar p-3">
                     <span className="text-xs font-bold text-muted block">Early Model</span>
-                    <span className="text-xl font-black text-ink">82.1%</span>
+                    <span className="text-xl font-black text-ink">72.7%</span>
                     <span className="text-[10px] text-muted block">Recall (No midterm)</span>
                   </div>
                   <div className="rounded-xl border border-teal/30 bg-teal-soft/40 p-3">
                     <span className="text-xs font-bold text-teal-lip block">Mid Model</span>
-                    <span className="text-xl font-black text-teal">89.3%</span>
+                    <span className="text-xl font-black text-teal">93.2%</span>
                     <span className="text-[10px] text-teal-lip block">Recall (+Midterm score)</span>
                   </div>
                 </div>
@@ -153,27 +147,27 @@ export function EvidenceSection() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-black text-ink">Price of Interpretability</span>
                   <span className="rounded bg-sun-soft text-sun-ink text-[11px] font-extrabold px-2 py-0.5">
-                    96.5% Efficiency
+                    91% Efficiency
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  Decision Tree vs. HistGradientBoosting under identical group CV.
+                  Decision tree vs. HistGradientBoosting on the same split, scored once on the held-out test set.
                 </p>
 
                 <div className="mt-4 space-y-2 text-xs font-bold">
                   <div className="flex justify-between items-center rounded-lg bg-polar p-2">
                     <span className="text-muted">Boosting (Black Box)</span>
-                    <span className="font-extrabold text-ink">87.5% Recall · 0.86 AUC</span>
+                    <span className="font-extrabold text-ink">86.4% Recall · 0.82 PR-AUC</span>
                   </div>
                   <div className="flex justify-between items-center rounded-lg bg-teal-soft/60 border border-teal/20 p-2">
-                    <span className="text-teal-lip">5-Leaf Tree (Pathway)</span>
-                    <span className="font-extrabold text-teal">84.4% Recall · 0.82 AUC</span>
+                    <span className="text-teal-lip">11-Leaf Tree (Pathway)</span>
+                    <span className="font-extrabold text-teal">72.7% Recall · 0.75 PR-AUC</span>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-line text-[11px] text-muted">
-                A 5-leaf tree preserves 96.5% of the boosted model&apos;s recall while enabling exact, deterministic counterfactual recourse.
+                An 11-leaf, depth-4 tree keeps 91% of the boosted model&apos;s PR-AUC while enabling exact, deterministic counterfactual recourse.
               </div>
             </div>
 
@@ -187,42 +181,42 @@ export function EvidenceSection() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  How often each feature split appears across 200 student-grouped resamples.
+                  How often each feature is split on across 200 bootstrap refits of the early tree.
                 </p>
 
                 <div className="mt-4 space-y-2 text-xs">
                   <div>
                     <div className="flex justify-between font-bold text-ink mb-0.5">
-                      <span>Start exam prep lead-time</span>
-                      <span>91.5%</span>
+                      <span>Warning-sign count (root split)</span>
+                      <span>99.0%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-line overflow-hidden">
-                      <div className="h-full bg-sky w-[91.5%]" />
+                      <div className="h-full bg-sky w-[99%]" />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between font-bold text-ink mb-0.5">
-                      <span>Class attendance rate</span>
-                      <span>88.0%</span>
+                      <span>Studying after midnight</span>
+                      <span>90.0%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-line overflow-hidden">
-                      <div className="h-full bg-sky w-[88%]" />
+                      <div className="h-full bg-sky w-[90%]" />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between font-bold text-ink mb-0.5">
-                      <span>Practice quizzes completed</span>
-                      <span>74.5%</span>
+                      <span>Practice quiz average</span>
+                      <span>81.0%</span>
                     </div>
                     <div className="h-1.5 rounded-full bg-line overflow-hidden">
-                      <div className="h-full bg-sky w-[74.5%]" />
+                      <div className="h-full bg-sky w-[81%]" />
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 pt-3 border-t border-line text-[11px] text-muted">
-                Pathway only generates recourse recommendations on splits present in &ge;70% of bootstrap trees.
+                The root split survives in 198 of 200 refits. Sleep (70%) and work hours (58%) are the least stable splits, and both are context only.
               </div>
             </div>
 
@@ -267,7 +261,7 @@ export function EvidenceSection() {
               </div>
 
               <div className="mt-4 pt-3 border-t border-line text-[11px] text-muted">
-                At 15% capacity, an advising office catches nearly 80% of students needing early intervention.
+                At 15% capacity, an advising office reaches 45% of the test students who were struggling; at 40%, 84%. A tree scores in steps, so the curve is coarse.
               </div>
             </div>
 
@@ -281,7 +275,7 @@ export function EvidenceSection() {
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-muted">
-                  Recall and false-positive rates across demographics &amp; work-hour brackets.
+                  Early tree on the test set: recall and false-positive rate by class year and work hours.
                 </p>
 
                 <div className="mt-3 overflow-x-auto text-[11px]">
@@ -295,24 +289,24 @@ export function EvidenceSection() {
                     </thead>
                     <tbody className="divide-y divide-line/60">
                       <tr>
-                        <td className="py-1">Freshman</td>
-                        <td className="py-1 text-right text-teal">84.6%</td>
-                        <td className="py-1 text-right text-muted">14.1%</td>
+                        <td className="py-1">Freshman (14 struggling)</td>
+                        <td className="py-1 text-right text-teal">78.6%</td>
+                        <td className="py-1 text-right text-muted">15.2%</td>
                       </tr>
                       <tr>
-                        <td className="py-1">Senior</td>
-                        <td className="py-1 text-right text-teal">84.0%</td>
-                        <td className="py-1 text-right text-muted">14.5%</td>
+                        <td className="py-1">Senior (7 struggling)</td>
+                        <td className="py-1 text-right text-teal">28.6%</td>
+                        <td className="py-1 text-right text-muted">21.4%</td>
                       </tr>
                       <tr>
-                        <td className="py-1">Working &gt;20h/wk</td>
-                        <td className="py-1 text-right text-teal">85.0%</td>
-                        <td className="py-1 text-right text-muted">15.0%</td>
+                        <td className="py-1">Working &gt;20h/wk (4 struggling)</td>
+                        <td className="py-1 text-right text-teal">75.0%</td>
+                        <td className="py-1 text-right text-muted">11.1%</td>
                       </tr>
                       <tr>
-                        <td className="py-1">Non-working (0h)</td>
-                        <td className="py-1 text-right text-teal">85.2%</td>
-                        <td className="py-1 text-right text-muted">14.2%</td>
+                        <td className="py-1">Not working (19 struggling)</td>
+                        <td className="py-1 text-right text-teal">68.4%</td>
+                        <td className="py-1 text-right text-muted">18.9%</td>
                       </tr>
                     </tbody>
                   </table>
@@ -320,7 +314,7 @@ export function EvidenceSection() {
               </div>
 
               <div className="mt-4 pt-3 border-t border-line text-[11px] text-muted">
-                Zero disparate impact across working students. Work hours are locked as context and never advised to decrease.
+                Seniors are caught far less often, a real gap on too few rows to be sure of. Work hours are locked as context and never advised to decrease.
               </div>
             </div>
           </div>

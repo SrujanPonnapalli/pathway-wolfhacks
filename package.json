@@ -10,10 +10,17 @@
     "test": "node --test src/lib/*.test.ts",
     "db:setup": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts setup",
     "db:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts seed",
-    "db:check": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts check"
+    "db:check": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/db.ts check",
+    "sol:keys": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts keys",
+    "sol:mint": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts mint",
+    "pots:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts seed",
+    "pots:settle": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/solana.ts settle"
   },
   "dependencies": {
+    "@anchor-lang/core": "^1.2.0",
     "@google/genai": "^2.27.0",
+    "@solana/spl-token": "^0.4.15",
+    "@solana/web3.js": "^1.99.0",
     "border-beam": "^1.4.1",
     "d3": "^7.9.0",
     "ical.js": "^2.2.1",

@@ -333,7 +333,7 @@ export function Files() {
   };
   const summary = (r: AnalyzeResult) => {
     if (r.syllabus) return `Syllabus · ${r.syllabus.deadlines.length} dates, grading, policies`;
-    if (r.grades) return `Grades · ${r.grades.items.length} items${r.grades.average_percent != null ? `, avg ${r.grades.average_percent}%` : ""}`;
+    if (r.grades) return `Grades · ${r.grades.items.length} items${r.grades.average_percent != null ? `, avg ${Math.round(r.grades.average_percent)}%` : ""}`;
     if (r.study) return `${r.classification.kind} · ${r.study.quiz.length} quiz questions ready`;
     if (r.insights) return `Dataset · ${r.profile?.rows} rows`;
     return r.classification.kind;

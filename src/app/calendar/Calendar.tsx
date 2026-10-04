@@ -3,10 +3,10 @@
 // The week, and what Pathway would change about it. Demo classes always; your Google
 // Calendar on top once connected. Approving a suggestion applies it here and in Google.
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Check, Link2, X } from "lucide-react";
 import { PageHeader } from "@/components/ui";
-import { mondayOf, type CalEvent } from "@/lib/schedule";
+import { localIso, mondayOf, type CalEvent } from "@/lib/schedule";
 import { downloadIcs } from "@/lib/calendar";
 import { fmtTime, usePathway } from "@/lib/store";
 
@@ -22,7 +22,7 @@ const look: Record<CalEvent["kind"], string> = {
 };
 
 export function Calendar() {
-  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, googleShared, notices, dismissNotice } = usePathway();
+  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, googleShared, notices, dismissNotice, moveEvent, removeEvent } = usePathway();
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const mon = mondayOf(now);
@@ -38,6 +38,61 @@ export function Calendar() {
     return (d.getHours() + d.getMinutes() / 60 - HOURS.from) * PX_PER_HOUR;
   };
   const height = (a: string, b: string) => Math.max(18, ((new Date(b).getTime() - new Date(a).getTime()) / 3_600_000) * PX_PER_HOUR - 2);
+
+  // ---- editing: drag an event to a new day/time (15-minute snap); click for details and delete
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [drag, setDrag] = useState<{ id: string; start: string; end: string; moved: boolean; dx: number; dy: number } | null>(null);
+  const [open, setOpen] = useState<CalEvent | null>(null);
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  const dragging = useRef<{ ev: CalEvent; grabOffsetMin: number } | null>(null);
+
+  const slotAt = (clientX: number, clientY: number, ev: CalEvent, grabOffsetMin: number) => {
+    const el = gridRef.current;
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    const colW = (r.width - 48) / 7;
+    const dayIdx = Math.min(6, Math.max(0, Math.floor((clientX - r.left - 48) / colW)));
+    const minutesFromTop = ((clientY - r.top) / PX_PER_HOUR) * 60 - grabOffsetMin;
+    const snapped = Math.round(minutesFromTop / 15) * 15;
+    const dur = (new Date(ev.end).getTime() - new Date(ev.start).getTime()) / 60_000;
+    const startMin = Math.min((HOURS.to - HOURS.from) * 60 - dur, Math.max(0, snapped));
+    const d = new Date(days[dayIdx]);
+    d.setHours(HOURS.from, startMin, 0, 0);
+    const e = new Date(d.getTime() + dur * 60_000);
+    return { start: localIso(d), end: localIso(e) };
+  };
+  const onDown = (e: React.PointerEvent, ev: CalEvent) => {
+    e.preventDefault();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const grabOffsetMin = ((e.clientY - rect.top) / PX_PER_HOUR) * 60;
+    dragging.current = { ev, grabOffsetMin };
+    pointer.current = { x: e.clientX, y: e.clientY };
+    setDrag({ id: ev.id, start: ev.start, end: ev.end, moved: false, dx: 0, dy: 0 });
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!dragging.current || !pointer.current) return;
+    const dx = e.clientX - pointer.current.x;
+    const dy = e.clientY - pointer.current.y;
+    if (!drag?.moved && Math.hypot(dx, dy) < 4) return;
+    const slot = slotAt(e.clientX, e.clientY, dragging.current.ev, dragging.current.grabOffsetMin);
+    if (slot) setDrag({ id: dragging.current.ev.id, ...slot, moved: true, dx, dy });
+  };
+  const onUp = async (e: React.PointerEvent) => {
+    const d = dragging.current;
+    const cur = drag;
+    dragging.current = null;
+    pointer.current = null;
+    setDrag(null);
+    if (!d) return;
+    if (!cur?.moved) {
+      setOpen(d.ev);
+      return;
+    }
+    if (cur.start !== d.ev.start) await moveEvent(d.ev.id, cur.start, cur.end);
+    void e;
+  };
+  const shown = (ev: CalEvent) => (drag && drag.id === ev.id && drag.moved ? { ...ev, start: drag.start, end: drag.end } : ev);
 
   const connect = async () => {
     setErr("");
@@ -100,7 +155,7 @@ export function Calendar() {
       )}
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[700px] grid-cols-[48px_repeat(7,1fr)]">
+        <div ref={gridRef} className="grid min-w-[700px] select-none grid-cols-[48px_repeat(7,1fr)]" onPointerMove={onMove}>
           <div />
           {days.map((d) => (
             <div key={key(d)} className="pb-2 text-center">
@@ -115,14 +170,21 @@ export function Calendar() {
           </div>
           {days.map((d) => {
             const k = key(d);
-            const es = events.filter((e) => e.start.slice(0, 10) === k);
+            const es = events.map(shown).filter((e) => e.start.slice(0, 10) === k);
             return (
               <div key={k} className={`relative border-l-2 border-line ${k === todayKey ? "bg-polar/40" : ""}`} style={{ height: (HOURS.to - HOURS.from) * PX_PER_HOUR }}>
                 {Array.from({ length: HOURS.to - HOURS.from }, (_, i) => (
                   <span key={i} className="absolute inset-x-0 border-t border-line/70" style={{ top: i * PX_PER_HOUR }} aria-hidden />
                 ))}
                 {es.map((e) => (
-                  <div key={e.id} className={`absolute inset-x-1 overflow-hidden rounded-lg px-1.5 py-0.5 text-[11px] font-bold leading-tight ${look[e.kind]}`} style={{ top: top(e.start), height: height(e.start, e.end) }} title={`${e.title} · ${fmtTime(e.start)}–${fmtTime(e.end)}`}>
+                  <div
+                    key={e.id}
+                    onPointerDown={(pe) => onDown(pe, e)}
+                    onPointerUp={onUp}
+                    className={`absolute inset-x-1 cursor-grab touch-none overflow-hidden rounded-lg px-1.5 py-0.5 text-[11px] font-bold leading-tight active:cursor-grabbing ${look[e.kind]} ${drag?.id === e.id && drag.moved ? "z-10 shadow-[0_6px_16px_rgb(0_0_0/0.18)] ring-2 ring-sky" : ""}`}
+                    style={{ top: top(e.start), height: height(e.start, e.end) }}
+                    title={`${e.title} · ${fmtTime(e.start)}–${fmtTime(e.end)}`}
+                  >
                     <span className="block truncate">{e.title}</span>
                     <span className="block truncate font-semibold opacity-80">{fmtTime(e.start)}</span>
                   </div>
@@ -132,11 +194,23 @@ export function Calendar() {
           })}
         </div>
       </div>
+      {open && (
+        <div role="dialog" aria-label={open.title} className="fixed inset-x-4 bottom-24 z-30 mx-auto max-w-md rounded-2xl border-2 border-line bg-white p-4 shadow-[0_12px_32px_rgb(0_0_0/0.18)] md:bottom-8">
+          <p className="font-extrabold leading-snug">{open.title}</p>
+          <p className="mt-0.5 text-sm text-muted">{new Date(open.start).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })} · {fmtTime(open.start)} to {fmtTime(open.end)}{open.source === "google" ? " · from Google Calendar" : ""}</p>
+          <p className="mt-2 text-xs text-muted">Drag it on the grid to move it. Changes go to Google Calendar too.</p>
+          <div className="mt-3 flex gap-2">
+            <button onClick={async () => { const id = open.id; setOpen(null); await removeEvent(id); }} className="btn btn-ghost min-h-10 px-4 text-xs text-sun-ink">Delete</button>
+            <button onClick={() => setOpen(null)} className="btn btn-ghost min-h-10 px-4 text-xs">Close</button>
+          </div>
+        </div>
+      )}
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-muted">
         <span><span className="mr-1 inline-block size-2.5 rounded-sm bg-polar align-middle ring-1 ring-line" /> class</span>
         <span><span className="mr-1 inline-block size-2.5 rounded-sm bg-line align-middle" /> work</span>
         <span><span className="mr-1 inline-block size-2.5 rounded-sm bg-teal-soft align-middle" /> study</span>
         <span><span className="mr-1 inline-block size-2.5 rounded-sm bg-sun-soft align-middle" /> exam</span>
+        <span>· drag to move, click for details</span>
         {googleOn && <span>· synced with Google Calendar</span>}
       </p>
     </main>

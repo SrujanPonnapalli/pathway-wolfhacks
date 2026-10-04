@@ -49,14 +49,21 @@ Rules:
 4. Only suggest changing features marked role=suggest. Never suggest changing work hours, sleep, credit hours, class year, or uploading more files.
 5. When you suggest something, put a day on it.
 6. Asked about the week, schedule, or time: answer from "calendar this week" and "pending schedule suggestions". If a
-   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.
-7. If the student wants to explain or teach you a topic, say in one or two sentences that Teach mode (the Teach button at the
-   top of this page) is for exactly that: they pick a concept from their uploaded slides and explain it out loud.`;
+   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.`;
 
 const DRAFT_SYSTEM = `You write short emails for a college student, in their voice, ready to send.
 Rules: reply body only, no subject line, no greeting placeholders like [Name]; 3 to 5 sentences; polite and specific;
 use ONLY facts from CONTEXT (schedule, deadlines, grades) to pick times or reference work. Never promise outcomes.
 Sign off with the student's first name if it is in CONTEXT, otherwise no signature.`;
+
+const ADVISOR_SYSTEM = `You write a short note from a college student to their academic advisor, in the student's own voice, ready to paste into an email.
+Rules: body only, no subject line, no [placeholders]; 4 to 6 plain sentences, no markdown.
+Say which course Pathway flagged as "worth a check-in" and why, in everyday words taken from CONTEXT (the "why" facts), never "at risk" or "failing".
+Say what the student is changing (the change set in the request) and when the study blocks are, if CONTEXT has them.
+Ask for one concrete thing (a short meeting or a pointer to a resource). Never promise outcomes or grades.
+Sign off with the student's first name if it is in CONTEXT, otherwise no signature.`;
+
+export type CoachMode = "chat" | "draft" | "advisor";
 
 const CAUSAL = /\b(will (raise|improve|fix|guarantee|boost|make you pass)|guarantees?|causes?|this will|you will pass|you'll pass)\b/i;
 
@@ -93,10 +100,11 @@ export function renderContext(ctx: CoachContext): string {
   return L.join("\n");
 }
 
-export async function coach(message: string, ctx: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: "chat" | "draft" = "chat"): Promise<CoachReply> {
+export async function coach(message: string, ctx: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: CoachMode = "chat"): Promise<CoachReply> {
   const t0 = Date.now();
   const hist: Content[] = history.slice(-6).map((h) => ({ role: h.role === "you" ? "user" : "model", parts: [{ text: h.text }] }));
-  let text = await answerFast({ system: mode === "draft" ? DRAFT_SYSTEM : SYSTEM, context: renderContext(ctx), history: hist, message, maxTokens: mode === "draft" ? 700 : 400 });
+  const system = mode === "draft" ? DRAFT_SYSTEM : mode === "advisor" ? ADVISOR_SYSTEM : SYSTEM;
+  let text = await answerFast({ system, context: renderContext(ctx), history: hist, message, maxTokens: mode === "chat" ? 400 : 700 });
   let filtered = false;
   if (CAUSAL.test(text)) {
     filtered = true;

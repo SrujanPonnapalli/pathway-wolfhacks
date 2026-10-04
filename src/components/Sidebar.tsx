@@ -6,6 +6,7 @@ import { useState, type ComponentType } from "react";
 import { BarChart3, BookOpen, CalendarDays, House, Mail, RotateCcw, Users } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
+import { VivaCard } from "@/components/VivaDock";
 import { usePathway } from "@/lib/store";
 
 const VivaIcon = ({ size }: { size?: number; strokeWidth?: number }) => <VivaGlyph size={size} />;
@@ -118,6 +119,9 @@ export function Sidebar() {
         </ul>
         </LiquidSelect>
         <div className="hidden md:block">
+          <div className="mb-4">
+            <VivaCard />
+          </div>
           <ProfileSwitcher />
           <p className="mt-4 px-1 text-xs font-bold leading-relaxed text-muted">
             Connected: Moodle, Gradescope, Gmail{googleOn ? ", Google Calendar" : ""}

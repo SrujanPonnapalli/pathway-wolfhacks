@@ -17,7 +17,7 @@ const now = () => performance.now(); // module-level so the React compiler doesn
 // End-of-speech detection, tuned for a quiet-ish room. A session can stretch the turn
 // (Teach mode: explaining takes pauses to think and runs longer than a question).
 const SPEECH_LEVEL = 0.06; // input level that counts as talking (0..1)
-const SILENCE_MS = 1100; // this much quiet after speech ends a turn
+const SILENCE_MS = 900; // this much quiet after speech ends a turn
 const MAX_TURN_MS = 15000;
 export type TurnTiming = { silenceMs: number; maxMs: number };
 
@@ -33,6 +33,8 @@ export function useVoiceSession(opts: {
   greeting: () => string;
   reply: (q: string) => string | Promise<string>;
   onTurn: (who: Who, text: string) => void;
+  /** Playback speed for Viva's voice, 0.8 to 1.6; read at speak time so a slider applies to the next line. */
+  speed?: () => number;
   turn?: Partial<TurnTiming>;
 }) {
   const [state, setState] = useState<OrbState>("idle");
@@ -52,7 +54,7 @@ export function useVoiceSession(opts: {
   const audio = useRef<HTMLAudioElement | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const fakeOut = useRef(false); // simulated mouth movement when real audio isn't available
-  const skipTo = useRef(false); // fast-forward: finish the current reply right away
+  const skips = useRef(0); // bumped by skip(): the current line stops and Viva listens
   const doneTalking = useRef(false); // the student said they're finished: end the turn now
 
   useEffect(() => {
@@ -96,7 +98,7 @@ export function useVoiceSession(opts: {
   // Speak a line: real ElevenLabs audio with captions synced to playback, or simulated if that fails.
   const speak = async (text: string, id: number) => {
     go("speaking");
-    skipTo.current = false;
+    const skipAtStart = skips.current;
     const words = text.split(" ");
     let played = false;
     try {
@@ -105,7 +107,7 @@ export function useVoiceSession(opts: {
       const url = URL.createObjectURL(await r.blob());
       if (run.current !== id) return false;
       const el = new Audio(url);
-      el.playbackRate = 1.2; // on top of the ElevenLabs speed setting, Viva talks a bit faster
+      el.playbackRate = Math.min(1.6, Math.max(0.8, optsRef.current.speed?.() ?? 1.2));
       audio.current = el;
       if (ctx.current) {
         const src = ctx.current.createMediaElementSource(el);
@@ -120,7 +122,7 @@ export function useVoiceSession(opts: {
       played = true;
       await new Promise<void>((done) => {
         const tick = () => {
-          if (run.current !== id || el.ended || el.paused || skipTo.current) return done();
+          if (run.current !== id || el.ended || el.paused || skips.current !== skipAtStart) return done();
           const shown = Math.max(1, Math.ceil((el.currentTime / (el.duration || 1)) * words.length));
           setCaption({ who: "viva", text: words.slice(0, shown).join(" ") });
           requestAnimationFrame(tick);
@@ -134,11 +136,13 @@ export function useVoiceSession(opts: {
         // Voice service unavailable: keep the conversation going with captions only.
         setNotice("Viva's voice isn't available right now, so replies show as captions.");
         fakeOut.current = true;
+        const skipAt = skips.current;
+        const pace = Math.round(170 / (optsRef.current.speed?.() ?? 1.15));
         for (let i = 1; i <= words.length; i++) {
           if (run.current !== id) return false;
-          if (skipTo.current) break;
+          if (skips.current !== skipAt) break;
           setCaption({ who: "viva", text: words.slice(0, i).join(" ") });
-          await sleep(100);
+          await sleep(pace);
         }
       }
     }
@@ -248,9 +252,9 @@ export function useVoiceSession(opts: {
       if (run.current !== id) return;
       if (await speak(optsRef.current.greeting(), id)) listen(id);
     },
-    // Fast-forward: stop the audio (or the simulated word crawl); the full reply still lands in the transcript.
+    /** Fast-forward: stop the line Viva is saying and go straight to listening. */
     skip() {
-      skipTo.current = true;
+      skips.current++;
       audio.current?.pause();
     },
     // End the student's turn now instead of waiting for silence ("Done explaining").

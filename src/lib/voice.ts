@@ -94,6 +94,7 @@ export function useVoiceSession(opts: {
   // Speak a line: real ElevenLabs audio with captions synced to playback, or simulated if that fails.
   const speak = async (text: string, id: number) => {
     go("speaking");
+    const skipAtStart = skips.current;
     const words = text.split(" ");
     let played = false;
     try {
@@ -102,7 +103,7 @@ export function useVoiceSession(opts: {
       const url = URL.createObjectURL(await r.blob());
       if (run.current !== id) return false;
       const el = new Audio(url);
-      el.playbackRate = Math.min(1.6, Math.max(0.8, optsRef.current.speed?.() ?? 1.15));
+      el.playbackRate = Math.min(1.6, Math.max(0.8, optsRef.current.speed?.() ?? 1.2));
       audio.current = el;
       if (ctx.current) {
         const src = ctx.current.createMediaElementSource(el);
@@ -117,7 +118,7 @@ export function useVoiceSession(opts: {
       played = true;
       await new Promise<void>((done) => {
         const tick = () => {
-          if (run.current !== id || el.ended || el.paused) return done();
+          if (run.current !== id || el.ended || el.paused || skips.current !== skipAtStart) return done();
           const shown = Math.max(1, Math.ceil((el.currentTime / (el.duration || 1)) * words.length));
           setCaption({ who: "viva", text: words.slice(0, shown).join(" ") });
           requestAnimationFrame(tick);

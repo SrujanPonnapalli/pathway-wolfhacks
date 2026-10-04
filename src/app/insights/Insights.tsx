@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { BorderBeam } from "border-beam";
-import { Check, Copy, Lock, Mail, RotateCcw } from "lucide-react";
+import { Check, Copy, Lock, Mail, RefreshCw, RotateCcw } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
@@ -12,6 +12,26 @@ import { planBlocks } from "@/lib/plan";
 import { usedFeatures } from "@/lib/tree";
 import { fmtDay, score, usePathway, type CourseView } from "@/lib/store";
 import { EvidenceSection } from "./EvidenceSection";
+
+function RefreshButton() {
+  const { refresh } = usePathway();
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        setBusy(true);
+        await refresh();
+        setBusy(false);
+      }}
+      disabled={busy}
+      className="btn btn-ghost min-h-10 px-3 text-xs"
+      title="Reload your latest study activity"
+    >
+      <RefreshCw size={15} aria-hidden className={busy ? "animate-spin" : ""} />
+      {busy ? "Refreshing…" : "Refresh"}
+    </button>
+  );
+}
 
 export function Insights() {
   const { courses } = usePathway();
@@ -22,13 +42,17 @@ export function Insights() {
   if (!c)
     return (
       <main className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
-        <PageHeader title="Insights" lead="Add a course on Home first. Then this page shows why it has its status and what would help." />
+        <PageHeader title="Insights" lead="Add a course on Home first. Then this page shows why it has its status and what would help.">
+          <RefreshButton />
+        </PageHeader>
       </main>
     );
 
   return (
     <main className="mx-auto max-w-[1200px] px-4 py-6 md:px-10 md:py-10">
-      <PageHeader title="Insights" lead="Why each class has its status, what would help, and how sure the model is." />
+      <PageHeader title="Insights" lead="Why each class has its status, what would help, and how sure the model is.">
+        <RefreshButton />
+      </PageHeader>
 
       <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-2">
       <LiquidSelect active={c.slug} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">

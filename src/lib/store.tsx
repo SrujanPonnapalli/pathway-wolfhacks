@@ -616,6 +616,14 @@ function useStore() {
       setGoogleEvents([]);
     },
     refreshGoogle,
+    // Pull fresh data from every source: profiles/courses, logged activity, Google Calendar.
+    refresh: async () => {
+      const p = await getProfiles().catch(() => null);
+      if (p) setProfiles(p);
+      if (profile) hydrate(profile.id);
+      if (gcal.isConnected()) await refreshGoogle().catch(() => {});
+      say("Everything's up to date.");
+    },
     dismissSuggestion: (id: string) => update((st) => ({ ...st, dismissed: [...st.dismissed, id] })),
     // The student approved a change: apply it here, and in Google Calendar when that event lives there.
     approveSuggestion: async (sg: Suggestion) => {

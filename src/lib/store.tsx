@@ -20,6 +20,7 @@ import { SAMPLE_VERSION, isSampleSource, retireSuperseded, sampleKnowledge } fro
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import type { StudyMaterial } from "./intel/study";
+import type { ReviewItem } from "./teach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
@@ -45,6 +46,7 @@ type PState = {
   activeChatId: string;
   sources: Source[]; // dropped files, parsed by Gemini, kept on this device
   materials: Record<string, StudyMaterial>; // latest slides/notes read per course: Study's quiz and Viva's Teach mode use them
+  toReview: ReviewItem[]; // key ideas a Teach session found fuzzy or missing; Study offers a quiz or deck on each
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
@@ -80,6 +82,7 @@ const empty = (profileId: string = "maya"): PState => {
     activeChatId: activeId,
     sources: [],
     materials: {},
+    toReview: [],
     moved: {},
     dismissed: [],
     gids: {},
@@ -624,6 +627,16 @@ function useStore() {
     logTeach: (slug: string, topic: string, clear: number, total: number) =>
       bump(slug, "quizzes", `You taught Viva ${topic}`, {}, { kind: "quiz", minutes: 5, score: Math.round((clear / total) * 100), meta: { via: "teach", topic, clear, total } }),
     saveMaterial: (slug: string, m: StudyMaterial) => update((st) => ({ ...st, materials: { ...st.materials, [slug]: m } })),
+    // One review item per course + concept: a newer Teach session replaces it, and an all-clear one removes it.
+    saveReview: (item: Omit<ReviewItem, "id" | "at">): string => {
+      const id = item.points.length ? `rv-${Date.now()}` : "";
+      update((st) => {
+        const rest = (st.toReview ?? []).filter((r) => !(r.course === item.course && r.topic.toLowerCase() === item.topic.toLowerCase()));
+        return { ...st, toReview: id ? [{ ...item, id, at: new Date().toISOString() }, ...rest] : rest };
+      });
+      return id;
+    },
+    removeReview: (id: string) => update((st) => ({ ...st, toReview: (st.toReview ?? []).filter((r) => r.id !== id) })),
     checkIn: (slug: string, at: string) => {
       bump(slug, "checkins", "Checked in", { checkedIn: { ...s.checkedIn, [at]: true } }, { kind: "check_in", meta: { class_at: at } });
     },

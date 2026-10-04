@@ -78,7 +78,7 @@ export function vivaReply(input: string, ctx: { name?: string; courses: Course[]
     );
 
   if (/\b(teach (you|viva)|let me teach|explain (a|this) (topic|concept))\b/.test(q))
-    return out("Love that: teaching it is the best test of knowing it. Open Teach, pick a concept from your slides, and explain it to me like I've never heard of it.", [teachLink]);
+    return out("Love that: teaching it is the best test of knowing it. Open Teach, tell me the topic and the class, and explain it to me like I've never heard of it.", [teachLink]);
 
   if (/\b(quiz|test me|flashcard|practice)\b/.test(q))
     return out(

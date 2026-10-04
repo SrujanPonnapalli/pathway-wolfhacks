@@ -1,109 +1,406 @@
 "use client";
 
-// Teach mode: the Feynman technique. The student picks a concept from their own uploaded
-// material and explains it to Viva, out loud or typed. Viva plays a curious beginner and checks
-// the explanation against the concept's key points only: what landed, what was fuzzy, one hint
-// at a gap, and the question a beginner would ask next. Up to three rounds, then a summary;
-// finishing logs a practice quiz to the on-device model, like a quiz in Study.
+// Teach mode: the Feynman technique. The student says what they want to work on ("I keep mixing
+// up glycolysis and the Krebs cycle for BIO 181") or picks one of their course files. Viva finds
+// the concept, says when it's on an exam, and asks for an explanation. It plays a curious beginner
+// and checks the explanation against key points taken from that file only: what landed, what was
+// fuzzy, one hint at a gap, and the question a beginner would ask next. Up to three rounds, then
+// a summary; finishing logs a practice quiz to the on-device model, like a quiz in Study.
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowRight, ArrowUp, BookOpen, Check, CircleDashed, FastForward, Keyboard, Loader2, Mic, PhoneOff, RotateCcw, Sparkles, Square } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { ArrowRight, ArrowUp, BookOpen, Brain, Check, ChevronDown, CircleDashed, FastForward, FileText, Keyboard, Layers, Loader2, Mic, PhoneOff, RotateCcw, Sparkles, Square } from "lucide-react";
 import { VoiceBeam } from "voice-glow";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
 import { useViva } from "@/components/VivaDock";
-import { teachFeedback } from "@/lib/api";
+import { teachConcepts, teachFeedback, teachStart } from "@/lib/api";
 import type { Concept } from "@/lib/intel/study";
+import { docsFor } from "@/lib/knowledge/sample";
 import { usePathway, type ChatMsg } from "@/lib/store";
-import { MAX_ROUNDS, clearCount, finished, spoken, tally, type PointStatus, type TeachRound } from "@/lib/teach";
+import {
+  MAX_ROUNDS,
+  clearCount,
+  finished,
+  matchConcept,
+  matchRequest,
+  mergeConcepts,
+  onStudyGuide,
+  spoken,
+  tally,
+  teachIntro,
+  type PointStatus,
+  type TeachCourse,
+  type TeachDoc,
+  type TeachMatch,
+  type TeachRound,
+  weakPoints,
+} from "@/lib/teach";
 import { useVoiceSession } from "@/lib/voice";
 
+type Picked = { course: string; concept: Concept; opener?: string; doc?: { id: string; title: string } };
+/** A course file Teach can read. Material made in Study comes with its concepts already picked. */
+type TeachFile = TeachDoc & { sample?: boolean; concepts?: Concept[] };
+
 export function Teach() {
-  const { courses, state, logTeach, archiveChat } = usePathway();
+  const { logTeach, archiveChat, saveReview } = usePathway();
+  const [picked, setPicked] = useState<Picked | null>(null);
+  const [done, setDone] = useState<{ rounds: TeachRound[]; review: string } | null>(null);
+
+  const finish = (rounds: TeachRound[], transcript: ChatMsg[]) => {
+    if (!picked) return;
+    if (!rounds.length) return setPicked(null);
+    const status = tally(picked.concept, rounds);
+    logTeach(picked.course, picked.concept.topic, clearCount(status), status.length);
+    archiveChat(`Explained: ${picked.concept.topic}`, transcript);
+    // What didn't land goes to Study (an all-clear session clears this concept's old item instead).
+    const review = saveReview({ course: picked.course, topic: picked.concept.topic, points: weakPoints(picked.concept, status), doc: picked.doc });
+    setDone({ rounds, review });
+  };
+
+  if (picked && done)
+    return <Summary concept={picked.concept} rounds={done.rounds} review={done.review} course={picked.course} onAgain={() => (setPicked(null), setDone(null))} />;
+  if (picked)
+    return <Session key={`${picked.course}:${picked.concept.topic}`} concept={picked.concept} opener={picked.opener} onFinish={finish} onBack={() => setPicked(null)} />;
+  return <Start onStart={setPicked} />;
+}
+
+const CACHE_KEY = "pathway:teach-concepts:v1";
+
+/** Concepts already pulled from a file, kept on this device so the same file never waits on Gemini twice. */
+function useConceptCache() {
+  const [map, setMap] = useState<Record<string, Concept[]>>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(CACHE_KEY) ?? "{}");
+      return v && typeof v === "object" ? v : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(map));
+    } catch {}
+  }, [map]);
+  return { get: (id: string): Concept[] | undefined => map[id], set: (id: string, list: Concept[]) => setMap((m) => ({ ...m, [id]: list })) };
+}
+
+/** Say it instead of typing: tap to record, tap again to stop; the words come back through /api/stt. */
+function useDictation(onText: (text: string) => void, beforeStart: () => void) {
+  const [phase, setPhase] = useState<"idle" | "recording" | "transcribing">("idle");
+  const [err, setErr] = useState("");
+  const rec = useRef<MediaRecorder | null>(null);
+  const alive = useRef(true);
+  const cb = useRef(onText);
+  useEffect(() => {
+    cb.current = onText;
+  });
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+      rec.current?.stop();
+    };
+  }, []);
+
+  const toggle = async () => {
+    if (rec.current) return rec.current.stop();
+    if (phase !== "idle") return;
+    setErr("");
+    beforeStart();
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch {
+      return setErr("Your microphone is off, so type it instead.");
+    }
+    const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t));
+    const r = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
+    const chunks: Blob[] = [];
+    r.ondataavailable = (e) => {
+      if (e.data.size) chunks.push(e.data);
+    };
+    r.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      rec.current = null;
+      if (!alive.current) return;
+      setPhase("transcribing");
+      try {
+        const form = new FormData();
+        form.append("file", new Blob(chunks, { type: r.mimeType }), "speech");
+        const res = await fetch("/api/stt", { method: "POST", body: form });
+        const { text } = res.ok ? await res.json() : { text: "" };
+        if (!alive.current) return;
+        if (text) cb.current(text);
+        else setErr("I didn't catch that. Try again, or type it.");
+      } catch {
+        if (alive.current) setErr("Couldn't reach speech-to-text, so type it instead.");
+      } finally {
+        if (alive.current) setPhase("idle");
+      }
+    };
+    rec.current = r;
+    r.start(250);
+    setPhase("recording");
+  };
+  return { phase, err, toggle };
+}
+
+function Start({ onStart }: { onStart: (p: Picked) => void }) {
+  const { courses, knowledge, state } = usePathway();
+  const { voice: dock } = useViva();
   const params = useSearchParams();
+  const router = useRouter();
+  const cache = useConceptCache();
+
+  // Every course's files: its lecture files (built in, or added on Courses) plus anything Study made from an upload.
+  const files = useMemo(() => {
+    const out: Record<string, TeachFile[]> = {};
+    for (const c of courses) {
+      const m = state.materials[c.slug];
+      const fromStudy: TeachFile[] = m?.concepts?.length ? [{ id: `study:${c.slug}`, course: c.code, title: m.title, summary: m.topics.join(", "), body: "", concepts: m.concepts }] : [];
+      out[c.code] = [...fromStudy, ...docsFor(c.code, knowledge).map((d) => ({ id: d.id, course: c.code, title: d.title, summary: d.summary, body: d.body, sample: d.sample }))];
+    }
+    return out;
+  }, [courses, knowledge, state.materials]);
+  const all = useMemo(() => Object.values(files).flat(), [files]);
+  const tcourses = useMemo<TeachCourse[]>(() => courses.map((c) => ({ slug: c.slug, code: c.code, name: c.name, exam: c.exam, daysToExam: c.daysToExam })), [courses]);
+  const courseOf = (code: string) => tcourses.find((c) => c.code === code);
+
   const [course, setCourse] = useState(() => {
     const asked = params.get("course");
     if (asked && courses.some((c) => c.slug === asked)) return asked;
-    return courses.find((c) => state.materials[c.slug]?.concepts?.length)?.slug ?? courses[0]?.slug ?? "";
+    return courses.find((c) => files[c.code]?.length)?.slug ?? courses[0]?.slug ?? "";
   });
-  const [concept, setConcept] = useState<Concept | null>(null);
-  const [done, setDone] = useState<TeachRound[] | null>(null);
+  const [text, setText] = useState(params.get("ask") ?? "");
+  const [busy, setBusy] = useState(""); // what Viva is doing right now, shown while it works
+  const [note, setNote] = useState("");
 
-  const finish = (rounds: TeachRound[], transcript: ChatMsg[]) => {
-    if (!concept) return;
-    if (!rounds.length) return setConcept(null);
-    const status = tally(concept, rounds);
-    logTeach(course, concept.topic, clearCount(status), status.length);
-    archiveChat(`Explained: ${concept.topic}`, transcript);
-    setDone(rounds);
+  // Viva's first line: exam timing and study-guide evidence from this course's files, then the ask.
+  const intro = (f: TeachFile, concept: Concept, topic = "") => {
+    const c = courseOf(f.course);
+    if (!c) return undefined;
+    const guide = onStudyGuide(topic || concept.topic, (files[f.course] ?? []).filter((d) => d.id !== f.id));
+    return teachIntro({ course: c, concept: concept.topic, doc: f.title, guide, topic });
   };
 
-  if (concept && done)
-    return <Summary concept={concept} rounds={done} course={course} onAgain={() => (setConcept(null), setDone(null))} />;
-  if (concept) return <Session key={concept.topic} concept={concept} onFinish={finish} onBack={() => setConcept(null)} />;
-  return <Picker course={course} setCourse={setCourse} onStart={setConcept} />;
-}
+  // A file's concepts: from Study's material, this device's cache, or Gemini (asked to lead with `focus`).
+  const conceptsFor = async (f: TeachFile, focus = ""): Promise<{ list: Concept[]; i: number }> => {
+    const have = f.concepts ?? cache.get(f.id);
+    const hit = have ? (focus ? matchConcept(have, focus) : 0) : -1;
+    if (have && (hit >= 0 || f.concepts || !f.body)) return { list: have, i: Math.max(0, hit) };
+    const list = mergeConcepts(await teachConcepts(f.title, f.body, focus || undefined), have ?? []);
+    cache.set(f.id, list);
+    return { list, i: focus ? Math.max(0, matchConcept(list, focus)) : 0 };
+  };
 
-function Picker({ course, setCourse, onStart }: { course: string; setCourse: (slug: string) => void; onStart: (c: Concept) => void }) {
-  const { courses, state } = usePathway();
-  const [picked, setPicked] = useState(0);
-  const material = state.materials[course];
-  const concepts = material?.concepts ?? [];
-  const code = courses.find((c) => c.slug === course)?.code ?? "this course";
-  const study = `/study?tool=quiz&course=${course}`;
+  // From a sentence: Gemini picks the course and file (plain word overlap if it can't), then Viva reads the concepts.
+  const ask = async (message: string) => {
+    const m = message.trim();
+    if (!m || busy) return;
+    setNote("");
+    setBusy("Looking through your course files…");
+    try {
+      let match: TeachMatch = { course: "", doc: "", topic: "" };
+      try {
+        match = await teachStart(m, tcourses.map(({ code, name }) => ({ code, name })), all.map(({ id, course, title, summary }) => ({ id, course, title, summary })));
+      } catch {}
+      if (!match.doc) {
+        const local = matchRequest(m, tcourses, all);
+        if (local.doc && (!match.course || local.course === match.course)) match = { ...match, course: local.course, doc: local.doc };
+        else if (!match.course) match = { ...match, course: local.course };
+      }
+      const f = all.find((x) => x.id === match.doc);
+      const c = courseOf(match.course);
+      if (!f || !c) {
+        if (c) setCourse(c.slug);
+        setNote(
+          c
+            ? `${match.topic ? `"${match.topic}" isn't` : "That isn't"} in your ${c.code} files yet, so Viva can't check you on it fairly. Pick one of your ${c.code} files below, or add your slides under Courses → Files.`
+            : `Which class is that for? Try naming it (like "${courses[0]?.code ?? "BIO 181"}"), or pick a file below.`,
+        );
+        return;
+      }
+      setBusy(`Reading "${f.title}"…`);
+      const { list, i } = await conceptsFor(f, match.topic);
+      onStart({ course: c.slug, concept: list[i], opener: intro(f, list[i], match.topic), doc: { id: f.id, title: f.title } });
+    } catch (e) {
+      setNote(`Something went wrong: ${(e as Error).message}`);
+    } finally {
+      setBusy("");
+    }
+  };
 
-  return (
-    <section aria-label="Pick a concept to teach" className="panel p-5 md:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-xl font-black">Teach Viva a concept</h2>
-        <label className="flex items-center gap-2 font-bold">
-          Course
-          <select value={course} onChange={(e) => (setCourse(e.target.value), setPicked(0))} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
-            {courses.map((c) => (
-              <option key={c.slug} value={c.slug}>{c.code}</option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      {!material ? (
-        <NoConcepts href={study}>No study material for {code} yet. Drop this week&apos;s slides or notes in Study and Viva will pick the concepts you can teach.</NoConcepts>
-      ) : !concepts.length ? (
-        <NoConcepts href={study}>&ldquo;{material.title}&rdquo; was read before Teach mode existed. Drop it in Study again to get concepts to teach.</NoConcepts>
-      ) : (
-        <>
-          <fieldset className="mt-4">
-            <legend className="text-sm font-bold text-muted">From &ldquo;{material.title}&rdquo;</legend>
-            <div className="mt-2 space-y-2">
-              {concepts.map((c, i) => (
-                <label key={c.topic} className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-3 transition-colors ${picked === i ? "border-sky bg-sky-soft/50" : "border-line bg-white hover:bg-polar"}`}>
-                  <input type="radio" name="concept" checked={picked === i} onChange={() => setPicked(i)} className="size-4 accent-sky" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block font-extrabold">{c.topic}</span>
-                    <span className="block text-xs font-bold text-muted">{c.key_points.length} key ideas · {c.source_ref}</span>
-                  </span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
-          <button onClick={() => onStart(concepts[Math.min(picked, concepts.length - 1)])} className="btn btn-sky mt-5">
-            <Mic size={18} aria-hidden /> Start explaining
-          </button>
-          <p className="mt-3 text-sm text-muted">Viva only checks against key ideas from your own material, so it can&apos;t mark you down for something your slides don&apos;t cover.</p>
-        </>
-      )}
-    </section>
+  const dictation = useDictation(
+    (said) => {
+      setText(said);
+      void ask(said);
+    },
+    () => dock.stop(), // never two microphones at once
   );
-}
 
-function NoConcepts({ href, children }: { href: string; children: ReactNode }) {
+  // Arriving with ?ask= (e.g. from chat): run it once, then drop it from the URL so "Teach another" starts fresh.
+  const asked = params.get("ask");
+  const ran = useRef(false);
+  useEffect(() => {
+    if (!asked || ran.current) return;
+    const t = setTimeout(() => {
+      ran.current = true;
+      router.replace("/viva?mode=teach", { scroll: false });
+      void ask(asked);
+    }, 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [asked]);
+
+  // Browsing: open a file to see its concepts, pick one, start.
+  const [open, setOpen] = useState("");
+  const [loaded, setLoaded] = useState<{ id: string; list: Concept[] } | null>(null);
+  const [pick, setPick] = useState(0);
+  const openFile = async (f: TeachFile) => {
+    if (open === f.id) return setOpen("");
+    setOpen(f.id);
+    setLoaded(null);
+    setPick(0);
+    setNote("");
+    try {
+      const { list } = await conceptsFor(f);
+      setLoaded({ id: f.id, list });
+    } catch (e) {
+      setOpen("");
+      setNote(`Couldn't read "${f.title}": ${(e as Error).message}`);
+    }
+  };
+
+  const code = courses.find((c) => c.slug === course)?.code ?? "";
+  const list = files[code] ?? [];
+
   return (
-    <div className="mt-4 flex flex-col items-start gap-3 rounded-2xl border-2 border-dashed border-line px-4 py-4">
-      <p className="text-muted">{children}</p>
-      <Link href={href} className="btn btn-ghost text-xs">
-        <BookOpen size={15} aria-hidden /> Open Study
-      </Link>
+    <div className="space-y-5">
+      <section aria-label="Tell Viva what to work on" className="panel p-5 md:p-6">
+        <h2 className="text-xl font-black">What do you want to teach Viva?</h2>
+        <p className="mt-1 text-sm text-muted">Name the topic and the class. Viva finds it in your course files, then checks your explanation against them.</p>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void ask(text);
+          }}
+          className="mt-4 flex items-center gap-2 rounded-2xl border-2 border-line bg-white p-1.5 pl-4 focus-within:border-sky"
+        >
+          <label htmlFor="teach-ask" className="sr-only">What do you want to teach Viva?</label>
+          <input
+            id="teach-ask"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            disabled={!!busy}
+            autoComplete="off"
+            placeholder="e.g. I keep mixing up glycolysis and the Krebs cycle for BIO 181"
+            className="min-w-0 flex-1 bg-transparent py-2 font-bold outline-none placeholder:text-muted"
+          />
+          <button
+            type="button"
+            onClick={() => void dictation.toggle()}
+            disabled={!!busy || dictation.phase === "transcribing"}
+            aria-label={dictation.phase === "recording" ? "Stop and send" : "Say it instead"}
+            title={dictation.phase === "recording" ? "Stop and send" : "Say it instead"}
+            className={`btn min-h-10 px-3 ${dictation.phase === "recording" ? "btn-danger" : "btn-ghost"}`}
+          >
+            {dictation.phase === "recording" ? <Square size={16} className="fill-current" aria-hidden /> : dictation.phase === "transcribing" ? <Loader2 size={18} className="animate-spin" aria-hidden /> : <Mic size={18} aria-hidden />}
+          </button>
+          <button disabled={!!busy || !text.trim()} className="btn btn-sky min-h-10 px-3" aria-label="Find it">
+            <ArrowUp size={20} strokeWidth={3} aria-hidden />
+          </button>
+        </form>
+        <div aria-live="polite" className="mt-2 min-h-5 text-sm">
+          {busy ? (
+            <p className="flex items-center gap-2 font-bold text-muted">
+              <Loader2 size={15} className="animate-spin" aria-hidden /> {busy}
+            </p>
+          ) : dictation.phase === "recording" ? (
+            <p className="font-bold text-sky">Listening… tap the square when you&apos;re done.</p>
+          ) : dictation.err || note ? (
+            <p className="font-bold text-sun-ink">{dictation.err || note}</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section aria-label="Pick from your course files" className="panel p-5 md:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-black">Or pick from your course files</h2>
+          <label className="flex items-center gap-2 font-bold">
+            Course
+            <select value={course} onChange={(e) => (setCourse(e.target.value), setOpen(""))} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
+              {courses.map((c) => (
+                <option key={c.slug} value={c.slug}>{c.code}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+
+        {!list.length ? (
+          <div className="mt-4 flex flex-col items-start gap-3 rounded-2xl border-2 border-dashed border-line px-4 py-4">
+            <p className="text-muted">No course files for {code || "this class"} yet. Add lecture slides or notes under Courses → Files and they&apos;ll show up here.</p>
+            <Link href={`/courses?course=${course}&tab=files`} className="btn btn-ghost text-xs">
+              <BookOpen size={15} aria-hidden /> Open Courses
+            </Link>
+          </div>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {list.map((f) => {
+              const isOpen = open === f.id;
+              const ready = isOpen && loaded?.id === f.id ? loaded.list : null;
+              return (
+                <li key={f.id} className={`rounded-xl border-2 bg-white transition-colors ${isOpen ? "border-sky" : "border-line"}`}>
+                  <button onClick={() => void openFile(f)} aria-expanded={isOpen} className="flex w-full items-center gap-3 px-4 py-3 text-left">
+                    <FileText size={18} className="shrink-0 text-sky" aria-hidden />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-extrabold">{f.title}</span>
+                      <span className="block truncate text-xs font-bold text-muted">{f.sample ? "Sample · " : ""}{f.summary}</span>
+                    </span>
+                    <ChevronDown size={18} className={`shrink-0 text-muted transition-transform ${isOpen ? "rotate-180" : ""}`} aria-hidden />
+                  </button>
+                  {isOpen && (
+                    <div className="border-t-2 border-line px-4 py-3">
+                      {!ready ? (
+                        <p className="flex items-center gap-2 text-sm font-bold text-muted">
+                          <Loader2 size={15} className="animate-spin" aria-hidden /> Picking concepts to teach from this file…
+                        </p>
+                      ) : (
+                        <>
+                          <fieldset>
+                            <legend className="sr-only">Concept</legend>
+                            <div className="space-y-2">
+                              {ready.map((c, i) => (
+                                <label key={c.topic} className={`flex cursor-pointer items-center gap-3 rounded-xl border-2 px-4 py-2.5 transition-colors ${pick === i ? "border-sky bg-sky-soft/50" : "border-line bg-white hover:bg-polar"}`}>
+                                  <input type="radio" name={`concept-${f.id}`} checked={pick === i} onChange={() => setPick(i)} className="size-4 accent-sky" />
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block font-extrabold">{c.topic}</span>
+                                    <span className="block text-xs font-bold text-muted">{c.key_points.length} key ideas</span>
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </fieldset>
+                          <button
+                            onClick={() => {
+                              const c = ready[Math.min(pick, ready.length - 1)];
+                              onStart({ course, concept: c, opener: intro(f, c), doc: { id: f.id, title: f.title } });
+                            }}
+                            className="btn btn-sky mt-3"
+                          >
+                            <Mic size={18} aria-hidden /> Start explaining
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="mt-3 text-sm text-muted">Viva only checks against key ideas from these files, so it can&apos;t mark you down for something your class doesn&apos;t cover.</p>
+      </section>
     </div>
   );
 }
@@ -117,7 +414,17 @@ const STATE_LABEL: Record<string, string> = {
   error: "Something went wrong. Try again.",
 };
 
-function Session({ concept, onFinish, onBack }: { concept: Concept; onFinish: (rounds: TeachRound[], transcript: ChatMsg[]) => void; onBack: () => void }) {
+function Session({
+  concept,
+  opener: intro,
+  onFinish,
+  onBack,
+}: {
+  concept: Concept;
+  opener?: string;
+  onFinish: (rounds: TeachRound[], transcript: ChatMsg[]) => void;
+  onBack: () => void;
+}) {
   const [rounds, setRounds] = useState<TeachRound[]>([]);
   const roundsRef = useRef<TeachRound[]>([]); // the voice loop reads this between renders
   const transcript = useRef<ChatMsg[]>([]);
@@ -127,7 +434,7 @@ function Session({ concept, onFinish, onBack }: { concept: Concept; onFinish: (r
 
   const status = tally(concept, rounds);
   const over = rounds.length > 0 && finished(status, rounds.length);
-  const opener = `Explain ${concept.topic} to me like I've never heard of it.`;
+  const opener = intro || `Explain ${concept.topic} to me like I've never heard of it.`;
   const prompt = rounds.at(-1)?.feedback.follow_up || opener;
 
   // One round: the explanation and the earlier rounds go to /api/feynman; returns what Viva says back.
@@ -186,6 +493,7 @@ function Session({ concept, onFinish, onBack }: { concept: Concept; onFinish: (r
             Teaching Viva · Round {over ? rounds.length : Math.min(rounds.length + 1, MAX_ROUNDS)} of {MAX_ROUNDS}
           </p>
           <h2 className="text-2xl font-black">{concept.topic}</h2>
+          {concept.source_ref && <p className="text-xs font-bold text-muted">Checked against: {concept.source_ref}</p>}
         </div>
         <Progress status={status} />
       </div>
@@ -341,9 +649,10 @@ function Feedback({ concept, round, n, over }: { concept: Concept; round: TeachR
   );
 }
 
-function Summary({ concept, rounds, course, onAgain }: { concept: Concept; rounds: TeachRound[]; course: string; onAgain: () => void }) {
+function Summary({ concept, rounds, review, course, onAgain }: { concept: Concept; rounds: TeachRound[]; review: string; course: string; onAgain: () => void }) {
   const status = tally(concept, rounds);
   const n = clearCount(status);
+  const toWork = status.length - n;
   const label: Record<PointStatus, string> = { clear: "Clear", vague: "Fuzzy", missing: "Not yet" };
   return (
     <section aria-label="How you did" className="panel border-2 border-teal/40 p-6">
@@ -370,9 +679,25 @@ function Summary({ concept, rounds, course, onAgain }: { concept: Concept; round
           </Row>
         ))}
       </ul>
-      {n < status.length && (
-        <p className="mt-3 text-sm text-muted">Go back to your notes for the ideas that aren&apos;t clear yet ({concept.source_ref}), then teach it to Viva again.</p>
+      {review && toWork > 0 && (
+        <div className="mt-4 rounded-xl border-2 border-sky/30 bg-sky-soft/40 p-4">
+          <p className="text-sm font-black text-ink">
+            Added to your Study page: {toWork} idea{toWork === 1 ? "" : "s"} to review
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            Quiz yourself or make a deck on just these, straight from {concept.source_ref.split(" · ")[0] || "your course file"}. Then teach it to Viva again.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href={`/study?tool=quiz&course=${course}&review=${review}`} className="btn btn-sky min-h-9 px-3 text-xs">
+              <Brain size={14} aria-hidden /> Quiz me on these
+            </Link>
+            <Link href={`/study?tool=flashcards&course=${course}&review=${review}`} className="btn btn-ghost min-h-9 px-3 text-xs">
+              <Layers size={14} aria-hidden /> Make a deck
+            </Link>
+          </div>
+        </div>
       )}
+      {toWork === 0 && <p className="mt-3 text-sm font-bold text-teal-lip">Every key idea landed, so there&apos;s nothing to add to Study for this one.</p>}
 
       <div className="mt-4 rounded-xl border border-teal/20 bg-teal-soft/60 p-4">
         <div className="flex items-center gap-1.5 text-xs font-black text-teal-lip">

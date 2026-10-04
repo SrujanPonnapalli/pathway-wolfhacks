@@ -16,6 +16,7 @@ import type { CourseDoc } from "@/lib/coursework-data";
 import { docsFor } from "@/lib/knowledge/sample";
 import type { StudyMaterial } from "@/lib/intel/study";
 import { usePathway } from "@/lib/store";
+import { ReviewList } from "./ReviewList";
 
 export function Study() {
   const { courses, logQuiz, logSession, knowledge, saveMaterial } = usePathway();
@@ -29,12 +30,12 @@ export function Study() {
   // The course's own materials (Courses tab): no upload needed to start a quiz or a deck.
   const docs = useMemo(() => (code ? docsFor(code, knowledge) : []), [code, knowledge]);
 
-  const read = async (f: File | null) => {
+  const read = async (f: File | null, focus?: string) => {
     if (!f) return;
     setBusy(true);
     setErr("");
     try {
-      const m = await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8, concepts: 4 });
+      const m = await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8, concepts: 4 }, focus);
       setMaterial(m);
       if (course) saveMaterial(course, m); // Viva's Teach mode reads its concepts from here
     } catch (e) {
@@ -95,6 +96,7 @@ export function Study() {
         <section className="mb-6">
           {!material ? (
             <>
+              <ReviewList course={course} tool={focus} busy={busy} docs={docs} onPick={(f, why) => void read(f, why)} />
               {docs.length > 0 && (
                 <div className="mb-3 rounded-2xl border-2 border-line p-3">
                   <p className="flex items-center justify-between gap-3 px-1 text-sm font-bold">

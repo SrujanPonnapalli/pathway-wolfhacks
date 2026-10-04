@@ -133,7 +133,7 @@ export function VivaPage() {
             <h1 className="text-[2rem] font-black leading-tight">{VIVA.name}</h1>
             <p className="text-muted">
               {mode === "teach"
-                ? "Explain a topic from your notes. If you can teach it, you know it."
+                ? "Explain a topic from your course files. If you can teach it, you know it."
                 : "Your study coach. Answers come only from your numbers and the model."}
             </p>
           </div>
@@ -166,7 +166,7 @@ export function VivaPage() {
       {mode === "teach" && <Teach />}
       <p className="mt-4 text-sm text-muted">
         {mode === "teach"
-          ? "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. In Teach it checks only against key ideas from the material you uploaded; your explanation goes to Gemini and, out loud, to ElevenLabs."
+          ? "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. In Teach it checks only against key ideas from your course files; your explanation goes to Gemini and, out loud, to ElevenLabs."
           : "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven't logged, and it never stores your status."}
       </p>
 

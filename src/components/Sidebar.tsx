@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useRef, useState, type ComponentType, type FocusEvent } from "react";
+import { useEffect, useRef, useState, type ComponentType, type FocusEvent } from "react";
 import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, MonitorSmartphone, RotateCcw, Users } from "lucide-react";
 import { AccountMenu, Avatar } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
@@ -42,7 +42,7 @@ export function Wordmark({ compact = false }: { compact?: boolean }) {
         <circle cx="8" cy="4" r="3.5" fill="var(--color-sun)" />
         <circle cx="8" cy="26" r="3.5" fill="currentColor" />
       </svg>
-      <span className={`text-[1.65rem] font-black tracking-tight transition-opacity duration-200 ${compact ? "opacity-0" : "opacity-100 delay-100"}`}>pathway</span>
+      <span className={`text-[1.65rem] font-black tracking-tight transition-[opacity,transform] duration-200 ease-out ${compact ? "-translate-x-1 opacity-0" : "translate-x-0 opacity-100 delay-75"}`}>pathway</span>
     </Link>
   );
 }
@@ -86,8 +86,8 @@ function NavItem({ href, label, icon: Icon, on, open, onPick }: NavLink & { on: 
       <span className="grid shrink-0 place-items-center" aria-hidden>
         <Icon size={22} strokeWidth={2.4} />
       </span>
-      {/* Always in the DOM for screen readers; on desktop it fades in as the rail opens. */}
-      <span className={`whitespace-nowrap transition-opacity duration-200 ${open ? "md:opacity-100 md:delay-100" : "md:opacity-0"}`}>{label}</span>
+      {/* Always in the DOM for screen readers; on desktop it fades and slides in as the rail opens. */}
+      <span className={`whitespace-nowrap transition-[opacity,transform] duration-200 ease-out ${open ? "md:translate-x-0 md:opacity-100 md:delay-75" : "md:-translate-x-1 md:opacity-0"}`}>{label}</span>
     </Link>
   );
 }
@@ -95,23 +95,69 @@ function NavItem({ href, label, icon: Icon, on, open, onPick }: NavLink & { on: 
 export function Sidebar() {
   const path = usePathname();
   const { googleOn } = usePathway();
-  const { show } = useViva();
+  const { show, open: dockOpen } = useViva();
   // Move the highlight on click, not when the next page finishes loading. The pick only
   // counts while we're still on the page it was made from, so it clears itself after navigation.
   const [picked, setPicked] = useState<{ href: string; from: string } | null>(null);
   const pending = picked && picked.from === path ? picked.href : null;
   const on = (href: string) => (pending ? pending === href : href === "/" ? path === "/" : path.startsWith(href));
-  const pick = (href: string) => setPicked({ href, from: path });
 
-  // Desktop: a quiet icon rail that opens into the full sidebar while the pointer is over it or
+  // Desktop: a quiet icon rail that opens into the full sidebar while the pointer rests on it or
   // keyboard focus is inside it (so Tab users get the labels too). It overlays the page rather
-  // than pushing it, so nothing shifts. Everything inside is laid out at the open width the whole
-  // time and the rail simply clips it, so the animation is one width change and some fades: no
-  // text reflows, nothing mounts or unmounts, and Viva's card keeps its state.
+  // than pushing it, so nothing shifts.
+  //
+  // How it moves: the nav is always the open width; a clip-path hides everything right of the
+  // rail and the clip animates. That is a compositor-only change (no layout, no repaint of the
+  // gooey highlight), so it stays smooth. Labels fade and slide in. Nothing mounts or unmounts.
+  //
+  // Hover has intent (a short pause before opening, a short grace before closing), and the rail
+  // gets out of the way on its own: picking a page, or opening Viva's chat, closes it and keeps it
+  // closed until the pointer leaves and comes back.
   const [hover, setHover] = useState(false);
   const [focus, setFocus] = useState(false);
+  const [parked, setParked] = useState(false);
   const navRef = useRef<HTMLElement>(null);
-  const open = hover || focus;
+  const inside = useRef(false);
+  const timers = useRef<{ open?: number; close?: number }>({});
+  const enter = () => {
+    inside.current = true;
+    window.clearTimeout(timers.current.close);
+    window.clearTimeout(timers.current.open);
+    timers.current.open = window.setTimeout(() => setHover(true), 70);
+  };
+  const leave = () => {
+    inside.current = false;
+    window.clearTimeout(timers.current.open);
+    window.clearTimeout(timers.current.close);
+    timers.current.close = window.setTimeout(() => {
+      setHover(false);
+      setParked(false);
+    }, 140);
+  };
+  useEffect(() => () => {
+    window.clearTimeout(timers.current.open);
+    window.clearTimeout(timers.current.close);
+  }, []);
+  /** Close now and stay closed while the pointer is still here; drop keyboard focus so it can't hold the rail open. */
+  const park = () => {
+    if (inside.current) setParked(true);
+    setFocus(false);
+    const a = document.activeElement as HTMLElement | null;
+    if (a && navRef.current?.contains(a)) a.blur();
+  };
+  const pick = (href: string) => {
+    setPicked({ href, from: path });
+    park();
+  };
+  // Chat opened (from here or anywhere): the rail folds away so the dock has the room.
+  const parkRef = useRef(park);
+  useEffect(() => {
+    parkRef.current = park;
+  });
+  useEffect(() => {
+    if (dockOpen) parkRef.current();
+  }, [dockOpen]);
+  const open = (hover || focus) && !parked;
   const onBlur = (e: FocusEvent) => {
     if (!navRef.current?.contains(e.relatedTarget as Node | null)) setFocus(false);
   };
@@ -130,20 +176,23 @@ export function Sidebar() {
         ref={navRef}
         aria-label="Main"
         data-open={open || undefined}
-        onMouseEnter={() => setHover(true)}
-        onMouseMove={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
+        onMouseEnter={enter}
+        onMouseMove={() => !inside.current && enter()}
+        onMouseLeave={leave}
         onFocus={() => setFocus(true)}
         onBlur={onBlur}
-        style={{ ["--rail" as string]: RAIL, ["--open" as string]: OPEN }}
-        className={`fixed z-40 flex bg-white max-md:inset-x-0 max-md:bottom-0 max-md:border-t-2 max-md:border-line md:inset-y-0 md:left-0 md:flex-col md:overflow-hidden md:px-3 md:py-5 md:transition-[width,box-shadow,border-radius] md:duration-300 md:ease-[cubic-bezier(0.2,0.8,0.2,1)] ${
-          open ? "md:w-[var(--open)] md:rounded-r-3xl md:shadow-[16px_0_40px_-20px_rgb(51_56_61/0.35)]" : "md:w-[var(--rail)] md:shadow-none"
-        }`}
+        style={{
+          ["--rail" as string]: RAIL,
+          ["--open" as string]: OPEN,
+          // Closed: show the rail only. Open: the whole panel plus room for its shadow.
+          ["--clip" as string]: open ? "inset(-64px -64px -64px 0)" : "inset(0 calc(var(--open) - var(--rail)) 0 0)",
+        }}
+        className="fixed z-40 flex bg-white max-md:inset-x-0 max-md:bottom-0 max-md:border-t-2 max-md:border-line md:inset-y-0 md:left-0 md:w-[var(--open)] md:flex-col md:overflow-hidden md:rounded-r-3xl md:px-3 md:py-5 md:shadow-[16px_0_40px_-20px_rgb(51_56_61/0.35)] md:transition-[clip-path] md:duration-300 md:ease-[cubic-bezier(0.45,0,0.15,1)] md:[clip-path:var(--clip)] md:[will-change:clip-path]"
       >
-        <div className="hidden px-3 pb-6 md:block md:w-[calc(var(--open)-1.5rem)]">
+        <div className="hidden px-3 pb-6 md:block">
           <Wordmark compact={!open} />
         </div>
-        <LiquidSelect active={[...NAV, EXTRA].find((n) => on(n.href))?.href ?? ""} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="flex-1 max-md:overflow-x-auto md:w-[calc(var(--open)-1.5rem)]">
+        <LiquidSelect active={[...NAV, EXTRA].find((n) => on(n.href))?.href ?? ""} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="flex-1 max-md:overflow-x-auto">
           <ul className="flex max-md:min-w-max max-md:justify-around max-md:px-1 md:flex-col md:gap-1.5">
             {NAV.map((n) => (
               <li key={n.href}>
@@ -158,8 +207,8 @@ export function Sidebar() {
 
         {/* Bottom of the rail. Both versions stay mounted: the open one folds its height away when the
             rail is closed (grid rows 1fr → 0fr animate), and the icons for the closed rail fold away when it's open. */}
-        <div className="hidden md:block md:w-[calc(var(--open)-1.5rem)]">
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!open || undefined}>
+        <div className="hidden md:block">
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.45,0,0.15,1)] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!open || undefined}>
             <div className={`min-h-0 overflow-hidden ${fade(open)}`}>
               <div className="mb-4">
                 <VivaCard />
@@ -174,7 +223,7 @@ export function Sidebar() {
               </p>
             </div>
           </div>
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${open ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} aria-hidden={open || undefined}>
+          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.45,0,0.15,1)] ${open ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} aria-hidden={open || undefined}>
             <div className={`min-h-0 overflow-hidden ${fade(!open, false)}`}>
               <div className="flex w-12 flex-col items-center gap-3">
                 <button onClick={() => show("chat")} aria-label="Open Viva" title="Viva" tabIndex={open ? -1 : 0} className="rounded-xl p-2 text-sky hover:bg-sky-soft">

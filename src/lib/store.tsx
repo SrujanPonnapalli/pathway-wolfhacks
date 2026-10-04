@@ -1417,7 +1417,8 @@ function useStore() {
               break;
             }
             const r = healthCall(id);
-            receipts.push(r ? r.replace(/\.$/, "") : id === "rest" ? "Today's gym block is already a rest-day walk" : "That's already on your week");
+            const gymToday = localEvents.some((e) => e.id === `demo-gym-${(demo.now.getDay() + 6) % 7}`);
+            receipts.push(r ? r.replace(/\.$/, "") : id === "rest" ? (gymToday ? "Today's gym block is already a rest-day walk" : "There's no gym block on today's week to swap") : "That's already on your week");
             break;
           }
           case "complete_block": {

@@ -3,6 +3,7 @@
 // Small pieces both the Viva page and the mini Viva dock render under a message:
 // the receipts of what Viva just did, and an email draft the student can copy or open.
 
+import Link from "next/link";
 import { useState } from "react";
 import { BookMarked, Check, Copy, Mail } from "lucide-react";
 import type { Citation, EmailDraft } from "@/lib/viva";
@@ -71,7 +72,15 @@ export function Citations({ items }: { items?: Citation[] }) {
         <div className="mt-2 rounded-xl border border-sky/30 bg-white p-2.5 text-xs">
           <p className="font-black text-ink">{shown.title} <span className="font-bold text-muted">· {shown.course}</span></p>
           {shown.quote && <p className="mt-1 italic text-ink">“{shown.quote}”</p>}
-          <p className="mt-1 text-muted">{shown.locator ? `From ${shown.locator}` : "From your course materials"}</p>
+          <p className="mt-1 text-muted">
+            {shown.locator ? `From ${shown.locator}` : "From your course materials"}
+            {shown.course && (
+              <>
+                {" · "}
+                <Link href={`/courses?course=${shown.course.toLowerCase().replace(" ", "-")}&tab=facts&fact=${shown.id}`} className="font-extrabold text-sky">Open in Courses</Link>
+              </>
+            )}
+          </p>
         </div>
       )}
     </div>

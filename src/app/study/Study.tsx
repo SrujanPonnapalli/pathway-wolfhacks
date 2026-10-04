@@ -5,18 +5,20 @@
 // model through logQuiz / logSession, exactly as before.
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Brain, Check, FileUp, Layers, Pause, Play, RotateCcw, Sparkles, Timer } from "lucide-react";
+import { Brain, Check, FileText, FileUp, Layers, Pause, Play, RotateCcw, Sparkles, Timer } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaGlyph } from "@/components/Viva";
 import { PageHeader } from "@/components/ui";
 import { makeStudyMaterial } from "@/lib/api";
+import type { CourseDoc } from "@/lib/coursework-data";
+import { docsFor } from "@/lib/knowledge/sample";
 import type { StudyMaterial } from "@/lib/intel/study";
 import { usePathway } from "@/lib/store";
 
 export function Study() {
-  const { courses, logQuiz, logSession } = usePathway();
+  const { courses, logQuiz, logSession, knowledge } = usePathway();
   const params = useSearchParams();
   const [course, setCourse] = useState(params.get("course") ?? courses[0]?.slug ?? "");
   const focus = params.get("tool") ?? "quiz";
@@ -24,6 +26,8 @@ export function Study() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const code = courses.find((c) => c.slug === course)?.code ?? "";
+  // The course's own materials (Courses tab): no upload needed to start a quiz or a deck.
+  const docs = useMemo(() => (code ? docsFor(code, knowledge) : []), [code, knowledge]);
 
   const read = async (f: File | null) => {
     if (!f) return;
@@ -37,13 +41,35 @@ export function Study() {
       setBusy(false);
     }
   };
+  // A course file goes through the same route as a dropped one, as plain text.
+  const fromDoc = (d: CourseDoc) => read(new File([`${d.title}\n\n${d.body}`], `${d.title}.txt`, { type: "text/plain" }));
+
+  // Switching course clears the material so work is never logged against the wrong class.
+  const pickCourse = (slug: string) => {
+    setCourse(slug);
+    setMaterial(null);
+    setErr("");
+  };
+
+  // Arriving from a "Quiz me" or "Flashcards" link on Courses: start from that file right away.
+  const wanted = params.get("doc");
+  const started = useRef("");
+  useEffect(() => {
+    if (!wanted || started.current === wanted) return;
+    const d = docs.find((x) => x.id === wanted);
+    if (!d) return;
+    started.current = wanted;
+    const t = setTimeout(() => void fromDoc(d), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wanted, docs]);
 
   return (
     <main className="mx-auto max-w-[760px] px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Study" lead="What you finish here updates your status on this device.">
         <label className="flex items-center gap-2 font-bold">
           Course
-          <select value={course} onChange={(e) => setCourse(e.target.value)} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
+          <select value={course} onChange={(e) => pickCourse(e.target.value)} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
             {courses.map((c) => (
               <option key={c.slug} value={c.slug}>{c.code}</option>
             ))}
@@ -66,15 +92,39 @@ export function Study() {
       {focus !== "timer" && (
         <section className="mb-6">
           {!material ? (
-            <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-line px-4 py-4 hover:bg-polar">
-              <FileUp size={22} className="shrink-0 text-teal" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block font-bold">Drop this week&apos;s slides or notes for {code || "this course"}</span>
-                <span className="block text-sm text-muted">Gemini writes the questions from your material only.</span>
-              </span>
-              {busy && <span className="flex items-center gap-1.5 text-sm text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…</span>}
-              <input type="file" accept=".pdf,.png,.jpg,.jpeg,.txt" className="sr-only" onChange={(e) => read(e.target.files?.[0] ?? null)} />
-            </label>
+            <>
+              {docs.length > 0 && (
+                <div className="mb-3 rounded-2xl border-2 border-line p-3">
+                  <p className="flex items-center justify-between gap-3 px-1 text-sm font-bold">
+                    <span>{code} materials{busy && <span className="ml-2 inline-flex items-center gap-1.5 font-semibold text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…</span>}</span>
+                    <Link href={`/courses?course=${course}&tab=materials`} className="text-xs font-extrabold uppercase tracking-wider text-teal">All on Courses</Link>
+                  </p>
+                  <ul className="mt-1 divide-y divide-line/70">
+                    {docs.map((d) => (
+                      <li key={d.id} className="flex items-center gap-3 py-2">
+                        <FileText size={18} className="shrink-0 text-sky" aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-bold">{d.title}</span>
+                          <span className="block text-xs text-muted">{d.type}{d.week ? ` · week ${d.week}` : ""}{d.sample ? " · sample" : " · yours"}</span>
+                        </span>
+                        <button onClick={() => fromDoc(d)} disabled={busy} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs disabled:opacity-60">
+                          {focus === "flashcards" ? "Make a deck" : "Quiz me"}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-line px-4 py-4 hover:bg-polar">
+                <FileUp size={22} className="shrink-0 text-teal" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold">{docs.length ? "Or drop" : "Drop"} this week&apos;s slides or notes for {code || "this course"}</span>
+                  <span className="block text-sm text-muted">Gemini writes the questions from your material only.</span>
+                </span>
+                {busy && !docs.length && <span className="flex items-center gap-1.5 text-sm text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…</span>}
+                <input type="file" accept=".pdf,.png,.jpg,.jpeg,.txt" className="sr-only" onChange={(e) => read(e.target.files?.[0] ?? null)} />
+              </label>
+            </>
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted">
               <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {material.title} · {material.topics.slice(0, 3).join(", ")}

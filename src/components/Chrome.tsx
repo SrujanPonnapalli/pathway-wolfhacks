@@ -17,7 +17,8 @@ export function Chrome({ children }: { children: ReactNode }) {
       ) : (
         <>
           <Sidebar />
-          <div className="pb-24 md:pb-0 md:pl-64">{children}</div>
+          {/* Desktop pads for the collapsed icon rail only; the open sidebar overlays the page. */}
+          <div className="pb-24 md:pb-0 md:pl-[4.5rem]">{children}</div>
           <VivaDock />
         </>
       )}

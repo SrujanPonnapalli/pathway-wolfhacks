@@ -80,10 +80,11 @@ export function sourceEvents(
   sources: { kind: string; course: string; deadlines?: { title: string; date: string; kind: string; time?: string }[]; items?: { name: string; due: string; status: string }[] }[],
   courses: { slug: string; code: string }[],
   now: Date,
+  existing: CalEvent[] = [], // events already on the feed (Moodle due markers, exams): a matching item is not added twice
 ): CalEvent[] {
   const mon = mondayOf(now);
   const horizon = at(mon, 28, 0);
-  const out: CalEvent[] = [];
+  const found: CalEvent[] = [];
   for (const src of sources) {
     const course = courses.find((c) => c.code === src.course);
     // Gradescope/Moodle grade pages: unsubmitted items with a future due date are due markers too
@@ -92,7 +93,7 @@ export function sourceEvents(
         if (!it.due || it.status === "graded" || it.status === "submitted") return;
         const start = new Date(`${it.due}T23:30:00`);
         if (isNaN(start.getTime()) || start < mon || start >= horizon) return;
-        out.push({ id: `src-g-${src.course.replace(/\s/g, "")}-${i}`, title: `Due: ${it.name}`, start: iso(start), end: iso(new Date(start.getTime() + 30 * 60_000)), kind: "other", course: course?.slug, source: "demo" });
+        found.push({ id: `src-g-${src.course.replace(/\s/g, "")}-${i}`, title: `Due: ${it.name}`, start: iso(start), end: iso(new Date(start.getTime() + 30 * 60_000)), kind: "other", course: course?.slug, source: "demo" });
       });
       continue;
     }
@@ -104,7 +105,7 @@ export function sourceEvents(
       const start = new Date(`${d.date}T00:00:00`);
       start.setHours(h, m, 0, 0);
       if (start < mon || start >= horizon) return;
-      out.push({
+      found.push({
         id: `src-${src.course.replace(/\s/g, "")}-${i}`,
         title: isExam ? `${src.course} ${d.title}` : `Due: ${d.title}`,
         start: iso(start),
@@ -115,7 +116,22 @@ export function sourceEvents(
       });
     });
   }
-  return out;
+  return found.filter((e) => !existing.some((x) => sameItem(x, e)));
+}
+
+// "Due: ST 311 HW 4" (Moodle to-do) and "Due: Homework 4" (gradebook) on the same day for the same
+// course are one item; so are a course's exam from its seed and from its syllabus.
+function sameItem(a: CalEvent, b: CalEvent) {
+  if (a.course !== b.course || a.start.slice(0, 10) !== b.start.slice(0, 10)) return false;
+  if (a.kind === "exam" && b.kind === "exam") return true;
+  const key = (t: string) =>
+    t
+      .toLowerCase()
+      .replace(/^due:\s*/, "")
+      .replace(/\b[a-z]{2,3} \d{3}\b/g, "")
+      .replace(/homework|problem set|assignment/g, "hw")
+      .replace(/[^a-z0-9]/g, "");
+  return key(a.title) === key(b.title);
 }
 
 export function blocksAsEvents(blocks: Block[], minutes = 50): CalEvent[] {

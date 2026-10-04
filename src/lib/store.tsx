@@ -16,6 +16,7 @@ import { compileContext, scopeFor } from "./knowledge/compile";
 import { dropSource, ingestFile, legacySources, merge, reassign, setReview as reviewLocal, summary as ingestSummary, type DoneEvent } from "./knowledge/client";
 import { emptyKnowledge, type IngestEvent, type KbNode, type Knowledge, type Review } from "./knowledge/types";
 import { nodeId } from "./knowledge/nodes";
+import { SAMPLE_VERSION, isSampleSource, sampleKnowledge } from "./knowledge/sample";
 import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
@@ -176,30 +177,34 @@ function useStore() {
     if (activeId) hydrate(activeId);
   }, [activeId, hydrate]);
 
-  // Demo profiles arrive already knowing their courses: the seed (public/knowledge/<id>.json) was
-  // built by sending the real syllabi and grade pages through the ingestion agent (npm run kb:seed).
-  // No upload is needed; the Knowledge/course tab shows where every fact came from.
-  const seedKey = activeId ? `${activeId}:${saved.by[activeId]?.seeded ?? ""}:${saved.by[activeId]?.knowledge?.sources.length ?? 0}` : "";
+  // Every profile arrives already knowing its courses: syllabus, gradebook and lecture files as
+  // graph facts, built in code from src/lib/coursework-data.ts (src/lib/knowledge/sample.ts). No
+  // upload is needed. The seed is replaced when the sample content changes or a course is added
+  // (the judge's onboarding); files the student dropped themselves are kept.
+  const seedCourses = useMemo(() => {
+    const p = profiles.find((x) => x.id === activeId);
+    return p ? [...p.courses, ...((saved.by[p.id]?.added ?? []).filter((a) => !p.courses.some((c) => c.slug === a.slug)))] : [];
+  }, [profiles, activeId, saved]);
+  const seedStamp = activeId ? `${SAMPLE_VERSION}|${seedCourses.map((c) => c.code).sort().join(",")}` : "";
+  const seedKey = activeId ? `${activeId}:${saved.by[activeId]?.seeded ?? ""}:${seedStamp}` : "";
   useEffect(() => {
-    if (!activeId) return;
-    const cur = saved.by[activeId];
-    if (cur?.seeded || cur?.knowledge?.sources.length) return;
-    let gone = false;
-    fetch(`/knowledge/${activeId}.json`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((seed: (Knowledge & { version?: string }) | null) => {
-        if (gone || !seed || !Array.isArray(seed.nodes)) return;
-        setSaved((v) => {
-          const st = { ...empty(activeId), ...(v.by[activeId] ?? {}) };
-          if (st.seeded || st.knowledge.sources.length) return v;
-          const kb = merge(st.knowledge, seed);
-          return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seed.version ?? "1" } } };
-        });
-      })
-      .catch(() => {});
-    return () => {
-      gone = true;
-    };
+    if (!activeId || !seedStamp) return;
+    if ((saved.by[activeId]?.seeded ?? "") === seedStamp) return;
+    const t = setTimeout(() => setSaved((v) => {
+      const st = { ...empty(activeId), ...(v.by[activeId] ?? {}) };
+      if (st.seeded === seedStamp) return v;
+      const sample = sampleKnowledge(activeId, seedCourses, demo.now);
+      // Keep the student's own files and facts; a seed from before the in-code samples is replaced whole.
+      const fresh = st.seeded && !st.seeded.startsWith(SAMPLE_VERSION) && !st.seeded.startsWith("coursework-");
+      const keepSources = fresh ? [] : st.knowledge.sources.filter((x) => !isSampleSource(x));
+      const keepIds = new Set(keepSources.map((x) => x.id));
+      const keepNodes = fresh ? [] : st.knowledge.nodes.filter((n) => (n.source ? keepIds.has(n.source) : n.createdBy !== "seed"));
+      const nodeIds = new Set(keepNodes.map((n) => n.id));
+      const keepEdges = fresh ? [] : st.knowledge.edges.filter((e) => nodeIds.has(e.from) && nodeIds.has(e.to));
+      const kb = merge({ sources: keepSources, nodes: keepNodes, edges: keepEdges }, sample);
+      return { ...v, by: { ...v.by, [activeId]: { ...st, knowledge: kb, sources: legacySources(kb), seeded: seedStamp } } };
+    }), 0);
+    return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedKey]);
 
@@ -284,7 +289,8 @@ function useStore() {
 
   const localEvents = useMemo<CalEvent[]>(() => {
     if (!profile) return [];
-    const feed = [...demoWeek(demo.now, courses, profile.todos), ...sourceEvents(s.sources, courses, demo.now)];
+    const demoFeed = demoWeek(demo.now, courses, profile.todos);
+    const feed = [...demoFeed, ...sourceEvents(s.sources, courses, demo.now, demoFeed)];
     const base = [...feed, ...blocksAsEvents(s.blocks)].filter((e) => !s.removed.includes(e.id));
     return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
   }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);

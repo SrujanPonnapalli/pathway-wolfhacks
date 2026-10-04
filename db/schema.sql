@@ -100,6 +100,18 @@ CREATE TABLE IF NOT EXISTS buddies (
   CHECK (profile_id <> buddy_id)
 );
 
+-- Buddy requests, addressed by email so they work before the friend has signed up: they show up
+-- when someone signs in with that address. Accepting turns one into two `buddies` rows; declining
+-- or cancelling deletes it. Only Google accounts send and receive them.
+CREATE TABLE IF NOT EXISTS buddy_requests (
+  id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  from_id     TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  to_email    TEXT NOT NULL,                         -- lowercased
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (from_id, to_email)
+);
+CREATE INDEX IF NOT EXISTS buddy_requests_to ON buddy_requests (to_email);
+
 -- ── Activity timeline (hypertable) ────────────────────────────────────────────────────
 
 CREATE TABLE IF NOT EXISTS events (

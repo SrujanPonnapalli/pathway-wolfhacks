@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, Award, Check, CircleDashed, ExternalLink, Link2, LogIn, LogOut, Radio, ShieldCheck, Sparkles, Wallet } from "lucide-react";
+import { Friends } from "@/components/Friends";
 import { Burst, Gate, PageHeader, Pending } from "@/components/ui";
 import { getBuddies, getPots, potAction, type Pot, type PotsView } from "@/lib/data";
 import { blocksToGo, finished } from "@/lib/solana/payout";
@@ -52,7 +53,8 @@ function Buddies() {
   const [notice, setNotice] = useState<Notice | null>(null);
   const [burst, setBurst] = useState(0);
 
-  useEffect(() => void getBuddies(profile.id).then(setBuddies), [profile.id]);
+  const loadBuddies = useCallback(() => getBuddies(profile.id).then(setBuddies), [profile.id]);
+  useEffect(() => void loadBuddies(), [loadBuddies]);
 
   const refresh = useCallback(() => getPots(profile.id).then(setView), [profile.id]);
   useEffect(() => {
@@ -157,6 +159,13 @@ function Buddies() {
       )}
 
       {recap && <Recap pot={recap} chain={onchain[recap.address]} me={profile.id} />}
+
+      <Friends
+        onChange={() => {
+          void loadBuddies();
+          void refresh();
+        }}
+      />
 
       <section className="panel mb-8 p-5" aria-labelledby="week">
         <h2 id="week" className="mb-4 text-lg font-black">

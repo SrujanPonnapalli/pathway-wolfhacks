@@ -66,7 +66,7 @@ export function Courses() {
 
   if (!c)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
+      <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
         <PageHeader
           title="Courses"
           lead="Add a course on Home first. Then this page holds its syllabus, assignments, attendance and materials."
@@ -78,7 +78,7 @@ export function Courses() {
     );
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-wide px-4 py-6 md:px-10 md:py-10">
       <PageHeader
         title="Courses"
         lead="Every class this term: syllabus, assignments, attendance and materials. Insights, Study and Viva read from here."
@@ -999,6 +999,9 @@ function Files({ c, kb }: { c: CourseView; kb: Knowledge }) {
   const [jobs, setJobs] = useState<{ id: number; name: string; stage: string; detail: string; error?: string }[]>([]);
   const files = kb.sources.filter((f) => f.course === c.code).sort((a, b) => (isSampleSource(a) === isSampleSource(b) ? a.uploadedAt.localeCompare(b.uploadedAt) : isSampleSource(a) ? 1 : -1));
   const factsOf = (f: KbSource) => kb.nodes.filter((n) => n.source === f.id && n.review !== "rejected");
+  // Open one file to see what Pathway holds for it: a sample lecture's full text, otherwise the facts it read.
+  const [shown, setShown] = useState<string | null>(null);
+  const texts = useMemo(() => new Map(docsFor(c.code, kb).filter((d) => d.sample).map((d) => [d.title, d.body])), [c.code, kb]);
 
   const take = (list: FileList | null) => {
     if (!list) return;
@@ -1029,21 +1032,52 @@ function Files({ c, kb }: { c: CourseView; kb: Knowledge }) {
             const waiting = factsOf(f).filter((x) => x.review === "proposed").length;
             const Icon = f.kind === "syllabus" ? ScrollText : f.kind === "grades" ? BarChart3 : f.kind === "slides" ? Presentation : f.kind === "reading" ? Newspaper : f.kind === "assignment" ? FlaskConical : FileText;
             const sample = isSampleSource(f);
+            const open = shown === f.id;
+            const facts = factsOf(f);
+            const text = sample ? texts.get(f.filename) : undefined;
             return (
-              <li key={f.id} className="flex items-center gap-3 py-2.5 text-sm">
-                <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${sample ? "bg-polar text-muted" : "bg-sky-soft text-sky"}`}>
-                  <Icon size={18} aria-hidden />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-extrabold" title={f.filename}>{f.filename}</span>
-                  <span className="block text-xs text-muted">
-                    {f.kind} · {n} fact{n === 1 ? "" : "s"}{waiting ? ` · ${waiting} need you` : ""} · {fmtSize(f.size)} · {sample ? "sample" : `added ${fmtDay(f.uploadedAt)}`}
-                  </span>
-                </span>
-                {!sample && (
-                  <button onClick={() => removeKnowledgeSource(f.id)} aria-label={`Forget ${f.filename}`} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs text-sun-ink">
-                    <Trash2 size={14} aria-hidden /> Forget
+              <li key={f.id} className="py-2.5 text-sm">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setShown(open ? null : f.id)} aria-expanded={open} aria-controls={`file-${f.id}`} className="group flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left">
+                    <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${sample ? "bg-polar text-muted" : "bg-sky-soft text-sky"}`}>
+                      <Icon size={18} aria-hidden />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-extrabold group-hover:text-teal" title={f.filename}>{f.filename}</span>
+                      <span className="block text-xs text-muted">
+                        {f.kind} · {n} fact{n === 1 ? "" : "s"}{waiting ? ` · ${waiting} need you` : ""} · {fmtSize(f.size)} · {sample ? "sample" : `added ${fmtDay(f.uploadedAt)}`}
+                      </span>
+                    </span>
+                    <ChevronDown size={18} className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
                   </button>
+                  {!sample && (
+                    <button onClick={() => removeKnowledgeSource(f.id)} aria-label={`Forget ${f.filename}`} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs text-sun-ink">
+                      <Trash2 size={14} aria-hidden /> Forget
+                    </button>
+                  )}
+                </div>
+                {open && (
+                  <div id={`file-${f.id}`} className="mt-2.5 ml-12 max-h-96 overflow-y-auto rounded-xl border-2 border-line bg-polar p-4">
+                    {text ? (
+                      <p className="whitespace-pre-line leading-relaxed">{text}</p>
+                    ) : (
+                      <>
+                        <p className="text-xs font-bold text-muted">
+                          {sample ? "What this sample record holds" : "What Pathway kept from this file: the facts it read, each with the line it came from. The file itself isn't stored."}
+                        </p>
+                        <ul className="mt-2 space-y-2.5">
+                          {facts.map((x) => (
+                            <li key={x.id}>
+                              <span className="font-extrabold">{x.title}</span>
+                              {x.quote && x.quote !== x.title && <span className="block text-muted">&ldquo;{x.quote}&rdquo;</span>}
+                              {x.locator && <span className="block text-xs font-bold text-muted">{x.locator}</span>}
+                            </li>
+                          ))}
+                          {!facts.length && <li className="text-muted">Nothing was read from this file yet.</li>}
+                        </ul>
+                      </>
+                    )}
+                  </div>
                 )}
               </li>
             );

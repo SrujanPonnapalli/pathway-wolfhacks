@@ -7,6 +7,7 @@ import { ArrowDown, ArrowUp, Clock, FastForward, GraduationCap, History, Loader2
 import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
+import { PageHeader } from "@/components/ui";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
 import { Citations, EmailCard, Receipts } from "@/components/VivaBits";
 import { useViva } from "@/components/VivaDock";
@@ -98,7 +99,7 @@ export function VivaPage() {
   };
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto flex max-w-narrow flex-col px-4 py-6 md:px-10 md:py-10">
       {/* Pinned persistent top-right controls */}
       <aside
         aria-label="Viva chat controls"
@@ -127,18 +128,13 @@ export function VivaPage() {
         </button>
       </aside>
 
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-4 pr-36 sm:pr-48 md:pr-56">
-        <div className="flex items-center gap-3">
-          <VivaGlyph size={52} className="text-sky" />
-          <div>
-            <h1 className="text-[2rem] font-black leading-tight">{VIVA.name}</h1>
-            <p className="text-muted">
-              {mode === "teach"
-                ? "Explain a topic from your course files. If you can teach it, you know it."
-                : "Your study coach. Answers come only from your numbers and the model."}
-            </p>
-          </div>
-        </div>
+      {/* Right padding keeps the title clear of the pinned chat controls above. */}
+      <PageHeader
+        className="mb-6! pr-36 sm:pr-48 md:pr-56"
+        icon={<VivaGlyph size={52} className="shrink-0 text-sky" />}
+        title={VIVA.name}
+        lead={mode === "teach" ? "Explain a topic from your course files. If you can teach it, you know it." : "Your study coach. Answers come only from your numbers and the model."}
+      >
         <LiquidSelect active={mode} fill="#1a6fd1" shadow="inset 0 -4px 0 #12509a" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">
         <div role="group" aria-label="Mode" className="flex items-center">
           {MODES.map(({ id: m, icon: Icon }) => (
@@ -155,7 +151,7 @@ export function VivaPage() {
           ))}
         </div>
         </LiquidSelect>
-      </header>
+      </PageHeader>
       <div className={mode === "chat" ? "contents" : "hidden"}>
         <Chat
           onStartNew={handleStartNew}

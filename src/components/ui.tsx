@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, type ReactNode } from "react";
 import { Check, X } from "lucide-react";
 import { usePathway } from "@/lib/store";
@@ -21,15 +22,33 @@ export function StatusMark({ atRisk, label = true, size = 20 }: { atRisk: boolea
   );
 }
 
-export function PageHeader({ title, lead, children }: { title: string; lead: string; children?: ReactNode }) {
+export function PageHeader({ title, lead, icon, className = "", children }: { title: ReactNode; lead?: ReactNode; icon?: ReactNode; className?: string; children?: ReactNode }) {
   return (
-    <header className="mb-8 flex flex-wrap items-end justify-between gap-4">
-      <div>
-        <h1 className="text-[2rem] font-black leading-tight tracking-tight text-balance md:text-[2.5rem]">{title}</h1>
-        <p className="mt-2 max-w-[60ch] text-lg text-muted">{lead}</p>
+    <header className={`mb-8 flex flex-wrap items-end justify-between gap-4 ${className}`}>
+      <div className="flex items-center gap-3">
+        {icon}
+        <div>
+          <h1 className="text-[2rem] font-black leading-tight tracking-tight text-balance md:text-[2.5rem]">{title}</h1>
+          {lead && <p className="mt-2 max-w-[60ch] text-lg text-muted">{lead}</p>}
+        </div>
       </div>
       {children}
     </header>
+  );
+}
+
+/** A section's heading, with an optional small "see more" link (or a short note) on the right. */
+export function SectionHeading({ id, children, action, note }: { id?: string; children: ReactNode; action?: { href: string; label: ReactNode }; note?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+      <h2 id={id} className="text-xl font-black leading-snug">{children}</h2>
+      {note && <span className="text-xs font-bold text-muted">{note}</span>}
+      {action && (
+        <Link href={action.href} className="shrink-0 text-xs font-extrabold uppercase tracking-wider text-teal hover:text-teal-lip">
+          {action.label}
+        </Link>
+      )}
+    </div>
   );
 }
 

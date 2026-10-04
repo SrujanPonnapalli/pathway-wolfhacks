@@ -52,7 +52,7 @@ export function Insights() {
 
   if (!c)
     return (
-      <main className="mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
+      <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
         <PageHeader title="Insights" lead="Add a course on Home first. Then this page shows where you stand and what would help.">
           <RefreshButton />
         </PageHeader>
@@ -60,7 +60,7 @@ export function Insights() {
     );
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-wide px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Insights" lead="Where you stand in each class, and the shortest route to on track.">
         <RefreshButton />
       </PageHeader>

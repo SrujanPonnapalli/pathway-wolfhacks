@@ -208,7 +208,7 @@ export function VivaAvatar({ size = 200, ...signal }: Signal & { size?: number }
   // in its calm "thinking" look for those and let the face carry the mood.
   const body: OrbState = signal.state === "listening" || signal.state === "speaking" ? signal.state : "thinking";
   return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
+    <div className="viva-avatar relative shrink-0" style={{ width: size, height: size }}>
       <Orb
         size={size}
         interactive={false}

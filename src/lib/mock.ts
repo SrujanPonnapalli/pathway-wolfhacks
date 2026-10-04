@@ -108,6 +108,28 @@ export const PROFILES: Profile[] = [
     classes: [{ course: "ch-101", title: "CH 101 lecture", at: "2026-10-06T10:40" }],
     todos: [{ id: "ch-review", title: "Review CH 101 Chapter 4", detail: "Exam Wednesday", href: "/study?course=ch-101" }],
   },
+  // Rehan's study buddies in the demo. Buddies see effort only, so one course each is enough to hang
+  // their study blocks on; demoAccount.ts gives them a fresh week of blocks and a streak on every seed.
+  {
+    id: "aadee",
+    name: "Aadee",
+    classYear: "Sophomore",
+    streakDays: 5,
+    sample: true,
+    courses: [course("CSC 216", "S1012", ["Exam 1", "2026-10-16T11:45"], row({ avg_days_started_before_exam: 4.5, attendance_rate: 0.92, practice_quizzes_taken: 18, on_time_submission_rate: 0.9, late_night_study_pct: 0.2, missed_deadlines: 1, work_hours_per_week: 8, credit_hours: 15 }))],
+    classes: [],
+    todos: [],
+  },
+  {
+    id: "sampath",
+    name: "Sampath",
+    classYear: "Sophomore",
+    streakDays: 8,
+    sample: true,
+    courses: [course("ST 311", "S1020", ["Midterm", "2026-10-14T13:30"], row({ avg_days_started_before_exam: 5, attendance_rate: 0.9, practice_quizzes_taken: 20, on_time_submission_rate: 0.88, late_night_study_pct: 0.15, missed_deadlines: 1, work_hours_per_week: 10, credit_hours: 15 }))],
+    classes: [],
+    todos: [],
+  },
   {
     id: "judge",
     name: "you",

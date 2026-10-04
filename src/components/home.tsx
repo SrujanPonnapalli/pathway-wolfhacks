@@ -10,7 +10,7 @@ import { useState, type FormEvent } from "react";
 import { ArrowUp, Check, ChevronRight, FileUp, Mail, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar } from "@/components/Viva";
-import { StatusMark } from "@/components/ui";
+import { PageHeader, SectionHeading, StatusMark } from "@/components/ui";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { isSampleSource } from "@/lib/knowledge/sample";
 import { moveText, reasonFor } from "@/lib/features";
@@ -28,16 +28,12 @@ export function Greeting() {
   const checkIns = courses.filter((c) => c.result.atRisk).length;
   return (
     <section>
-      <h1 className="text-[1.75rem] font-extrabold leading-tight tracking-tight text-balance md:text-[2.125rem]">
-        {greet(now.getHours())}
-        {profile.sample ? `, ${profile.name}` : ""}
-      </h1>
-      <p className="mt-1.5 text-muted">
-        {courses.length - checkIns} of {courses.length} classes on track
-        {checkIns > 0 && `, ${checkIns} worth a check-in`}
-        {profile.streakDays > 0 && ` · ${profile.streakDays}-day streak`}
-      </p>
-      <ul className="mt-4 flex flex-wrap gap-2">
+      <PageHeader
+        className="mb-4!"
+        title={`${greet(now.getHours())}${profile.sample ? `, ${profile.name}` : ""}`}
+        lead={`${courses.length - checkIns} of ${courses.length} classes on track${checkIns > 0 ? `, ${checkIns} worth a check-in` : ""}${profile.streakDays > 0 ? ` · ${profile.streakDays}-day streak` : ""}`}
+      />
+      <ul className="flex flex-wrap gap-2">
         {courses.map((c) => (
           <li key={c.slug}>
             <Link href={`/insights?course=${c.slug}`} className="flex items-center gap-2 rounded-xl border-2 border-line bg-white py-1.5 pl-2.5 pr-3.5 font-bold transition-colors hover:bg-polar">
@@ -108,7 +104,7 @@ export function Route() {
         <div className="flex items-start gap-3">
           <span className="mt-1"><StatusMark atRisk={focus.result.atRisk} label={false} size={22} /></span>
           <div className="min-w-0">
-            <h2 id="route" className="text-xl font-extrabold leading-snug">
+            <h2 id="route" className="text-xl font-black leading-snug">
               {focus.code} is {focus.result.atRisk ? "worth a check-in" : "on track"}
               <span className="font-bold text-muted"> · {focus.exam.title} {fmtDay(focus.exam.date)}, in {focus.daysToExam} {focus.daysToExam === 1 ? "day" : "days"}</span>
             </h2>
@@ -214,10 +210,9 @@ export function WeekPanel() {
 
   return (
     <section aria-labelledby="this-week">
-      <div className="flex items-baseline justify-between gap-3">
-        <h2 id="this-week" className="font-extrabold">This week</h2>
-        <Link href="/calendar" className="text-sm font-bold text-teal underline underline-offset-4">{planned > 0 ? `${done} of ${planned} blocks done` : "Open week"}</Link>
-      </div>
+      <SectionHeading id="this-week" action={{ href: "/calendar", label: planned > 0 ? `${done} of ${planned} blocks done` : "Open week" }}>
+        This week
+      </SectionHeading>
       <ol className="mt-3 grid grid-cols-7 text-center">
         {days.map((d) => {
           const bs = blocksOn(d);
@@ -296,7 +291,7 @@ export function InboxPanel() {
   const reply = mail.filter((m) => m.unread && m.needsReply).length;
   return (
     <section aria-labelledby="inbox">
-      <h2 id="inbox" className="font-extrabold">Inbox</h2>
+      <SectionHeading id="inbox">Inbox</SectionHeading>
       <Link href="/inbox" className="group mt-2 flex items-center gap-3 rounded-2xl border-2 border-line px-4 py-3 hover:bg-polar">
         <Mail size={20} className={`shrink-0 ${unread ? "text-sky" : "text-muted"}`} aria-hidden />
         <span className="min-w-0 flex-1 font-bold">
@@ -345,12 +340,13 @@ export function Files() {
 
   return (
     <section aria-labelledby="files">
-      <h2 id="files" className="font-extrabold">Course materials</h2>
+      <SectionHeading id="files" action={knowledge.sources.length > 0 ? { href: "/courses?tab=facts", label: "See on Courses" } : undefined}>
+        Course materials
+      </SectionHeading>
       {/* Sample course files live on the Courses tab; this card is the drop zone plus what the student added. */}
       {knowledge.sources.length > 0 && (
         <p className="mt-1 text-sm text-muted">
-          {knowledge.sources.length} file{knowledge.sources.length === 1 ? "" : "s"} · {knowledge.nodes.filter((n) => n.review !== "rejected").length} facts on file for your {courses.length} class{courses.length === 1 ? "" : "es"}.{" "}
-          <Link href="/courses?tab=facts" className="font-extrabold text-teal">See them on Courses</Link>
+          {knowledge.sources.length} file{knowledge.sources.length === 1 ? "" : "s"} · {knowledge.nodes.filter((n) => n.review !== "rejected").length} facts on file for your {courses.length} class{courses.length === 1 ? "" : "es"}.
         </p>
       )}
       {own.length > 0 && (

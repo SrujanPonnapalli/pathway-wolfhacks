@@ -1,4 +1,5 @@
 import { bad, db, noDb, profileExists } from "@/lib/db";
+import { demoProfileId, resetDemoProfile } from "@/lib/demoAccount";
 
 // A profile's logged activity since its seed, in the store's shape. GET hydrates the app;
 // DELETE is the demo's "Reset": back to the start state. Logged activity, plans, uploaded files
@@ -40,15 +41,17 @@ export async function DELETE(req: Request) {
   if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id} AND source <> 'seed'`;
-    await tx`DELETE FROM study_blocks WHERE profile_id = ${id}`;
+    await tx`DELETE FROM study_blocks WHERE profile_id = ${id} AND (client_id IS NULL OR client_id NOT LIKE 'pot-%')`; // Study Pot blocks are seeded (scripts/solana.ts)
     await tx`UPDATE todos SET done_at = NULL WHERE profile_id = ${id}`;
     // Uploaded files and their facts, and the browser-side state kept here: created lazily, so check first.
-    for (const t of ["kb_nodes", "kb_sources", "profile_extras"]) {
+    for (const t of ["kb_nodes", "kb_sources", "profile_extras", "viva_turns"]) {
       const [exists] = await tx`SELECT to_regclass(${t}) AS r`;
       if (exists.r) await tx`DELETE FROM ${tx(t)} WHERE profile_id = ${id}`; // nodes cascade edges; sources cascade their nodes
     }
     // The live judge profile starts empty again.
     await tx`DELETE FROM courses WHERE profile_id = ${id} AND ${id} = 'judge'`;
+    // The demo student: everything else back to its default state too (courses, to-dos, buddies, Srujan's request).
+    if (id === demoProfileId()) await resetDemoProfile(tx, id);
   });
   return Response.json({ ok: true });
 }

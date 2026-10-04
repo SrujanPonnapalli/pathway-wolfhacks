@@ -68,7 +68,7 @@ function Account() {
           </section>
 
           <section className="panel mt-6 p-6" aria-labelledby="stored">
-            <h2 id="stored" className="flex items-center gap-2 text-lg font-black">
+            <h2 id="stored" className="flex items-center gap-2 text-xl font-black">
               <ShieldCheck size={18} className="text-teal" aria-hidden /> What Pathway stores
             </h2>
             <ul className="mt-3 space-y-2 text-sm">
@@ -80,7 +80,7 @@ function Account() {
           </section>
 
           <section className="panel mt-6 p-6" aria-labelledby="yours">
-            <h2 id="yours" className="text-lg font-black">Your data</h2>
+            <h2 id="yours" className="text-xl font-black">Your data</h2>
             <div className="mt-4 flex flex-wrap gap-3">
               <a href="/api/account" className="btn btn-ghost min-h-11 text-xs">
                 <Download size={16} aria-hidden /> Download my data

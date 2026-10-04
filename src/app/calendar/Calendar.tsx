@@ -10,7 +10,7 @@
 
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { Check, Link2, Trash2, X } from "lucide-react";
-import { PageHeader } from "@/components/ui";
+import { PageHeader, SectionHeading } from "@/components/ui";
 import { localIso, mondayOf, type CalEvent } from "@/lib/schedule";
 import { downloadIcs } from "@/lib/calendar";
 import { fmtTime, usePathway } from "@/lib/store";
@@ -160,7 +160,7 @@ export function Calendar() {
   }, [events, days, drag]);
 
   return (
-    <main className="mx-auto max-w-[1100px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-wide px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="This week" lead="Classes and due dates from Moodle, your study blocks from Pathway, all on one calendar.">
         {googleOn ? (
           <p className="flex items-center gap-2 text-sm font-bold text-muted">
@@ -204,9 +204,9 @@ export function Calendar() {
       )}
       {suggestions.length > 0 && (
         <section aria-labelledby="sugg" className="panel mb-6 border-sky/30 p-4">
-          <h2 id="sugg" className="flex items-baseline justify-between gap-3 font-extrabold">
-            Viva noticed <span className="text-xs font-bold text-muted">Nothing changes until you approve it</span>
-          </h2>
+          <SectionHeading id="sugg" note="Nothing changes until you approve it">
+            Viva noticed
+          </SectionHeading>
           <ul className="mt-1 divide-y divide-line/70">
             {suggestions.map((sg) => (
               <li key={sg.id} className="flex flex-col gap-1.5 py-2 sm:flex-row sm:items-center sm:gap-4">

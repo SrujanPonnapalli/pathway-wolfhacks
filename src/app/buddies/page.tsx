@@ -105,10 +105,10 @@ function Buddies() {
   const board = [me, ...buddies].sort((a, b) => b.blocksDone - a.blocksDone);
 
   return (
-    <main className="relative mx-auto max-w-3xl px-4 py-6 md:px-10 md:py-10">
+    <main className="relative mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
       {burst > 0 && <Burst key={burst} />}
       <PageHeader title="Study buddies" lead="Keep each other going. Buddies see effort, like study blocks and streaks, never your status.">
-        {view && <WalletChip wallet={view.wallet} />}
+        {view ? <WalletChip wallet={view.wallet} /> : view === undefined && <span className="h-11 w-56 animate-pulse rounded-2xl bg-line/70" aria-hidden />}
       </PageHeader>
 
       {notice && (
@@ -122,7 +122,15 @@ function Buddies() {
         </p>
       )}
 
-      {view === undefined && <p className="mb-8 text-muted" aria-live="polite">Loading Study Pots from Solana devnet…</p>}
+      {/* Buddies and requests first, so a waiting request is the first thing on the page. */}
+      <Friends
+        onChange={() => {
+          void loadBuddies();
+          void refresh();
+        }}
+      />
+
+      {view === undefined && <PotSkeleton />}
       {view === null && (
         <div className="mb-8">
           <Pending what="Study Pots" wire="they need the database and Solana devnet (see docs/solana/README.md). Your study blocks below still count." />
@@ -160,15 +168,9 @@ function Buddies() {
 
       {recap && <Recap pot={recap} chain={onchain[recap.address]} me={profile.id} />}
 
-      <Friends
-        onChange={() => {
-          void loadBuddies();
-          void refresh();
-        }}
-      />
 
       <section className="panel mb-8 p-5" aria-labelledby="week">
-        <h2 id="week" className="mb-4 text-lg font-black">
+        <h2 id="week" className="mb-4 text-xl font-black">
           This week&apos;s study blocks
         </h2>
         <ul className="space-y-4">
@@ -296,6 +298,11 @@ function PotCard({ pot, chain, me, now, busy, onLeave }: { pot: Pot; chain?: Cha
                 <span className="flex items-center gap-2 text-xs font-extrabold text-muted">
                   {planned === 0 ? "No blocks planned yet" : `${backed} of ${planned} blocks backed${done ? "" : ` · ${blocksToGo(planned, backed)} to go`}`}
                   {c?.frozen && <span title="Plan frozen at the lock">· plan locked</span>}
+                  {!c && (
+                    <span className="inline-flex items-center gap-1 text-muted" title="Reading this pot's account on Solana devnet">
+                      <CircleDashed size={12} className="animate-spin" aria-hidden /> reading devnet…
+                    </span>
+                  )}
                   {c && (synced ? (
                     <span className="inline-flex items-center gap-1 text-teal" title="These numbers are read live from the pot's on-chain account">
                       <Link2 size={12} aria-hidden /> on-chain
@@ -326,6 +333,39 @@ function PotCard({ pot, chain, me, now, busy, onLeave }: { pot: Pot; chain?: Cha
           </button>
         </div>
       )}
+    </section>
+  );
+}
+
+// Stands in for a pot card while the pots come back from the database and Solana devnet (a few seconds on a cold start).
+function PotSkeleton() {
+  const bar = "animate-pulse rounded-full bg-line/70";
+  return (
+    <section className="panel mb-8 border-2 border-grape/20 p-5 md:p-6" aria-busy="true" aria-label="Loading Study Pots">
+      <div className="flex items-start justify-between gap-3 border-b-2 border-line pb-4">
+        <div className="space-y-3">
+          <div className={`h-6 w-48 ${bar}`} />
+          <div className={`h-7 w-40 ${bar}`} />
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className={`h-3 w-16 ${bar}`} />
+          <div className={`h-7 w-24 ${bar}`} />
+        </div>
+      </div>
+      <ul className="mt-5 space-y-3" aria-hidden>
+        {[0, 1, 2].map((i) => (
+          <li key={i} className="rounded-xl bg-polar p-3">
+            <div className="flex justify-between gap-3">
+              <div className={`h-4 w-20 ${bar}`} />
+              <div className={`h-4 w-36 ${bar}`} />
+            </div>
+            <div className={`mt-3 h-3 w-full ${bar}`} />
+          </li>
+        ))}
+      </ul>
+      <p className="mt-4 flex items-center gap-2 text-sm font-bold text-muted" aria-live="polite">
+        <CircleDashed size={15} className="animate-spin text-grape" aria-hidden /> Reading Study Pots from Solana devnet…
+      </p>
     </section>
   );
 }
@@ -372,7 +412,7 @@ function Recap({ pot, chain, me }: { pot: Pot; chain?: ChainPot; me: string }) {
   return (
     <section className="panel mb-8 p-5" aria-labelledby={`recap-${pot.address}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id={`recap-${pot.address}`} className="flex items-center gap-2 text-lg font-black">
+        <h2 id={`recap-${pot.address}`} className="flex items-center gap-2 text-xl font-black">
           <Award size={18} className="text-grape" aria-hidden /> {weekLabel(pot.weekStart)}: {pot.phase === "cancelled" ? "pot cancelled" : "pot settled"}
         </h2>
         {all && pot.phase === "settled" && <span className="rounded-lg bg-teal-soft px-2 py-1 text-xs font-black text-teal-lip">Everyone finished their plan</span>}

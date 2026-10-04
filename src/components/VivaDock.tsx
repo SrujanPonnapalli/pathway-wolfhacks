@@ -150,10 +150,11 @@ export function VivaDock() {
     if (r?.navigate) router.push(r.navigate);
   };
 
+  // Slides right with the sidebar when it opens (by the open width minus the rail, Sidebar.tsx), so it is never covered.
   return (
     <section
       aria-label="Viva"
-      className="fixed z-30 flex animate-[rise_220ms_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-2xl border-2 border-line bg-white shadow-xl max-md:inset-x-2 max-md:bottom-24 max-md:max-h-[70dvh] md:bottom-4 md:left-[5.25rem] md:h-[min(620px,calc(100dvh-2rem))] md:w-[400px]"
+      className="fixed z-30 flex animate-[rise_220ms_cubic-bezier(0.22,1,0.36,1)] flex-col overflow-hidden rounded-2xl border-2 border-line bg-white shadow-xl max-md:inset-x-2 max-md:bottom-24 max-md:max-h-[70dvh] md:bottom-4 md:left-[5.25rem] md:h-[min(620px,calc(100dvh-2rem))] md:w-[400px] md:transition-[translate] md:duration-300 md:ease-[cubic-bezier(0.45,0,0.15,1)] md:[body:has(nav[data-open])_&]:translate-x-[11.5rem]"
     >
       <header className="flex items-center gap-2 border-b-2 border-line px-3 py-2">
         <VivaGlyph size={26} className="text-sky" />

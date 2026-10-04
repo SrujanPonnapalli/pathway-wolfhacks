@@ -53,7 +53,7 @@ function HomeBody() {
 
   // One column: greeting, the route, one line to Viva. Then the quiet sections.
   return (
-    <main className="mx-auto max-w-[760px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
       <Greeting />
       <div className="mt-8"><Route /></div>
       <PotLine offer />

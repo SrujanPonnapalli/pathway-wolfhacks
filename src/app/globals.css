@@ -35,6 +35,10 @@
   --color-grape-soft: #f0e9fd;
 
   --radius-tile: 16px;
+
+  /* Page widths (max-w-narrow / max-w-wide): one column, or a dashboard with side panels. */
+  --container-narrow: 760px;
+  --container-wide: 1100px;
 }
 
 :root {
@@ -62,6 +66,19 @@ body {
     outline-offset: 2px;
     border-radius: 12px;
   }
+}
+
+/* orb-ui sizes its sphere from getBoundingClientRect(), which includes ancestor transforms, so inside a
+   scaled container (the /device kiosk stage) it would be scaled twice. Pin it to its box instead: 82% is
+   the diameterRatio VivaAvatar passes. */
+.viva-avatar .orb-ui__content {
+  width: 82% !important;
+  height: 82% !important;
+}
+.viva-avatar .orb-ui__content > canvas,
+.viva-avatar .orb-ui__content > span:not(.orb-ui__spinner) {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* Selects: the border itself lights up teal instead of a dark ring floating around it. Unlayered so it

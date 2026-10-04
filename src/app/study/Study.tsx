@@ -68,7 +68,7 @@ export function Study() {
   }, [wanted, docs]);
 
   return (
-    <main className="mx-auto max-w-[760px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Study" lead="What you finish here updates your status on this device.">
         <label className="flex items-center gap-2 font-bold">
           Course

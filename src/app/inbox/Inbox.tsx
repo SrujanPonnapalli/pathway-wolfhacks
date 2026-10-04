@@ -21,7 +21,7 @@ export function Inbox() {
   const open = mail.find((m) => m.id === openId) ?? null;
 
   return (
-    <main className="mx-auto max-w-[760px] px-4 py-6 md:px-10 md:py-10">
+    <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Inbox" lead="Only mail about your classes. Viva can draft a reply; you send it from Gmail." />
       {open ? (
         <Message m={open} onBack={() => setOpenId(null)} ctxArgs={{ courses, profile, now, state }} />
@@ -71,7 +71,7 @@ function Message({ m, onBack, ctxArgs }: { m: MailT; onBack: () => void; ctxArgs
   return (
     <article>
       <button onClick={onBack} className="mb-4 flex items-center gap-1.5 text-sm font-bold text-teal"><ArrowLeft size={16} aria-hidden /> All mail</button>
-      <h2 className="text-xl font-extrabold leading-snug">{m.subject}</h2>
+      <h2 className="text-xl font-black leading-snug">{m.subject}</h2>
       <p className="mt-1 text-sm text-muted">{m.course} · {m.from} · {fmtDay(m.at)}, {fmtTime(m.at)}</p>
       <p className="mt-4 whitespace-pre-line leading-relaxed">{m.body}</p>
 

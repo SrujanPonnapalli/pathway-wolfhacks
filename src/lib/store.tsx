@@ -768,8 +768,10 @@ function useStore() {
         return { ...v, by, profile: select ?? (p.some((x) => x.id === v.profile) ? v.profile : p[0]?.id) };
       });
     },
-    // Reset: the profile starts over here, in the database, and in Google Calendar (every study
-    // block Pathway planned for it comes off there too, so the week is the seed week again).
+    // Reset: back to the demo's start state, here, in the database and in Google Calendar. The
+    // courses, meetings, deadlines and to-dos stay (they are the seed), the sample syllabus, gradebook
+    // and lecture files come back on their own, and everything added since goes: study blocks (off
+    // Google too), uploads and their facts, chats, check-ins and quizzes.
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
@@ -786,7 +788,7 @@ function useStore() {
         }
         await refreshGoogle().catch(() => {});
       }
-      say("Demo data reset.");
+      say("Back to the start: your courses and their files are here, everything added since is gone.");
     },
     logQuiz: (slug: string) => bump(slug, "quizzes", "Practice quiz logged", {}, { kind: "quiz", minutes: 5 }),
     logSession: (slug: string) => bump(slug, "sessions", "Study session logged", {}, { kind: "study", minutes: 25 }),

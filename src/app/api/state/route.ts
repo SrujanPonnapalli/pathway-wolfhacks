@@ -1,7 +1,9 @@
 import { bad, db, noDb, profileExists } from "@/lib/db";
 
 // A profile's logged activity since its seed, in the store's shape. GET hydrates the app;
-// DELETE is the demo's "Reset demo data" (removes logged activity and plans, keeps the seed).
+// DELETE is the demo's "Reset": back to the start state. Logged activity, plans, uploaded files
+// and their facts, chats and the rest of the browser-side state go; the seed (courses, meetings,
+// deadlines, to-dos, the streak) stays, and the browser re-seeds the sample files and facts.
 export async function GET(req: Request) {
   const sql = db();
   if (!sql) return noDb();
@@ -40,6 +42,11 @@ export async function DELETE(req: Request) {
     await tx`DELETE FROM events WHERE profile_id = ${id} AND source <> 'seed'`;
     await tx`DELETE FROM study_blocks WHERE profile_id = ${id}`;
     await tx`UPDATE todos SET done_at = NULL WHERE profile_id = ${id}`;
+    // Uploaded files and their facts, and the browser-side state kept here: created lazily, so check first.
+    for (const t of ["kb_nodes", "kb_sources", "profile_extras"]) {
+      const [exists] = await tx`SELECT to_regclass(${t}) AS r`;
+      if (exists.r) await tx`DELETE FROM ${tx(t)} WHERE profile_id = ${id}`; // nodes cascade edges; sources cascade their nodes
+    }
     // The live judge profile starts empty again.
     await tx`DELETE FROM courses WHERE profile_id = ${id} AND ${id} = 'judge'`;
   });

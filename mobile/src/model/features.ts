@@ -1,0 +1,139 @@
+// Dataset columns (data/data_dictionary.csv) and what Pathway may do with each.
+// suggest = a lever the student controls; context = used by the model, never suggested;
+// never = never suggested (gameable or health). See docs/planning/07_fresh_slate/pathway_full_spec.md §2e.
+export type Role = "suggest" | "context" | "never";
+
+type Meta = {
+  label: string;
+  role: Role;
+  min: number;
+  max: number;
+  step: number;
+  fmt: (v: number) => string;
+  ask: (t: number) => string; // the split as a yes/no question; "yes" = value above t
+  fact: (v: number) => string; // the student's value, in a sentence fragment
+  goal?: (v: number) => string; // a target, as advice: "starting exam prep 3.5 days out"
+};
+
+const pct = (v: number) => `${+(v * 100).toFixed(1)}%`; // one decimal so small moves (79.5% → 80.5%) stay visible
+const days = (v: number) => `${+v.toFixed(1)} ${v === 1 ? "day" : "days"}`;
+
+export const FEATURES: Record<string, Meta> = {
+  avg_days_started_before_exam: {
+    label: "Start exam prep", role: "suggest", min: 0, max: 14, step: 0.5, fmt: (v) => `${days(v)} before`,
+    ask: (t) => `Start exam prep more than ${days(t)} out?`, fact: (v) => `you start exam prep about ${days(v)} out`,
+    goal: (v) => `starting exam prep ${days(v)} out`,
+  },
+  attendance_rate: {
+    label: "Class attendance", role: "suggest", min: 0.3, max: 1, step: 0.01, fmt: pct,
+    ask: (t) => `Attend more than ${pct(t)} of classes?`, fact: (v) => `you attend ${pct(v)} of classes`,
+    goal: (v) => `getting attendance above ${pct(v - 0.01)}`,
+  },
+  practice_quizzes_taken: {
+    label: "Practice quizzes", role: "suggest", min: 0, max: 60, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Take more than ${Math.floor(t)} practice quizzes?`, fact: (v) => `you've taken ${v} practice ${v === 1 ? "quiz" : "quizzes"}`,
+    goal: (v) => `taking ${v} practice quizzes`,
+  },
+  on_time_submission_rate: {
+    label: "On-time submissions", role: "suggest", min: 0.3, max: 1, step: 0.01, fmt: pct,
+    ask: (t) => `Submit more than ${pct(t)} of work on time?`, fact: (v) => `you submit ${pct(v)} of work on time`,
+    goal: (v) => `submitting ${pct(v)} of work on time`,
+  },
+  late_night_study_pct: {
+    label: "Studying after midnight", role: "suggest", min: 0, max: 0.9, step: 0.01, fmt: pct,
+    ask: (t) => `Study after midnight more than ${pct(t)} of the time?`, fact: (v) => `${pct(v)} of your study time is after midnight`,
+    goal: (v) => `keeping after-midnight study to ${pct(v)}`,
+  },
+  missed_deadlines: {
+    label: "Missed deadlines", role: "suggest", min: 0, max: 15, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Miss more than ${Math.floor(t)} deadlines?`, fact: (v) => `you've missed ${v} ${v === 1 ? "deadline" : "deadlines"}`,
+    goal: (v) => `keeping missed deadlines to ${v}`,
+  },
+  avg_weekly_study_hours: {
+    label: "Weekly study hours", role: "suggest", min: 0.5, max: 18, step: 0.5, fmt: (v) => `${v} h`,
+    ask: (t) => `Study more than ${t} hours a week?`, fact: (v) => `you study about ${v} hours a week`,
+  },
+  study_sessions_logged: {
+    label: "Study sessions", role: "suggest", min: 3, max: 120, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Log more than ${Math.floor(t)} study sessions?`, fact: (v) => `you've logged ${v} study sessions`,
+  },
+  work_hours_per_week: {
+    label: "Work hours", role: "context", min: 0, max: 35, step: 1, fmt: (v) => `${v} h/week`,
+    ask: (t) => `Work more than ${t} hours a week?`, fact: (v) => `you work about ${v} hours a week`,
+  },
+  credit_hours: {
+    label: "Credit hours", role: "context", min: 12, max: 18, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Take more than ${t} credit hours?`, fact: (v) => `you're taking ${v} credit hours`,
+  },
+  midterm_score: {
+    label: "Midterm score", role: "context", min: 20, max: 100, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Midterm score above ${Math.floor(t)}?`, fact: (v) => `your midterm score is ${v}`,
+  },
+  materials_uploaded: {
+    label: "Materials uploaded", role: "never", min: 0, max: 40, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Upload more than ${t} files?`, fact: (v) => `you've uploaded ${v} files`,
+  },
+  flashcards_reviewed: {
+    label: "Flashcards reviewed", role: "never", min: 0, max: 600, step: 1, fmt: (v) => `${v}`,
+    ask: (t) => `Review more than ${t} flashcards?`, fact: (v) => `you've reviewed ${v} flashcards`,
+  },
+  avg_sleep_hours: {
+    label: "Sleep", role: "never", min: 3.5, max: 10, step: 0.1, fmt: (v) => `${v} h`,
+    ask: (t) => `Sleep more than ${t} hours?`, fact: (v) => `you sleep about ${v} hours`,
+  },
+};
+
+// Columns the notebook adds on top of the dataset: the warning-sign count the early tree splits on,
+// one-hot course flags, class year as a number, and "was this blank" flags. Context only, never suggested.
+const DERIVED: Record<string, Meta> = {
+  warning_signs: {
+    label: "Warning signs", role: "context", min: 0, max: 4, step: 1, fmt: (v) => `${v} of 4`,
+    ask: (t) => `More than ${Math.floor(t)} warning sign${Math.floor(t) === 1 ? "" : "s"}?`,
+    fact: (v) => (v === 0 ? "none of the 4 warning signs show" : `${v} of the 4 warning signs show (late work, last-minute exam prep, missed classes, low quiz scores)`),
+  },
+  avg_practice_quiz_score: {
+    label: "Practice quiz average", role: "context", min: 0, max: 100, step: 1, fmt: (v) => `${Math.round(v)}%`,
+    ask: (t) => `Practice quiz average above ${Math.round(t)}%?`, fact: (v) => (v > 0 ? `your practice quizzes average ${Math.round(v)}%` : `you haven't taken a practice quiz yet`),
+  },
+  class_year_ord: {
+    label: "Class year", role: "never", min: 1, max: 4, step: 1, fmt: (v) => ["", "freshman", "sophomore", "junior", "senior"][Math.round(v)] ?? String(v),
+    ask: (t) => `Past ${["", "freshman", "sophomore", "junior", "senior"][Math.floor(t)] ?? t} year?`, fact: (v) => `you're a ${["", "freshman", "sophomore", "junior", "senior"][Math.round(v)] ?? v}`,
+  },
+};
+
+export const meta = (f: string): Meta => {
+  if (FEATURES[f]) return FEATURES[f];
+  if (DERIVED[f]) return DERIVED[f];
+  if (f.startsWith("course_")) {
+    const code = f.slice(7).replace("_", " ");
+    return { label: code, role: "context", min: 0, max: 1, step: 1, fmt: (v) => (v > 0.5 ? "yes" : "no"), ask: () => `Is this ${code}?`, fact: (v) => (v > 0.5 ? `this is ${code}` : `this isn't ${code}`) };
+  }
+  if (f.endsWith("_missing")) {
+    const base = f.slice(0, -8).replace(/_/g, " ");
+    return { label: `${base} unknown`, role: "context", min: 0, max: 1, step: 1, fmt: (v) => (v > 0.5 ? "yes" : "no"), ask: () => `Is ${base} unknown?`, fact: (v) => (v > 0.5 ? `your ${base} is unknown` : `your ${base} is known`) };
+  }
+  return { label: f, role: "context", min: 0, max: 1, step: 0.01, fmt: String, ask: (t) => `${f} above ${t}?`, fact: (v) => `${f} is ${v}` };
+};
+
+export const ACTIONABLE = Object.fromEntries(
+  Object.entries(FEATURES).filter(([, m]) => m.role === "suggest").map(([f, m]) => [f, { min: m.min, max: m.max, step: m.step }]),
+);
+
+// "you start exam prep about 1 day out and you attend 73% of classes"
+export function sentence(parts: string[]) {
+  if (parts.length < 2) return parts.join("");
+  return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+}
+
+// One fact per feature (a tree can split on the same feature twice), and course flags are left out:
+// "this is MA 241" is not a reason a student can act on.
+export const reasonFor = (steps: { feature: string; value: number }[]) => {
+  const seen = new Set<string>();
+  const facts = steps.filter((s) => !seen.has(s.feature) && seen.add(s.feature) && !s.feature.startsWith("course_")).map((s) => meta(s.feature).fact(s.value));
+  return `Because ${sentence(facts.length ? facts : steps.slice(0, 1).map((s) => meta(s.feature).fact(s.value)))}.`;
+};
+
+export const moveText = (m: { feature: string; from: number; to: number }) =>
+  `${meta(m.feature).label}: ${meta(m.feature).fmt(m.from)} → ${meta(m.feature).fmt(m.to)}`;
+
+export const goalText = (m: { feature: string; to: number }) => meta(m.feature).goal?.(m.to) ?? moveText({ ...m, from: m.to });

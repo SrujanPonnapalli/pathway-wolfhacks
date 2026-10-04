@@ -71,3 +71,29 @@ export const sync = {
 };
 
 export const demo = { now: NOW, judgeCourse: JUDGE_COURSE, judgeClass: JUDGE_CLASS };
+
+// ── Study Pots (Solana devnet). Live only: there's no local fallback for a blockchain. ──────
+export type PotsView = {
+  wallet: { address: string; balance: number; explorer: string; allowancePending: boolean };
+  upcoming: { weekStart: string; lockAt: string; settleAfter: string };
+  pots: Pot[];
+};
+export type Pot = import("./solana/chain").PotView;
+
+export async function getPots(profileId: string): Promise<PotsView | null> {
+  if (!live) return null;
+  try {
+    return await api<PotsView>(`/api/pots?profile_id=${encodeURIComponent(profileId)}`);
+  } catch {
+    return null;
+  }
+}
+
+/** Create, join or leave. Waits for devnet confirmation; throws with a readable message. */
+export async function potAction(body: { profile_id: string; action: "create" | "join" | "leave"; pot?: string; stake?: number }) {
+  const t0 = performance.now();
+  const r = await fetch("/api/pots", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout(30_000) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error ?? "Couldn't reach Solana devnet. Try again in a moment.");
+  return { ...(j as { pot: string; sig: string; explorer: string }), seconds: (performance.now() - t0) / 1000 };
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { AskLine, Files, Greeting, InboxPanel, Onboarding, Route, WeekPanel } from "@/components/home";
+import { PotLine } from "@/components/PotLine";
 import { Gate } from "@/components/ui";
 import { usePathway } from "@/lib/store";
 
@@ -26,6 +27,7 @@ function HomeBody() {
     <main className="mx-auto max-w-[760px] px-4 py-6 md:px-10 md:py-10">
       <Greeting />
       <div className="mt-8"><Route /></div>
+      <PotLine offer />
       <div className="mt-5"><AskLine /></div>
       <div className="mt-12 grid gap-10 md:grid-cols-2 md:gap-x-12">
         <WeekPanel />

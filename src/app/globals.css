@@ -109,6 +109,11 @@ body {
   border-color: var(--color-sky-lip);
   color: white;
 }
+@utility btn-grape {
+  background: var(--color-grape);
+  border-color: #5a33a8;
+  color: white;
+}
 @utility btn-danger {
   background: #d93636;
   border-color: #a52222;

@@ -6,6 +6,7 @@ import { BorderBeam } from "border-beam";
 import { Check, Copy, Lock, Mail, RefreshCw, RotateCcw } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
+import { PotLine } from "@/components/PotLine";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
 import { FEATURES, meta, moveText, reasonFor } from "@/lib/features";
 import { planBlocks } from "@/lib/plan";
@@ -206,6 +207,7 @@ function CourseInsight({ c }: { c: CourseView }) {
                   ? `Adds up to 3 dated study blocks before ${fmtDay(c.exam.date)}.`
                   : "Move a slider until the path ends on track, or press Try it."}
             </p>
+            {planned && <PotLine offer />}
             {tried && (
               <button onClick={() => (setWhat({}), setPlanned(false))} className="mt-3 flex items-center gap-1.5 text-sm font-bold text-muted hover:text-ink">
                 <RotateCcw size={14} aria-hidden /> Back to my real numbers

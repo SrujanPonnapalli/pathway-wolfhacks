@@ -19,6 +19,7 @@ export async function GET(req: Request) {
     study_blocks: sql`SELECT course_slug, title, starts_at, done_at, created_at FROM study_blocks WHERE profile_id = ${id}`,
     todos: sql`SELECT id, title, detail, due_at, done_at FROM todos WHERE profile_id = ${id}`,
     buddies: sql`SELECT buddy_id FROM buddies WHERE profile_id = ${id}`,
+    buddy_requests_sent: sql`SELECT to_email, created_at FROM buddy_requests WHERE from_id = ${id}`,
     events: sql`SELECT time, course_slug, kind, minutes, score, late_night, source, meta FROM events WHERE profile_id = ${id} ORDER BY time`,
     wallet: sql`SELECT pubkey, created_at FROM wallets WHERE profile_id = ${id}`,
     pots: sql`SELECT m.pot, p.stake, p.week_start, p.phase, m.joined_at, m.payout FROM pot_members m JOIN pots p ON p.address = m.pot WHERE m.profile_id = ${id}`,
@@ -41,6 +42,7 @@ export async function DELETE(req: Request) {
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id}`; // hypertable: no foreign key to cascade from
     await tx`DELETE FROM buddies WHERE buddy_id = ${id}`;
+    await tx`DELETE FROM buddy_requests WHERE to_email = (SELECT lower(email) FROM accounts WHERE profile_id = ${id})`; // sent ones cascade
     // Knowledge tables are created lazily and keyed by profile_id without foreign keys.
     for (const t of ["kb_nodes", "kb_sources", "viva_turns"]) {
       const [exists] = await tx`SELECT to_regclass(${t}) AS r`;

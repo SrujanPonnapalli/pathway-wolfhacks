@@ -52,7 +52,7 @@ export async function getBuddies(profileId: string) {
     try {
       return await api<typeof BUDDIES>(`/api/buddies?profile_id=${encodeURIComponent(profileId)}`);
     } catch {}
-  return BUDDIES;
+  return isDemo() ? BUDDIES : []; // the sample buddies are demo data, never a real account's
 }
 
 const send = (path: string, method: string, body: unknown) =>

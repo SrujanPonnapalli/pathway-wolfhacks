@@ -18,7 +18,6 @@
   position: relative;
   z-index: 10;
   background: #f9fbf8;
-  border-bottom: 1px solid var(--landing-line);
 }
 .landing-nav { min-height: 82px; display: flex; align-items: center; justify-content: space-between; gap: 28px; }
 .landing-wordmark { display: inline-flex; align-items: center; gap: 7px; color: var(--landing-teal); font-size: 27px; font-weight: 900; letter-spacing: -.065em; line-height: 1; }

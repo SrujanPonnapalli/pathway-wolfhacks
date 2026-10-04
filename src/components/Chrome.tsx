@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { AccountMenu } from "@/components/Account";
 import { Sidebar } from "@/components/Sidebar";
 import { VivaDock, VivaProvider } from "@/components/VivaDock";
 
@@ -18,7 +19,12 @@ export function Chrome({ children }: { children: ReactNode }) {
         <>
           <Sidebar />
           {/* Desktop pads for the collapsed icon rail only; the open sidebar overlays the page. */}
-          <div className="pb-24 md:pb-0 md:pl-[4.5rem]">{children}</div>
+          <div className="relative pb-24 md:pb-0 md:pl-[4.5rem]">
+            <div className="absolute right-6 top-5 z-30 hidden md:block">
+              <AccountMenu />
+            </div>
+            {children}
+          </div>
           <VivaDock />
         </>
       )}

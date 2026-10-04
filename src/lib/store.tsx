@@ -280,13 +280,14 @@ function useStore() {
   const [googleOn, setGoogleOn] = useState(false);
   const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
   const [googleShared, setGoogleShared] = useState(false);
+  const isAccount = !!profile?.account;
   useEffect(() => {
-    gcal.init().then(async (on) => {
+    gcal.init(isAccount).then(async (on) => {
       setGoogleOn(on);
       setGoogleShared(gcal.isShared());
-      if (on) setGoogleWho(await gcal.whoAmI().catch(() => null));
+      setGoogleWho(on ? await gcal.whoAmI().catch(() => null) : null);
     });
-  }, []);
+  }, [isAccount]);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 
   const localEvents = useMemo<CalEvent[]>(() => {
@@ -594,6 +595,16 @@ function useStore() {
     toast,
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
+    /** After Google sign-in or sign-out: the visible profiles change, so reload them and pick one. */
+    reloadProfiles: async (select?: string, forget?: string) => {
+      const p = await getProfiles();
+      setProfiles(p);
+      setSaved((v) => {
+        const by = { ...v.by };
+        if (forget) delete by[forget]; // a deleted account leaves nothing behind on this device either
+        return { ...v, by, profile: select ?? (p.some((x) => x.id === v.profile) ? v.profile : p[0]?.id) };
+      });
+    },
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
@@ -634,7 +645,7 @@ function useStore() {
     addJudgeCourse: async () => {
       update((st) => (st.added.length ? st : { ...st, added: [demo.judgeCourse], addedClasses: [demo.judgeClass] }));
       say("BIO 181 added from your syllabus.");
-      await sync.addJudgeCourse();
+      await sync.addJudgeCourse(profile.id);
       if (isLive()) setProfiles(await getProfiles());
     },
     events,
@@ -1076,7 +1087,17 @@ function useStore() {
     return { receipts, links, email, navigate };
   };
 
-  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat"): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
+  // Voice confirmation: on voice turns, calendar-writing actions are held as a spoken
+  // proposal ("three blocks, Tue/Thu/Sat — want me to go ahead?") until the student says
+  // yes or no, instead of mutating the calendar mid-sentence. The Week page's manual
+  // approve/dismiss is untouched — this is the same gate, just spoken.
+  const pendingActions = useRef<AgentAction[] | null>(null);
+  const MUTATING = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
+  const CONFIRM = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|approve|confirm|sounds good|please)\b/i;
+
+  // act=false is for proactive turns (device events): Viva may speak but never executes
+  // actions unprompted — nothing changes without the student asking.
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
     try {
       const ctx = coachContext({
         now: demo.now,
@@ -1096,8 +1117,15 @@ function useStore() {
       const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)), 6000, demo.now);
       // Voice appends the student's turn before calling this; don't send it twice.
       const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
+      // If last turn ended on a spoken proposal, this message is the student's verdict:
+      // show the agent exactly what was on the table so it can re-emit or drop it.
+      const held = pendingActions.current;
+      pendingActions.current = null;
+      const message = held?.length
+        ? `${text}\n\n[Earlier you proposed these calendar changes and asked the student to confirm: ${JSON.stringify(held)}. If the student just agreed, return the same actions again so they run; if they declined, acknowledge briefly and return no actions.]`
+        : text;
       const r = await askAgent(
-        text,
+        message,
         {
           ...ctx,
           page,
@@ -1118,7 +1146,38 @@ function useStore() {
       );
       setUsage((u) => ({ input: u.input + r.usage.input, output: u.output + r.usage.output, turns: u.turns + 1 }));
       console.info(`[viva] ${r.specialist} answered in ${r.ms}ms, ${r.usage.input}+${r.usage.output} tokens, ${r.actions.length} action(s)`);
-      const done = await execute(r.actions);
+      let actions = r.actions;
+      let spoken = r.say;
+      if (page.startsWith("/device")) actions = actions.filter((a) => a.type !== "navigate"); // the kiosk stays put — Viva speaks instead of moving you
+      if (act && channel === "voice") {
+        const mut = actions.filter((a) => MUTATING.has(a.type));
+        if (!mut.length && held?.length && CONFIRM.test(text)) {
+          actions = held; // agent confirmed in words but dropped the actions — run the held proposal
+        } else if (!held && mut.length) {
+          // First proposal on this voice session: hold the calendar writes and say it as a
+          // proposal — never reuse `say`, which claims it already happened.
+          pendingActions.current = mut;
+          actions = actions.filter((a) => !MUTATING.has(a.type));
+          const titleFor = (id?: string) => events.find((e) => e.id === id)?.title ?? "that event";
+          const sugFor = (id?: string) => suggestions.find((x) => x.id === id)?.title ?? "the suggestion";
+          const codeFor = (slug?: string) => courses.find((c) => c.slug === slug)?.code ?? slug ?? "the course";
+          const bits = mut.map((a) => {
+            if (a.type === "add_event") return `add "${a.title}"${a.start ? ` ${fmtDay(a.start)} ${fmtTime(a.start)}` : ""}`;
+            if (a.type === "move_event") return `move "${titleFor(a.id)}"`;
+            if (a.type === "resize_event") return `change the length of "${titleFor(a.id)}"`;
+            if (a.type === "rename_event") return `rename "${titleFor(a.id)}"`;
+            if (a.type === "remove_event") return `remove "${titleFor(a.id)}"`;
+            if (a.type === "clear_range") return `clear ${a.start ? `${fmtDay(a.start)} ${fmtTime(a.start)} to ${fmtTime(a.end ?? a.start)}` : "that stretch"}`;
+            if (a.type === "approve_all") return "approve every pending suggestion";
+            if (a.type === "make_it_real") return `add the study plan for ${codeFor(a.course)}`;
+            if (a.type === "approve_suggestion") return `approve "${sugFor(a.id)}"`;
+            if (a.type === "dismiss_suggestion") return `set aside "${sugFor(a.id)}"`;
+            return a.type;
+          });
+          spoken = `I can ${bits.join(" and ")} — want me to go ahead?`;
+        }
+      }
+      const done = act ? await execute(actions) : { receipts: [] as string[], links: [] as Action[], email: undefined as EmailDraft | undefined, navigate: undefined as string | undefined };
       // What the student told Viva becomes a visible, deletable preference fact (course-scoped when they named one).
       if (r.remember.length) {
         const course = courses.find((c) => text.toLowerCase().includes(c.code.toLowerCase()))?.code ?? "";
@@ -1127,7 +1186,7 @@ function useStore() {
       }
       const byId = new Map(s.knowledge.nodes.map((n) => [n.id, n]));
       const citations = (r.used ?? []).map((id) => byId.get(id)).filter((n): n is KbNode => !!n).map((n) => ({ id: n.id, title: n.title, quote: n.quote, locator: n.locator, course: n.course }));
-      const say = r.say.trim() || (done.receipts.length ? "Done." : "I don't have that.");
+      const say = spoken.trim() || (done.receipts.length ? "Done." : "I don't have that.");
       return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations };
     } catch (e) {
       console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);

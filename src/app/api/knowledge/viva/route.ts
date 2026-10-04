@@ -1,14 +1,16 @@
 // GET /api/knowledge/viva?profile=maya  ->  the last Viva turns (specialist, ms, tokens, facts used).
 // POST { knowledge, courses, course? }  ->  the exact context pack Viva would read, with a token estimate.
+import { mayUseProfile } from "@/lib/db";
 import { compileContext, scopeFor } from "@/lib/knowledge/compile";
 import { recentTurns } from "@/lib/knowledge/db";
 import type { Knowledge } from "@/lib/knowledge/types";
-import { route } from "@/lib/intel/http";
+import { HttpError, route } from "@/lib/intel/http";
 
 export const dynamic = "force-dynamic";
 
 export const GET = route(async (req) => {
   const profile = new URL(req.url).searchParams.get("profile") ?? "maya";
+  if (!(await mayUseProfile(req, profile))) throw new HttpError(403, "Sign in to that account first.");
   return Response.json({ turns: await recentTurns(profile, 10) });
 });
 

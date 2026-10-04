@@ -3,16 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState, type ComponentType, type FocusEvent } from "react";
-import {
-  BarChart3,
-  BookOpen,
-  CalendarDays,
-  GraduationCap,
-  House,
-  Mail,
-  RotateCcw,
-  Users,
-} from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, MonitorSmartphone, RotateCcw, Users } from "lucide-react";
+import { AccountMenu } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
 import { useViva, VivaCard } from "@/components/VivaDock";
@@ -35,6 +27,7 @@ const NAV: NavLink[] = [
   { href: "/insights", label: "Insights", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Mail },
   { href: "/viva", label: "Viva", icon: VivaIcon },
+  { href: "/device", label: "Device", icon: MonitorSmartphone },
 ];
 const EXTRA: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
 
@@ -80,13 +73,8 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
   if (!profile) return null;
   return (
     <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
-      <label
-        className={
-          compact ? "sr-only" : "block px-1 text-sm font-bold text-muted"
-        }
-        htmlFor={compact ? "who-m" : "who"}
-      >
-        Demo profile
+      <label className={compact ? "sr-only" : "block px-1 text-sm font-bold text-muted"} htmlFor={compact ? "who-m" : "who"}>
+        Profile
       </label>
       <select
         id={compact ? "who-m" : "who"}
@@ -96,7 +84,7 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
       >
         {profiles.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.sample ? `${p.name} (sample)` : "You (judge, live)"}
+            {p.account ? `${p.name} (you)` : p.sample ? `${p.name} (sample)` : "You (judge, live)"}
           </option>
         ))}
       </select>
@@ -179,8 +167,9 @@ export function Sidebar() {
     <>
       <header className="flex items-center justify-between gap-3 border-b-2 border-line px-4 py-3 md:hidden">
         <Wordmark />
-        <div className="max-w-[55%]">
+        <div className="flex max-w-[60%] items-center gap-2">
           <ProfileSwitcher compact />
+          <AccountMenu />
         </div>
       </header>
       <nav

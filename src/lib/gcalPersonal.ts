@@ -13,7 +13,18 @@ const KEY = "pathway:gcal-token";
 type TokenClient = { requestAccessToken: (o?: { prompt?: string }) => void };
 declare global {
   interface Window {
-    google?: { accounts: { oauth2: { initTokenClient: (c: { client_id: string; scope: string; callback: (r: { access_token?: string; expires_in?: number; error?: string }) => void }) => TokenClient } } };
+    google?: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (c: {
+            client_id: string;
+            scope: string;
+            callback: (r: { access_token?: string; expires_in?: number; error?: string }) => void;
+            error_callback?: (e: { type: string }) => void;
+          }) => TokenClient;
+        };
+      };
+    };
   }
 }
 
@@ -37,7 +48,8 @@ export function disconnect() {
   } catch {}
 }
 
-function script(): Promise<void> {
+/** Loads Google Identity Services once (calendar access and Sign in with Google share it). */
+export function script(): Promise<void> {
   if (window.google?.accounts) return Promise.resolve();
   return new Promise((res, rej) => {
     const s = document.createElement("script");

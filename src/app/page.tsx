@@ -1,20 +1,49 @@
 "use client";
 
 import { AskLine, Files, Greeting, InboxPanel, Onboarding, Route, WeekPanel } from "@/components/home";
+import { useState } from "react";
 import { PotLine } from "@/components/PotLine";
+import { SemesterSetup, setupKey } from "@/components/SemesterSetup";
 import { Gate } from "@/components/ui";
 import { usePathway } from "@/lib/store";
 
 export default function Home() {
   return (
     <Gate>
-      <HomeBody />
+      <HomeFor />
     </Gate>
   );
 }
 
+// Keyed by profile, so per-profile state (like finishing setup) starts fresh on a switch.
+function HomeFor() {
+  const { profile } = usePathway();
+  return <HomeBody key={profile.id} />;
+}
+
 function HomeBody() {
-  const { courses } = usePathway();
+  const { courses, profile } = usePathway();
+  // A Google account sets up its real semester (Drive syllabi, calendar) until it says it's done.
+  const [setupDone, setSetupDone] = useState(() => {
+    try {
+      return localStorage.getItem(setupKey(profile.id)) === "done";
+    } catch {
+      return false;
+    }
+  });
+  if (profile.account && (courses.length === 0 || !setupDone))
+    return (
+      <main className="px-4 py-6 md:px-10 md:py-10">
+        <SemesterSetup
+          onDone={() => {
+            try {
+              localStorage.setItem(setupKey(profile.id), "done");
+            } catch {}
+            setSetupDone(true);
+          }}
+        />
+      </main>
+    );
   if (courses.length === 0)
     return (
       <main className="px-4 py-6 md:px-10 md:py-10">

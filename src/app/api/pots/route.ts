@@ -14,7 +14,7 @@ export async function GET(req: Request) {
   if (!sql) return noDb();
   if (!chain()) return noChain();
   const id = new URL(req.url).searchParams.get("profile_id");
-  if (!(await profileExists(sql, id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
   const wallet = await ensureWallet(sql, id!);
   const [pots, bal, [grant]] = await Promise.all([
     potsFor(sql, id!),
@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   if (!sql) return noDb();
   if (!chain()) return noChain();
   const b = await req.json().catch(() => null);
-  if (!(await profileExists(sql, b?.profile_id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, b?.profile_id, req))) return bad("unknown profile_id");
   const id: string = b.profile_id;
   try {
     let r;

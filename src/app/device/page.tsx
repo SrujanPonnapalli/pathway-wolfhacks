@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { Gate } from "@/components/ui";
-import { CameraAwareness, Device } from "./Device";
+import { CameraAwareness, Device, WakeWord } from "./Device";
 
 export const metadata: Metadata = { title: "Pathway Device" };
 
@@ -25,6 +25,7 @@ export default function Page() {
       <Suspense>
         <CameraAwareness />
       </Suspense>
+      <WakeWord />
     </>
   );
 }

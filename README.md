@@ -1,71 +1,93 @@
 # Pathway
 
-Next.js (TypeScript, Tailwind) app. The decision tree is trained offline in Python and runs in the browser — no Python server.
+**Know your next move.** Pathway helps students make sense of a difficult semester. It brings course activity, grades, deadlines, and study habits into one place, explains *why* a course may need attention, and turns that explanation into a step the student can put on their calendar.
 
-## Run
+This is a hackathon prototype. Its decision trees were trained on synthetic student data, so their predictions are demonstrations of the product, not validated academic outcomes.
+
+## Try the demo
 
 ```bash
-cp .env.example .env.local   # fill in keys
 npm install
 npm run dev
 ```
 
-`npm test` runs the unit tests. For the database, put `DATABASE_URL` in `.env.local`, then run `npm run db:setup` and `npm run db:check`; see [docs/database](docs/database/README.md). Without a database the app runs on local demo data.
+Open [localhost:3000/demo](http://localhost:3000/demo) for Maya's sample semester. The demo works without API keys or a database. You can also open `/demo/jordan`, `/demo/priya`, or `/demo/judge` for a blank profile. The [landing page](http://localhost:3000/landing) is separate from the app.
 
-## Accounts and the demo
+Outside demo mode, Pathway asks visitors to sign in with Google. Account sign-in requires a database, a Google OAuth web client ID, and a session secret; see [Configuration](#configuration).
 
-The app is accounts-only: visitors land on `/landing` and sign in with Google. The sample students
-(Maya, Jordan, Priya) and the blank judge profile live behind the demo door, which isn't linked
-anywhere: **`/demo`** (Maya), `/demo/jordan`, `/demo/priya`, `/demo/judge`, with an optional
-`?next=/insights`. A banner then marks the sample data, switches students and exits the demo.
-The Pi kiosk opens `/demo/maya?next=/device`.
+## What Pathway does
 
-## Layout
+- **Shows the reason.** An on-device decision tree checks course signals and displays the path behind its result. Insights also shows what could change the result and the evidence behind the prototype model.
+- **Makes a plan.** The Week page puts classes, due dates, and study blocks together. Suggestions wait for approval before changing the calendar.
+- **Helps you study.** Course materials can become quizzes, flashcards, and explanations. Viva supports chat and voice, can use relevant course context, and can propose actions such as adding or moving a study block.
+- **Keeps the source visible.** Uploaded syllabi, notes, and grade pages become reviewable facts with source references. Uncertain facts wait for the student to check them.
+- **Connects the rest of the semester.** Pathway includes a course-focused inbox, study buddies, a Raspberry Pi kiosk view, and optional Study Pots on Solana devnet.
 
-| Path | What |
-|---|---|
-| `data/` | Student outcomes dataset (800 rows) + data dictionary |
-| `docs/planning/` | Ideation, critiques, decisions, spec. Start at `docs/planning/README.md` |
-| `src/lib/tree.ts` | `predict`, `explain` (path as steps), `recourse` (cheapest actionable change). Tested in `tree.test.ts` |
-| `src/lib/features.ts` | Every dataset column: label, suggest/context/never role, bounds, plain-English wording |
-| `src/lib/data.ts` | The one file the UI reads data through. Swap its bodies for `/api` calls |
-| `src/lib/mock.ts` | Demo profiles built from real dataset rows, fixed demo clock |
-| `src/lib/store.tsx` | Client state: profile switcher, live loop (quiz/check-in → re-score on device), study blocks |
-| `public/models/` | `tree_early.json` (early tree v2: depth 4, 11 leaves, splits on a derived `warning_signs` count whose cutoffs ship inside the file), `tree_mid.json` (depth 3, 6 leaves), `evidence.json` (test metrics, capacity curve, 200-refit stability, subgroup audit). All exported from `notebooks/pathway_model.py`; `src/lib/rows.json` holds the dataset rows the demo profiles are built from |
-| `src/lib/viva.ts`, `src/lib/voice.ts` | Viva's persona + mock replies (with the causal-language filter), simulated voice session |
-| `src/components/Viva.tsx` | Viva's face on an [orb-ui](https://orb-ui.com) orb; driven by `{ state, input, output }` |
-| `src/app/` | Home, Courses (every class: syllabus, gradebook, attendance, lecture materials, and the facts with their sources and review gate; `src/app/courses/`), Study (quiz / flashcards from the course materials or a dropped file), Insights (status + route to on track, four standing tiles on the tree's own cutoffs, grades by syllabus category and missing work via `src/lib/standing.ts`; model path, what-ifs and evidence collapsed below), Viva (chat / voice), Study buddies |
-| `src/lib/coursework-data.ts`, `src/lib/coursework.ts`, `src/lib/knowledge/sample.ts` | Sample course content for all 8 dataset courses (syllabus, weekly schedule, assignments, lecture notes with full text) and the per-student gradebook and attendance log generated from each profile's own numbers, so no demo status flips; `sample.ts` turns them into the knowledge graph every profile starts with |
-| `db/schema.sql`, `scripts/db.ts` | Tiger schema (events hypertable, `course_weekly` real-time aggregate, `course_features` model-input view, pgvector) and the setup/seed/check script. Docs: [docs/database](docs/database/README.md) |
-| `src/app/api/*` | Database routes (profiles, state, events, blocks, todos, courses, buddies); `tts`/`stt` = Viva's voice via ElevenLabs (v4 Turbo, Scribe v2; key stays server-side) |
-| `src/app/device/` | The Raspberry Pi kiosk screen (1024×600, no app chrome). `scripts/kiosk.sh` launches it fullscreen on the Pi; setup docs: [docs/hardware](docs/hardware/README.md) |
-| `src/lib/gemini.ts`, `src/lib/intel/` | Gemini: `coach` (Viva's brain, one fast call over the student's own context; also drafts replies and the advisor note), `planner` (proposes up to 3 calendar changes from mail, due work, syllabus policies and status), `syllabus`, `study` (quiz/viva/flashcards), `dataset`, `analyze` (drop anything). Routes: `api/{coach,plan,syllabus,quiz,viva,analyze,dataset}` |
-| `src/lib/schedule.ts`, `src/lib/gcal.ts`, `src/app/calendar/` | The week: classes/exams/due dates (Moodle feed, demo data) + study blocks + Google Calendar; suggestion rules; approved changes write to Google |
-| `src/lib/inbox.ts`, `src/app/inbox/` | Course mail (demo data); Viva drafts replies, Gmail sends |
+### What connects today
 
-Your status is calculated on your device and never stored by Pathway; the database holds inputs only. In voice mode, speech is processed by ElevenLabs.
+| Service | Current behavior |
+| --- | --- |
+| Moodle and Gradescope | Sample records are included in the demo. Students can drop their own syllabus or grade page; there is no direct account sync yet. |
+| Google Drive | An optional Google Picker lets a student choose course files to import. It needs Google OAuth and a browser API key. |
+| Google Calendar | An optional shared demo calendar or a student's personal calendar can sync events and approved study blocks. |
+| Gmail | Viva can draft a reply and open it in Gmail for the student to send. The inbox currently uses sample mail; Pathway does not send mail itself. |
+| Gemini | Powers Viva, document analysis, study material generation, and planning when an API key is configured. The decision tree itself does not call Gemini. |
+| ElevenLabs | Handles Viva speech-to-text and text-to-speech when configured. |
 
-UI libraries (all MIT): [orb-ui](https://orb-ui.com) for Viva's body, and [thinking-orbs](https://libraries.dev/orbs), [border-beam](https://libraries.dev/beam), [voice-glow](https://libraries.dev/voice) and [liquid-gooey](https://libraries.dev/gooey) from Libraries.dev (free npm packages only, no Pro content).
+## How it works
 
-## Owners
+1. **Collect signals.** Pathway uses sample or uploaded course records, logged quizzes and check-ins, upcoming work, and the student's calendar.
+2. **Explain the check-in.** Python trains and exports the decision trees offline. The browser runs the exported JSON model and shows its decision path; there is no Python server.
+3. **Choose a next step.** Rule-based suggestions and Gemini planner proposals appear in the same review flow. Suggested calendar changes wait for approval; direct commands to Viva leave a receipt in the conversation.
+4. **Keep studying.** New activity updates the course picture. Viva can answer with course context and leave a receipt for actions it takes in the app.
 
-- Frontend lead — page skeleton + D3 tree
-- Srujan — notebook + JSON exports
-- Third — Tiger schema, events, calendar
-- Fourth — Gemini/ElevenLabs routes, Vercel + domain
+The database, when configured, stores student inputs and app state. The course-status prediction is calculated in the browser rather than stored as a database field. In voice mode, speech is processed by ElevenLabs.
 
-## Gemini and Google Calendar
+## Built with
 
-`GEMINI_API_KEY` (AI Studio). Viva answers from one fast call on `gemini-3.5-flash-lite`; documents use `gemini-3.8-flash` with fallbacks. Both model names are env-overridable.
+Next.js 16, React 19, TypeScript, and Tailwind CSS power the app. Python and scikit-learn train the exported decision trees. Optional services include Gemini for Viva and planning, ElevenLabs for voice, Tiger Cloud for persistence, Google Drive and Calendar, and Solana devnet for Study Pots.
 
-**Viva is an agent.** Chat and voice both go through `POST /api/agent` (`src/lib/intel/agent.ts`): one structured call returns what Viva says and a list of actions the browser then runs against its own state: add (with daily, weekday or weekly repeats), move, resize, rename or remove calendar events, clear a range, approve or dismiss suggestions (or all of them), "make it real", log quizzes and check-ins, set a midterm, open a quiz or deck from a named lecture file, draft an email (shown with Copy / Open in Gmail, never sent), or navigate. A block whose time is taken slides to the next free slot and the receipt says so. Viva sees the next 14 days with ids; a topic question brings the matching lecture file along (word overlap, no model call, `src/lib/knowledge/excerpts.ts`), and a whole-week question gets a brief per-course pack (next two weeks of dates, open and missing work, weights) instead of every fact. Every action leaves a receipt under the message. A zero-token router picks a specialist per message (coach, writer, scheduler, tutor), each with its own prompt addendum and output budget, so there are no tool loops and no second round trip. Durable facts the student states come back as `remember` notes that ride along with every turn, so history can stay at six turns without Viva forgetting. The mini Viva in the sidebar (`src/components/VivaDock.tsx`) holds the one voice session and the one chat thread for the whole app; leaving the Viva page hands the conversation to it. Voice speed (0.8× to 1.6×) and a token meter live in its settings; Skip fast-forwards what Viva is saying.
+## Configuration
 
-**The loop, and what it costs.** The decision tree runs on-device on every change (a quiz, a check-in, a midterm, a dropped Gradescope page, which overrides the course's deadline numbers) and never calls Gemini. Gemini is called only when there is something new to read: one call per dropped file, one per Viva turn, and one planner call per *context change* (the client hashes courses' status, sources, mail, the week's events and current suggestions; the result is cached per hash in localStorage, so dragging blocks around or reloading costs nothing). Planner proposals land in the same Week-page list as the rule-based suggestions and need the same Approve. The advisor note on Insights is one call, and nothing is sent unless the student sends it.
+Copy `.env.example` to `.env.local` when you want to enable services. Replace its placeholders; if you are not using Tiger Cloud, remove the example `DATABASE_URL` value.
 
-**Shared calendar (the demo).** The student's Google Calendar is connected for everyone who opens the app, with no sign-in: a service account that the calendar is shared with does the reading and writing through `/api/gcal`. Set `GOOGLE_SERVICE_ACCOUNT_JSON` (key file contents) and `GOOGLE_CALENDAR_ID` (the account's email). Google mirrors the profile on screen: classes, exams, due dates and study blocks are written once (tagged `Pathway:<id>` and `Profile:<id>`), Pathway's copies for another profile or of things that left the week are taken off again, and the student's own Google entries are never touched and show up on the Week and on Home's Today. The app polls every 20 s and shows a notice when anything is added, moved or removed in Google; Viva's changes, drags on the grid, approved suggestions and "Make it real" write back the moment they happen. `GOOGLE_FAKE_CALENDAR=1` fakes it in memory for local dev.
+| To enable | Set in `.env.local` | Notes |
+| --- | --- | --- |
+| Google account sign-in | `DATABASE_URL`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `SESSION_SECRET` | Set up the schema with `npm run db:setup`. The OAuth client must allow your local or deployed origin. |
+| Viva and document analysis | `GEMINI_API_KEY` | `GEMINI_MODEL_FAST` and `GEMINI_MODEL` can override the defaults. |
+| Viva voice | `ELEVENLABS_API_KEY` | `ELEVENLABS_VOICE_ID` is optional. Keep the API key server-side. |
+| Google Drive Picker | `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_API_KEY` | Enable the Google Picker and Drive APIs for the project. |
+| Personal Google Calendar | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Connect from the app through Google OAuth. |
+| Shared demo calendar | `GOOGLE_SERVICE_ACCOUNT_JSON`, `GOOGLE_CALENDAR_ID` | Share the calendar with the service account. Google mirrors the profile on screen: Pathway's own entries are tagged and kept in step, the student's own events are never touched. `GOOGLE_FAKE_CALENDAR=1` provides an in-memory local stand-in. |
+| Study Pots | `SOLANA_AUTHORITY_SECRET`, `WALLET_ENCRYPTION_KEY`, `PATH_MINT` | Uses Solana devnet; see [docs/solana](docs/solana/README.md). |
 
-**One clock.** Every time the browser keeps is a local wall-clock string without a zone (`src/lib/time.ts`): what the database or a model sends is converted on the way in (`toLocal`), and blocks go to the database as UTC instants (`toUtc`). Study blocks are the database's once it is reachable: adds, moves, renames and removals all write through (`/api/blocks`), and a reload merges rather than replaces, so nothing this device planned goes missing.
+**One clock.** Every time the browser keeps is a local wall-clock string without a zone (`src/lib/time.ts`): data from the database or a model is converted on the way in, and study blocks go to the database as UTC instants. Blocks write through on every add, move, rename or removal, and a reload merges rather than replaces.
 
-**Viva acts at once.** In chat and in voice, Viva's calendar actions run as soon as the model returns them and the receipt says what happened. `NEXT_PUBLIC_VIVA_CONFIRM=1` brings back the spoken "want me to go ahead?" gate on voice turns.
+**Viva acts at once.** Viva's calendar actions run as soon as the model returns them, and the receipt says what happened. `NEXT_PUBLIC_VIVA_CONFIRM=1` brings back the spoken "want me to go ahead?" check on voice turns.
 
-**Personal calendar (fallback).** With no service account, Google Calendar is read and written from the browser with a Web OAuth client ID (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`): Cloud Console → enable Calendar API → consent screen (Testing, add yourself as test user) → OAuth client, Web application, authorized JavaScript origin `http://localhost:3000` (add the Vercel/GoDaddy origins later). Once connected, every class, exam, due date and study block is written to the student's calendar once and kept in sync; approved suggestions update the Google events.
+For database setup and the pooled Vercel connection string, see [docs/database](docs/database/README.md). Never commit `.env.local` or service-account keys.
+
+## Useful commands
+
+```bash
+npm run dev       # local app
+npm test          # unit tests
+npm run lint      # ESLint
+npm run build     # production build
+npm run db:setup  # create database schema, when DATABASE_URL is configured
+npm run db:check  # check database setup
+```
+
+## Where to look in the code
+
+| Area | Key files |
+| --- | --- |
+| Model and evidence | `notebooks/pathway_model.py`, `notebooks/RESULTS.md`, `public/models/`, `src/lib/tree.ts`, `src/lib/features.ts` |
+| Demo and app state | `src/lib/mock.ts`, `src/lib/data.ts`, `src/lib/store.tsx`, `src/app/demo/` |
+| Course materials | `src/lib/knowledge/`, `src/app/courses/`, `src/app/study/` |
+| Viva and voice | `src/lib/intel/`, `src/components/Viva.tsx`, `src/components/VivaDock.tsx`, `src/lib/voice.ts` |
+| Calendar | `src/lib/schedule.ts`, `src/lib/gcal.ts`, `src/app/calendar/` |
+| Database and API | `db/schema.sql`, `scripts/db.ts`, `src/app/api/` |
+| Pi kiosk | `src/app/device/`, `scripts/kiosk.sh`, [hardware setup](docs/hardware/README.md) |
+
+The [planning notes](docs/planning/README.md) document earlier ideas and decisions; the code and this README describe the current prototype.

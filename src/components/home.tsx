@@ -302,7 +302,7 @@ const ACCEPT = [".pdf", ".png", ".jpg", ".jpeg", ".txt", ".csv"];
 type Pending = { id: number; name: string; course: string; status: "reading" | "ready" | "error"; result?: AnalyzeResult; error?: string };
 
 export function Files() {
-  const { courses, state, addSource, removeSource } = usePathway();
+  const { courses, state, addSource, removeSource, saveMaterial } = usePathway();
   const [over, setOver] = useState(false);
   const [items, setItems] = useState<Pending[]>([]);
 
@@ -328,6 +328,7 @@ export function Files() {
     if (!p.result || !course) return;
     const src = toSource(p.result, course.code);
     if (src) addSource(src);
+    if (p.result.study) saveMaterial(course.slug, p.result.study); // Study and Viva's Teach mode use it
     setItems((xs) => xs.filter((x) => x.id !== p.id));
   };
   const summary = (r: AnalyzeResult) => {

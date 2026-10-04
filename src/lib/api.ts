@@ -3,7 +3,8 @@
 
 import type { CoachContext, CoachReply } from "./intel/coach";
 import type { Syllabus } from "./intel/syllabus";
-import type { StudyMaterial, VivaFeedback, VivaQuestion } from "./intel/study";
+import type { Concept, StudyMaterial, VivaFeedback, VivaQuestion } from "./intel/study";
+import type { TeachFeedback, TeachRound } from "./teach";
 import type { DatasetInsights, DatasetProfile } from "./intel/dataset";
 import type { Classification, GenericSummary, GradeImport } from "./intel/analyze";
 import type { Source } from "./intel/coach";
@@ -38,11 +39,15 @@ export const analyzeFile = (file: File, opts: { question?: string; courses?: str
 export const parseSyllabus = (file: File, today?: string) =>
   fetch("/api/syllabus", { method: "POST", body: form(file, { today }) }).then(json<Syllabus>);
 
-export const makeStudyMaterial = (file: File, counts: { quiz?: number; viva?: number; flashcards?: number } = {}, focus?: string) =>
-  fetch("/api/quiz", { method: "POST", body: form(file, { quiz: counts.quiz?.toString(), viva: counts.viva?.toString(), flashcards: counts.flashcards?.toString(), focus }) }).then(json<StudyMaterial>);
+export const makeStudyMaterial = (file: File, counts: { quiz?: number; viva?: number; flashcards?: number; concepts?: number } = {}, focus?: string) =>
+  fetch("/api/quiz", { method: "POST", body: form(file, { quiz: counts.quiz?.toString(), viva: counts.viva?.toString(), flashcards: counts.flashcards?.toString(), concepts: counts.concepts?.toString(), focus }) }).then(json<StudyMaterial>);
 
 export const gradeViva = (question: VivaQuestion, answer: string) =>
   fetch("/api/viva", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question, answer }) }).then(json<VivaFeedback>);
+
+/** Teach mode: one round of feedback on the student's explanation of a concept. */
+export const teachFeedback = (concept: Concept, explanation: string, earlier: TeachRound[]) =>
+  fetch("/api/feynman", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ concept, explanation, earlier }) }).then(json<TeachFeedback>);
 
 export const analyzeDataset = (file: File, question?: string) =>
   fetch("/api/dataset", { method: "POST", body: form(file, { question }) }).then(json<{ profile: DatasetProfile; insights: DatasetInsights }>);

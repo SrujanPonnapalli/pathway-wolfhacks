@@ -2,7 +2,8 @@
 
 // Study: one course, three tools. Quiz and flashcards are real (Gemini reads the slides you
 // drop here); the timer is a real countdown. Every finished thing logs to the on-device
-// model through logQuiz / logSession, exactly as before.
+// model through logQuiz / logSession, exactly as before. What Gemini read is kept per course
+// on this device, so it survives a reload and Viva's Teach mode can use its concepts.
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -16,11 +17,12 @@ import type { StudyMaterial } from "@/lib/intel/study";
 import { usePathway } from "@/lib/store";
 
 export function Study() {
-  const { courses, logQuiz, logSession } = usePathway();
+  const { courses, state, logQuiz, logSession, saveMaterial } = usePathway();
   const params = useSearchParams();
   const [course, setCourse] = useState(params.get("course") ?? courses[0]?.slug ?? "");
   const focus = params.get("tool") ?? "quiz";
-  const [material, setMaterial] = useState<StudyMaterial | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const material: StudyMaterial | null = replacing ? null : (state.materials[course] ?? null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const code = courses.find((c) => c.slug === course)?.code ?? "";
@@ -30,7 +32,8 @@ export function Study() {
     setBusy(true);
     setErr("");
     try {
-      setMaterial(await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8 }));
+      saveMaterial(course, await makeStudyMaterial(f, { quiz: 3, viva: 2, flashcards: 8, concepts: 4 }));
+      setReplacing(false);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -43,7 +46,7 @@ export function Study() {
       <PageHeader title="Study" lead="What you finish here updates your status on this device.">
         <label className="flex items-center gap-2 font-bold">
           Course
-          <select value={course} onChange={(e) => setCourse(e.target.value)} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
+          <select value={course} onChange={(e) => (setCourse(e.target.value), setReplacing(false))} className="rounded-xl border-2 border-line bg-white px-3 py-2 font-bold">
             {courses.map((c) => (
               <option key={c.slug} value={c.slug}>{c.code}</option>
             ))}
@@ -78,7 +81,7 @@ export function Study() {
           ) : (
             <p className="flex items-center gap-2 text-sm text-muted">
               <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {material.title} · {material.topics.slice(0, 3).join(", ")}
-              <button onClick={() => setMaterial(null)} className="ml-auto font-bold text-teal">Change file</button>
+              <button onClick={() => setReplacing(true)} className="ml-auto font-bold text-teal">Change file</button>
             </p>
           )}
           {err && <p role="alert" className="mt-2 text-sm font-bold text-sun-ink">{err}</p>}
@@ -89,9 +92,9 @@ export function Study() {
       {focus === "flashcards" && <Flashcards key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logSession(course)} />}
       {focus === "timer" && <FocusTimer course={course} onDone={() => course && logSession(course)} />}
 
-      <Link href="/viva?mode=voice" className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
+      <Link href={`/viva?mode=teach&course=${course}`} className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
         <VivaGlyph size={36} className="shrink-0 text-sky" />
-        <span className="text-sm text-muted">Want to talk it through? Viva can quiz you out loud.</span>
+        <span className="text-sm text-muted">Think you&apos;ve got it? Teach it to Viva: explain a concept from these slides out loud and Viva tells you what&apos;s still fuzzy.</span>
       </Link>
     </main>
   );

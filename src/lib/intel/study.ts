@@ -23,17 +23,25 @@ export type VivaQuestion = {
 
 export type Flashcard = { front: string; back: string; topic: string };
 
+/** One idea the student can teach back to Viva (Teach mode). Key points are the only yardstick. */
+export type Concept = {
+  topic: string;
+  key_points: string[]; // 3-5 ideas a clear explanation must get across
+  source_ref: string;
+};
+
 export type StudyMaterial = {
   title: string;
   topics: string[];
   quiz: QuizQuestion[];
   viva: VivaQuestion[];
   flashcards: Flashcard[];
+  concepts?: Concept[]; // missing on material read before Teach mode existed
 };
 
 const schema: Schema = {
   type: Type.OBJECT,
-  required: ["title", "topics", "quiz", "viva", "flashcards"],
+  required: ["title", "topics", "quiz", "viva", "flashcards", "concepts"],
   properties: {
     title: { type: Type.STRING },
     topics: { type: Type.ARRAY, items: { type: Type.STRING } },
@@ -74,6 +82,18 @@ const schema: Schema = {
         properties: { front: { type: Type.STRING }, back: { type: Type.STRING }, topic: { type: Type.STRING } },
       },
     },
+    concepts: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        required: ["topic", "key_points", "source_ref"],
+        properties: {
+          topic: { type: Type.STRING },
+          key_points: { type: Type.ARRAY, items: { type: Type.STRING } },
+          source_ref: { type: Type.STRING },
+        },
+      },
+    },
   },
 };
 
@@ -84,6 +104,8 @@ Rules:
 - Hints nudge toward the concept without stating the answer.
 - Viva questions are open-ended and spoken; key_points list 2-4 things a good answer includes.
 - Flashcards: front is a term or question, back is a short answer (under 30 words).
+- Concepts are the main ideas a student could teach to a friend. topic is a short name ("Krebs cycle");
+  key_points list 3-5 ideas a clear explanation must get across, each one short, plain and taken from the material.
 - source_ref cites the slide number or section heading you used.
 - Plain language. No "as an AI".`;
 
@@ -91,16 +113,16 @@ export async function makeStudyMaterial(input: {
   bytes?: Buffer;
   mimeType?: string;
   text?: string;
-  counts?: { quiz?: number; viva?: number; flashcards?: number };
+  counts?: { quiz?: number; viva?: number; flashcards?: number; concepts?: number };
   focus?: string; // optional: "cell respiration only"
 }): Promise<StudyMaterial> {
-  const n = { quiz: 3, viva: 2, flashcards: 10, ...input.counts };
+  const n = { quiz: 3, viva: 2, flashcards: 10, concepts: 4, ...input.counts };
   const parts = [];
   if (input.bytes && input.mimeType) parts.push(filePart(input.bytes, input.mimeType));
   if (input.text) parts.push(textPart(input.text));
   parts.push(
     textPart(
-      `Produce ${n.quiz} quiz questions, ${n.viva} viva questions, and ${n.flashcards} flashcards.` +
+      `Produce ${n.quiz} quiz questions, ${n.viva} viva questions, ${n.flashcards} flashcards, and ${n.concepts} concepts.` +
         (input.focus ? ` Focus on: ${input.focus}.` : ""),
     ),
   );

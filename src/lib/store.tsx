@@ -12,6 +12,7 @@ import { explain, predict, recourse, type Features, type Tree } from "./tree";
 import { sampleChatSessions, soften, vivaReply, type Action, type ChatSession, type Reply } from "./viva";
 import { askCoach, coachContext } from "./api";
 import type { Source } from "./intel/coach";
+import type { StudyMaterial } from "./intel/study";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
@@ -32,6 +33,7 @@ type PState = {
   chatSessions: ChatSession[];
   activeChatId: string;
   sources: Source[]; // dropped files, parsed by Gemini, kept on this device
+  materials: Record<string, StudyMaterial>; // latest slides/notes read per course: Study's quiz and Viva's Teach mode use them
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
@@ -63,6 +65,7 @@ const empty = (profileId: string = "maya"): PState => {
     chatSessions: sessions,
     activeChatId: activeId,
     sources: [],
+    materials: {},
     moved: {},
     dismissed: [],
     gids: {},
@@ -462,6 +465,11 @@ function useStore() {
     },
     logQuiz: (slug: string) => bump(slug, "quizzes", "Practice quiz logged", {}, { kind: "quiz", minutes: 5 }),
     logSession: (slug: string) => bump(slug, "sessions", "Study session logged", {}, { kind: "study", minutes: 25 }),
+    // A finished Teach session counts as a practice quiz (the database counts only kind "quiz" as one,
+    // so hydrating keeps it); meta marks where it came from and the score rides along.
+    logTeach: (slug: string, topic: string, clear: number, total: number) =>
+      bump(slug, "quizzes", `You taught Viva ${topic}`, {}, { kind: "quiz", minutes: 5, score: Math.round((clear / total) * 100), meta: { via: "teach", topic, clear, total } }),
+    saveMaterial: (slug: string, m: StudyMaterial) => update((st) => ({ ...st, materials: { ...st.materials, [slug]: m } })),
     checkIn: (slug: string, at: string) => {
       bump(slug, "checkins", "Checked in", { checkedIn: { ...s.checkedIn, [at]: true } }, { kind: "check_in", meta: { class_at: at } });
     },
@@ -618,6 +626,12 @@ function useStore() {
         };
       });
       say("Conversation deleted.");
+    },
+    // File a finished conversation (a Teach session) in Previous chats without switching to it.
+    archiveChat: (title: string, messages: ChatMsg[]) => {
+      if (!messages.length) return;
+      const at = new Date().toISOString();
+      update((st) => ({ ...st, chatSessions: [{ id: `chat-${Date.now()}`, title, createdAt: at, updatedAt: at, messages }, ...(st.chatSessions ?? [])] }));
     },
     reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
     addTurn: (m: ChatMsg) =>

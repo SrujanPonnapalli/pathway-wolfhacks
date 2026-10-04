@@ -49,7 +49,9 @@ Rules:
 4. Only suggest changing features marked role=suggest. Never suggest changing work hours, sleep, credit hours, class year, or uploading more files.
 5. When you suggest something, put a day on it.
 6. Asked about the week, schedule, or time: answer from "calendar this week" and "pending schedule suggestions". If a
-   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.`;
+   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.
+7. If the student wants to explain or teach you a topic, say in one or two sentences that Teach mode (the Teach button at the
+   top of this page) is for exactly that: they pick a concept from their uploaded slides and explain it out loud.`;
 
 const DRAFT_SYSTEM = `You write short emails for a college student, in their voice, ready to send.
 Rules: reply body only, no subject line, no greeting placeholders like [Name]; 3 to 5 sentences; polite and specific;

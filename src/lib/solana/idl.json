@@ -1,0 +1,524 @@
+{
+  "address": "EzDQkSW3fEqD8Pea3cSvFn1C9mRNhtZ5JGUUJJEwdT43",
+  "metadata": {
+    "name": "study_pots",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "attest",
+      "docs": [
+        "Pathway attests a member's effort (planned / backed study blocks) as it happens. Before the",
+        "lock the numbers move freely (members can still leave). The first attestation after the",
+        "lock freezes `planned`; from then on `planned` can't change and `backed` can only go up."
+      ],
+      "discriminator": [
+        83,
+        148,
+        120,
+        119,
+        144,
+        139,
+        117,
+        160
+      ],
+      "accounts": [
+        {
+          "name": "pot",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "pot"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "member",
+          "type": "pubkey"
+        },
+        {
+          "name": "planned",
+          "type": "u16"
+        },
+        {
+          "name": "backed",
+          "type": "u16"
+        }
+      ]
+    },
+    {
+      "name": "create_pot",
+      "docs": [
+        "Create a pot and its vault; the creator joins in the same transaction."
+      ],
+      "discriminator": [
+        232,
+        45,
+        123,
+        181,
+        204,
+        121,
+        131,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "creator",
+          "signer": true
+        },
+        {
+          "name": "pot",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "pot_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "creator_token",
+          "writable": true
+        },
+        {
+          "name": "token_program"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "pot_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "stake",
+          "type": "u64"
+        },
+        {
+          "name": "lock_at",
+          "type": "i64"
+        },
+        {
+          "name": "settle_after",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "join",
+      "docs": [
+        "Join before the lock by staking the pot's stake."
+      ],
+      "discriminator": [
+        206,
+        55,
+        2,
+        106,
+        113,
+        220,
+        17,
+        163
+      ],
+      "accounts": [
+        {
+          "name": "pot",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "signer": true
+        },
+        {
+          "name": "member_token",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "pot"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "leave",
+      "docs": [
+        "Leave before the lock: full refund, no penalty."
+      ],
+      "discriminator": [
+        59,
+        234,
+        148,
+        108,
+        107,
+        149,
+        173,
+        112
+      ],
+      "accounts": [
+        {
+          "name": "pot",
+          "writable": true
+        },
+        {
+          "name": "member",
+          "signer": true
+        },
+        {
+          "name": "member_token",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "pot"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "settle",
+      "docs": [
+        "Anyone can settle once the week is over (or cancel once locked with fewer than 2 members).",
+        "`remaining_accounts`: each member's PATH token account, in `members` order."
+      ],
+      "discriminator": [
+        175,
+        42,
+        185,
+        87,
+        144,
+        131,
+        102,
+        212
+      ],
+      "accounts": [
+        {
+          "name": "pot",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pot"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint",
+          "relations": [
+            "pot"
+          ]
+        },
+        {
+          "name": "token_program"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Pot",
+      "discriminator": [
+        238,
+        118,
+        60,
+        175,
+        178,
+        191,
+        59,
+        58
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "BadStake",
+      "msg": "Stake must be 1 to 100 PATH"
+    },
+    {
+      "code": 6001,
+      "name": "BadSchedule",
+      "msg": "Need now < lock_at < settle_after"
+    },
+    {
+      "code": 6002,
+      "name": "NotOpen",
+      "msg": "Pot is not open"
+    },
+    {
+      "code": 6003,
+      "name": "Locked",
+      "msg": "Pot is locked for the week"
+    },
+    {
+      "code": 6004,
+      "name": "Full",
+      "msg": "Pot is full"
+    },
+    {
+      "code": 6005,
+      "name": "AlreadyMember",
+      "msg": "Already a member"
+    },
+    {
+      "code": 6006,
+      "name": "NotMember",
+      "msg": "Not a member of this pot"
+    },
+    {
+      "code": 6007,
+      "name": "WeekOver",
+      "msg": "The pot's week is over"
+    },
+    {
+      "code": 6008,
+      "name": "BadProgress",
+      "msg": "Backed blocks must not exceed planned or go down"
+    },
+    {
+      "code": 6009,
+      "name": "PlanFrozen",
+      "msg": "The plan is frozen for this week"
+    },
+    {
+      "code": 6010,
+      "name": "TooEarly",
+      "msg": "Too early to settle"
+    },
+    {
+      "code": 6011,
+      "name": "BadAccounts",
+      "msg": "Member token accounts missing or wrong"
+    }
+  ],
+  "types": [
+    {
+      "name": "Member",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "planned",
+            "type": "u16"
+          },
+          {
+            "name": "backed",
+            "type": "u16"
+          },
+          {
+            "name": "frozen",
+            "type": "bool"
+          },
+          {
+            "name": "payout",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Phase",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Open"
+          },
+          {
+            "name": "Settled"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Pot",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pot_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "stake",
+            "type": "u64"
+          },
+          {
+            "name": "lock_at",
+            "type": "i64"
+          },
+          {
+            "name": "settle_after",
+            "type": "i64"
+          },
+          {
+            "name": "phase",
+            "type": {
+              "defined": {
+                "name": "Phase"
+              }
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "members",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "Member"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

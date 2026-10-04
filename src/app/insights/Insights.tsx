@@ -15,6 +15,7 @@ import { BorderBeam } from "border-beam";
 import { CalendarPlus, Check, ChevronDown, Copy, Lock, Mail, RefreshCw, RotateCcw, Upload } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
+import { PotLine } from "@/components/PotLine";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
 import { FEATURES, goalText, meta, moveText, reasonFor } from "@/lib/features";
 import { planBlocks } from "@/lib/plan";
@@ -207,6 +208,7 @@ function Route({ c, now, makeReal, good }: { c: CourseView; now: Date; makeReal:
             )}
           </div>
           <p className="mt-2 text-sm text-muted">{planned ? "Find the blocks on Home under Up next, and in your Week." : `Adds ${blocks.length} dated study block${blocks.length === 1 ? "" : "s"} before ${fmtDay(c.exam.date)}, and to Google Calendar.`}</p>
+          {planned && <PotLine offer />}
         </>
       ) : (
         <p className="mt-1 text-muted">The on-track paths all need something you can&apos;t change on your own. Talk to your advisor; the note below is a start.</p>

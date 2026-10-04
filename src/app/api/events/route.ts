@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { attestProfile } from "@/lib/solana/chain";
 import { bad, courseExists, db, noDb, profileExists } from "@/lib/db";
 
 const KINDS = ["study", "quiz", "flashcards", "check_in", "submit", "viva"];
@@ -16,6 +18,8 @@ export async function POST(req: Request) {
   await sql`INSERT INTO events (profile_id, course_slug, kind, minutes, score, late_night, source, meta)
             VALUES (${b.profile_id}, ${b.course_slug}, ${b.kind}, ${minutes}, ${score}, ${!!b.late_night},
                     ${b.source === "puck" ? "puck" : "app"}, ${sql.json(meta)})`;
+  // Study activity can back a done study block: update the student's Study Pot attestation on-chain.
+  if (b.kind !== "check_in" && b.kind !== "submit") after(() => attestProfile(sql, b.profile_id).catch((e) => console.error("attest", e)));
   return Response.json({ ok: true });
 }
 

@@ -544,6 +544,7 @@ function EventViva({ ev, fixed, onDone }: { ev: CalEvent; fixed: boolean; onDone
           <ArrowUp size={14} strokeWidth={3} aria-hidden />
         </button>
       </form>
+      <p className="mt-1.5 text-[11px] font-bold text-muted">Viva is AI (Gemini) and can be wrong. Nothing moves until you approve it.</p>
     </div>
   );
 }

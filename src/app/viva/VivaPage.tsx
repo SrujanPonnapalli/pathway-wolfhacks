@@ -164,7 +164,7 @@ export function VivaPage() {
       <p className="mt-4 text-sm text-muted">
         {mode === "teach"
           ? "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. In Teach it checks only against key ideas from your course files; your explanation goes to Gemini and, out loud, to ElevenLabs."
-          : "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It never sees anything you haven't logged, and it never stores your status."}
+          : "Viva is AI (Gemini, with an ElevenLabs voice) and can be wrong. It works only from what you've logged and your course files, asks before changing your calendar, and your status is worked out on this device, not stored."}
       </p>
 
       <ChatHistoryDrawer

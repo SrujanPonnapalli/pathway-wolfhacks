@@ -143,6 +143,9 @@ export function Study() {
                   </ul>
                 </div>
               )}
+              {docs.some((d) => d.sample && readyDeck(d.id, d.title, d.body)) && (
+                <p className="-mt-1 mb-3 px-1 text-xs font-bold text-muted">Ready decks and quizzes were written by AI (Gemini) from each lecture file. AI can be wrong; check anything that looks off against the lecture.</p>
+              )}
               <label className="flex cursor-pointer items-center gap-3 rounded-2xl border-2 border-dashed border-line px-4 py-4 hover:bg-polar">
                 <FileUp size={22} className="shrink-0 text-teal" aria-hidden />
                 <span className="min-w-0 flex-1">

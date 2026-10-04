@@ -392,7 +392,7 @@ export function Files() {
         <FileUp size={22} strokeWidth={2.4} className="shrink-0 text-teal" aria-hidden />
         <span className="min-w-0">
           <span className="block font-bold">{knowledge.sources.length ? "Anything else? Drop it here" : "Drop a syllabus, slides, or a grade page"}</span>
-          <span className="block text-sm text-muted">Pathway reads it stage by stage and keeps every fact with the sentence it came from.</span>
+          <span className="block text-sm text-muted">Gemini reads it stage by stage; every fact keeps the sentence it came from, and anything unsure waits for you to confirm.</span>
         </span>
         <input type="file" multiple accept={ACCEPT.join(",")} className="sr-only" onChange={(e) => take(e.target.files)} />
       </label>

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState, type FormEvent } from "react";
 import { BorderBeam } from "border-beam";
-import { CalendarPlus, Check, ChevronDown, Copy, Lock, Mail, RefreshCw, RotateCcw, Upload } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Copy, Lock, Mail, RefreshCw, RotateCcw, Sparkles, Upload } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { PotLine } from "@/components/PotLine";
@@ -87,6 +87,7 @@ export function Insights() {
 
       <CourseInsight key={c.slug} c={c} />
       <EvidenceSection />
+      <ModelCard />
     </main>
   );
 }
@@ -482,3 +483,38 @@ function Midterm({ c, has, set }: { c: CourseView; has?: number; set: (v: number
   );
 }
 
+// The model card and how AI is used: what Pathway is for and not for, its limits, which AI does what, and where
+// a student's data goes. Plain words for students; the evidence above is the technical detail.
+function ModelCard() {
+  return (
+    <section id="how-ai" aria-label="What this is for, and how AI is used" className="mt-8 grid scroll-mt-6 gap-4 lg:grid-cols-2">
+      <div className="panel p-5">
+        <h3 className="text-xl font-black">Model card</h3>
+        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted">
+          <li>For: a private self-check that suggests support and next steps.</li>
+          <li>Not for: grading, admissions, or any decision about a student.</li>
+          <li>Never suggests working fewer hours or changing things you can&apos;t control.</li>
+          <li>Learned from synthetic data: patterns, not causes. Following a plan isn&apos;t a promise about a grade.</li>
+          <li>The percentage is how many similar students in that data struggled, not a prediction about you.</li>
+          <li>Limits: it was trained on end-of-semester totals, so early-semester use isn&apos;t validated yet, and it catches fewer struggling seniors (small group).</li>
+        </ul>
+      </div>
+      <div className="panel p-5">
+        <h3 className="flex items-center gap-2 text-xl font-black">
+          <Sparkles size={18} className="text-sky" aria-hidden /> How AI is used, and your data
+        </h3>
+        <ul className="mt-2 list-disc space-y-1.5 pl-5 text-muted">
+          <li>Your status comes from a decision tree, not a chatbot, and it&apos;s worked out on this device. Pathway stores what you log (courses, activity, study blocks, chats), not your status.</li>
+          <li>Gemini (Google) reads syllabi and course files, writes practice questions and flashcards, summarizes course mail, and powers Viva. Those requests include your course numbers and the files or messages involved.</li>
+          <li>ElevenLabs gives Viva its voice and turns what you say out loud into text.</li>
+          <li>On Beacon, the desk camera only notes whether someone is at the desk and what&apos;s visible; Pathway doesn&apos;t keep the frames, and it never changes your status.</li>
+          <li>AI can be wrong. Facts it isn&apos;t sure about wait for you, and Viva asks before it changes your calendar.</li>
+          <li>The team used AI coding assistants to build Pathway; see the README.</li>
+        </ul>
+        <Link href="/viva" className="mt-3 inline-block text-sm font-extrabold text-teal underline underline-offset-4">
+          Ask Viva about your path
+        </Link>
+      </div>
+    </section>
+  );
+}

@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open [localhost:3000/demo](http://localhost:3000/demo) for Maya's sample semester. The demo works without API keys or a database. You can also open `/demo/jordan`, `/demo/priya`, or `/demo/judge` for a blank profile. The [landing page](http://localhost:3000/landing) is separate from the app.
+Open [localhost:3000/demo](http://localhost:3000/demo) for Rehan's sample semester. The demo works without API keys or a database. The [landing page](http://localhost:3000/landing) is separate from the app.
 
 Outside demo mode, Pathway asks visitors to sign in with Google. Account sign-in requires a database, a Google OAuth web client ID, and a session secret; see [Configuration](#configuration).
 
@@ -52,6 +52,14 @@ The database, when configured, stores student inputs and app state. The course-s
 ## Built with
 
 Next.js 16, React 19, TypeScript, and Tailwind CSS power the app. Python and scikit-learn train the exported decision trees. Optional services include Gemini for Viva and planning, ElevenLabs for voice, Tiger Cloud for persistence, Google Drive and Calendar, and Solana devnet for Study Pots.
+
+## Responsible AI
+
+- **The risk flag supports, it doesn't judge.** Statuses are only "on track" or "worth a check-in", always with the exact reason from the decision tree and the smallest realistic change. Pathway never suggests working fewer hours or changing things a student can't control, and the percentage shown is how many similar students in the data struggled, not a prediction about the student.
+- **Limits are stated in the app.** The model learned patterns, not causes, from synthetic data; it was trained on end-of-semester totals, so early-semester use isn't validated; its recall is weaker for small groups such as seniors. Insights shows the held-out evaluation and a model card.
+- **Privacy.** The status is computed in the browser by the decision tree and is not stored by Pathway; the database keeps inputs (courses, logged activity, study blocks, chats). Gemini receives course numbers and the files or messages involved when it reads a file, writes practice material, summarizes mail or answers in Viva; ElevenLabs handles Viva's voice and speech-to-text. Beacon's camera notes only presence and visible objects; frames aren't kept by Pathway and never affect status.
+- **The student stays in control.** Uncertain facts from uploaded files wait for confirmation, and Viva asks before any calendar change. Pathway never sends email for the student.
+- **AI use is disclosed.** In the product: Gemini (Google) and ElevenLabs, labelled where they're used. In building it: the team used AI coding assistants, including Claude Code (Anthropic), for writing, reviewing and auditing code.
 
 ## Configuration
 

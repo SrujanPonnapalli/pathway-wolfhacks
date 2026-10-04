@@ -2,6 +2,8 @@
 
 import { AskLine, Files, Greeting, InboxPanel, Onboarding, Route, WeekPanel } from "@/components/home";
 import { useState } from "react";
+import Link from "next/link";
+import { Lock } from "lucide-react";
 import { PotLine } from "@/components/PotLine";
 import { VivaCheckIn } from "@/components/VivaCheckIn";
 import { SemesterSetup, setupKey } from "@/components/SemesterSetup";
@@ -64,6 +66,14 @@ function HomeBody() {
           <div className="mt-8"><Route /></div>
           <PotLine offer />
           <div className="mt-5"><AskLine /></div>
+          {/* Privacy, said where it matters: what's computed here, what's stored, what goes to AI. */}
+          <p className="mt-3 flex items-start gap-1.5 text-xs font-bold text-muted">
+            <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
+            <span>
+              Your status is worked out on this device and isn&apos;t stored; Pathway keeps what you log. Viva and study tools use AI (Gemini), which can be wrong.{" "}
+              <Link href="/insights#how-ai" className="text-teal underline underline-offset-4">How AI is used</Link>
+            </span>
+          </p>
         </div>
         <aside aria-label="This week, inbox and files" className="mt-12 grid gap-10 md:grid-cols-2 md:gap-x-12 lg:mt-1 lg:grid-cols-1 lg:gap-y-10">
           <WeekPanel />

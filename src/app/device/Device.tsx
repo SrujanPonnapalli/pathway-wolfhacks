@@ -629,7 +629,7 @@ export function Device() {
                   ? `${voice.caption.who === "viva" ? "Viva: " : "You: "}${voice.caption.text}`
                   : last
                     ? `${last.role === "viva" ? "Viva: " : "You: "}${last.text}`
-                    : "Tap Talk and just speak — Viva answers out loud."}
+                    : "Tap Talk and just speak. Viva is AI (Gemini) and can be wrong."}
               </p>
               {voice.notice && (
                 <p role="status" className="mt-0.5 truncate text-xs font-bold text-muted">

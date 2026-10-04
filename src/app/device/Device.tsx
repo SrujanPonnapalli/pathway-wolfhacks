@@ -89,7 +89,7 @@ export function Device() {
 
   if (!c)
     return (
-      <main className="grid min-h-dvh place-items-center bg-polar p-6">
+      <main className="grid h-screen w-screen place-items-center overflow-hidden bg-polar p-6">
         <div className="panel max-w-md p-8 text-center">
           <div className="flex justify-center"><Wordmark /></div>
           <p className="mt-4 text-lg font-bold text-muted">No courses yet. Add one on the Home page first.</p>
@@ -138,7 +138,13 @@ export function Device() {
   const last = state.chat.at(-1);
 
   return (
-    <main className="flex h-dvh flex-col overflow-hidden bg-polar">
+    // Kiosk hardening: exact 100vw×100vh, no scroll/overscroll, no text selection,
+    // no long-press context menu, no tap highlight, no pinch zoom (viewport meta),
+    // no cursor — this is a dedicated touchscreen, not a web page.
+    <main
+      onContextMenu={(e) => e.preventDefault()}
+      className="flex h-screen w-screen cursor-none touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar [-webkit-tap-highlight-color:transparent]"
+    >
       <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
         <Wordmark />
         <button

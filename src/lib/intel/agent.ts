@@ -106,11 +106,15 @@ Rules:
 7. Email: when asked to write, reply to, or send mail, return a draft_email with a real, specific body in the student's voice (3 to 6 sentences, no placeholders, sign with their first name if known). The student sends it; say that in one short clause.
 8. Files: the student's uploaded files are listed per course with what they contain. Answer file questions from them.
 9. Navigation: if the student asks to see or go somewhere, navigate. Add a link chip when pointing at a page would help.
-10. remember: only facts the student states about themselves (preferences, constraints, plans), never your own advice.`;
+10. remember: only facts the student states about themselves (preferences, constraints, plans), never your own advice.
+11. The "desk camera" line, when present, reports plainly observed scene facts from the kiosk camera. Use it only for
+    presence and schedule relevance (welcome back after a PERSON_RETURNED, note a step-away during a study block,
+    acknowledge materials are out). Never infer emotion, stress, focus, tiredness, health, or identity, and never
+    change a status or act on a suggestion because of it.`;
 
 const CHANNEL = {
   chat: "Reply in at most three short sentences, plain words, no headers or lists. Then one question back at most.",
-  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural.",
+  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural. Always return the actions that would make a requested change — the app holds calendar writes and asks the student to confirm before running them, and re-sends them on a later turn. Describe the change in say, never claim it is already done. On the /device kiosk never navigate — there is nowhere to go; say it instead.",
 };
 
 type Specialist = { name: string; addendum: string; maxTokens: number; temperature: number };

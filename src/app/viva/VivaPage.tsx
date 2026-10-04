@@ -184,36 +184,34 @@ function Message({
   return (
     <li className="flex max-w-[90%] gap-3">
       <VivaGlyph size={36} className="mt-1 shrink-0 text-sky" />
-      <div className="group relative rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-4 py-3">
+      <div className="group relative rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft pl-4 pr-8 py-3">
         <p className="whitespace-pre-wrap">{m.text}</p>
         {m.actions && m.actions.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 pr-6">
             {m.actions.map((a) => (
               <Link key={a.href} href={a.href} className="btn btn-ghost min-h-9 px-3 text-xs">{a.label}</Link>
             ))}
           </div>
         )}
-        <div className="mt-2 -mb-0.5 flex items-center justify-end">
-          <button
-            type="button"
-            onClick={() => id && onToggleReadAloud?.(id, m.text)}
-            className={`flex h-7 w-7 items-center justify-center rounded-lg transition-all ${
-              isPlaying
-                ? "bg-sky text-white shadow-xs"
-                : "text-sky/75 hover:bg-sky/15 hover:text-sky active:scale-95"
-            }`}
-            title={isPlaying ? "Stop reading" : "Read aloud"}
-            aria-label={isPlaying ? "Stop reading aloud" : "Read aloud"}
-          >
-            {isLoading ? (
-              <Loader2 size={14} className="animate-spin text-sky" />
-            ) : isPlaying ? (
-              <Square size={11} className="fill-current" />
-            ) : (
-              <Volume2 size={15} />
-            )}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => id && onToggleReadAloud?.(id, m.text)}
+          className={`absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-md transition-all ${
+            isPlaying
+              ? "bg-sky text-white shadow-xs"
+              : "text-sky/60 hover:bg-sky/15 hover:text-sky active:scale-95"
+          }`}
+          title={isPlaying ? "Stop reading" : "Read aloud"}
+          aria-label={isPlaying ? "Stop reading aloud" : "Read aloud"}
+        >
+          {isLoading ? (
+            <Loader2 size={13} className="animate-spin text-sky" />
+          ) : isPlaying ? (
+            <Square size={10} className="fill-current" />
+          ) : (
+            <Volume2 size={14} />
+          )}
+        </button>
       </div>
     </li>
   );

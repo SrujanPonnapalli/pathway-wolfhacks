@@ -4,8 +4,8 @@
 // the receipts of what Viva just did, and an email draft the student can copy or open.
 
 import { useState } from "react";
-import { Check, Copy, Mail } from "lucide-react";
-import type { EmailDraft } from "@/lib/viva";
+import { BookMarked, Check, Copy, Mail } from "lucide-react";
+import type { Citation, EmailDraft } from "@/lib/viva";
 
 export function Receipts({ items }: { items?: string[] }) {
   if (!items?.length) return null;
@@ -47,6 +47,33 @@ export function EmailCard({ email }: { email?: EmailDraft }) {
         </a>
       </div>
       <p className="mt-2 text-xs text-muted">You send it. Pathway never sends mail for you.</p>
+    </div>
+  );
+}
+
+/** The facts Viva relied on, as chips. Each opens the receipt: the quoted sentence and where it came from. */
+export function Citations({ items }: { items?: Citation[] }) {
+  const [open, setOpen] = useState<string | null>(null);
+  if (!items?.length) return null;
+  const shown = items.find((c) => c.id === open);
+  return (
+    <div className="mt-2" aria-label="Sources Viva used">
+      <ul className="flex flex-wrap gap-1.5">
+        {items.map((c) => (
+          <li key={c.id}>
+            <button onClick={() => setOpen(open === c.id ? null : c.id)} aria-expanded={open === c.id} className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold ${open === c.id ? "border-sky bg-white text-sky" : "border-sky/30 bg-white/70 text-sky hover:border-sky"}`}>
+              <BookMarked size={12} aria-hidden /> {c.title.length > 32 ? `${c.title.slice(0, 32)}…` : c.title}
+            </button>
+          </li>
+        ))}
+      </ul>
+      {shown && (
+        <div className="mt-2 rounded-xl border border-sky/30 bg-white p-2.5 text-xs">
+          <p className="font-black text-ink">{shown.title} <span className="font-bold text-muted">· {shown.course}</span></p>
+          {shown.quote && <p className="mt-1 italic text-ink">“{shown.quote}”</p>}
+          <p className="mt-1 text-muted">{shown.locator ? `From ${shown.locator}` : "From your course materials"}</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@
 import { ThinkingLevel, Type, type Content, type Schema } from "@google/genai";
 import { generate, textPart } from "../gemini";
 import { renderContext, type CoachContext } from "./coach";
+import { logTurn } from "../knowledge/db";
 
 export type AgentAction = {
   type:
@@ -48,6 +49,8 @@ export type AgentAction = {
 export type AgentContext = CoachContext & {
   page: string; // where the student is right now
   channel: "chat" | "voice";
+  profileId?: string;
+  knowledge?: string; // the compiled, citable context pack (src/lib/knowledge/compile.ts)
   notes: string[]; // durable facts from earlier turns
   weekIds: { id: string; title: string; start: string }[]; // ids the student can move/remove
   suggestionIds: { id: string; title: string }[];
@@ -55,12 +58,12 @@ export type AgentContext = CoachContext & {
   recourse: { course: string; plan: string }[]; // what "make it real" would add, per flagged course
 };
 
-export type AgentReply = { say: string; actions: AgentAction[]; remember: string[]; specialist: string; ms: number; usage: { input: number; output: number } };
+export type AgentReply = { say: string; actions: AgentAction[]; remember: string[]; used: string[]; specialist: string; ms: number; usage: { input: number; output: number } };
 
 const schema: Schema = {
   type: Type.OBJECT,
-  required: ["say", "actions", "remember"],
-  propertyOrdering: ["say", "actions", "remember"],
+  required: ["say", "actions", "remember", "used"],
+  propertyOrdering: ["say", "actions", "remember", "used"],
   properties: {
     say: { type: Type.STRING, description: "What Viva says to the student. Plain text, no markdown." },
     actions: {
@@ -88,6 +91,7 @@ const schema: Schema = {
       },
     },
     remember: { type: Type.ARRAY, items: { type: Type.STRING }, description: "0 to 2 durable facts the student just stated about themselves, under 12 words each. Never restate CONTEXT." },
+    used: { type: Type.ARRAY, items: { type: Type.STRING }, description: "ids like n1a2b3c4d of the knowledge facts the reply relied on; empty if none" },
   },
 };
 
@@ -104,7 +108,9 @@ Rules:
 5. Scheduling: pick times that do not overlap anything in "calendar this week", between 9:00 and 21:00 unless the student names a time, 50-minute study blocks by default. Dates are local ISO. The week list gives each event's id; use ids exactly.
 6. Approving or dismissing a pending suggestion uses its id. "Make it real" for a flagged course adds its study plan.
 7. Email: when asked to write, reply to, or send mail, return a draft_email with a real, specific body in the student's voice (3 to 6 sentences, no placeholders, sign with their first name if known). The student sends it; say that in one short clause.
-8. Files: the student's uploaded files are listed per course with what they contain. Answer file questions from them.
+8. Course knowledge: facts from the student's syllabi, grade pages, slides and notes are listed per course with ids in brackets.
+   Answer deadline, grading, policy, grade and topic questions from them and put every id you relied on in "used".
+   Facts marked "waiting for the student to confirm" are not settled: say so instead of stating them.
 9. Navigation: if the student asks to see or go somewhere, navigate. Add a link chip when pointing at a page would help.
 10. remember: only facts the student states about themselves (preferences, constraints, plans), never your own advice.
 11. The "desk camera" line, when present, reports plainly observed scene facts from the kiosk camera. Use it only for
@@ -132,7 +138,8 @@ export function route(message: string): Specialist {
 }
 
 export function renderAgentContext(ctx: AgentContext): string {
-  const L: string[] = [renderContext(ctx)];
+  // The week is rendered once, below, with ids (the coach's own week line would repeat it).
+  const L: string[] = [renderContext({ ...ctx, week: [] })];
   // Weekday names for the next ten days, so "Friday" never lands on a Saturday.
   const base = new Date(ctx.now);
   const days = Array.from({ length: 10 }, (_, i) => {
@@ -144,9 +151,13 @@ export function renderAgentContext(ctx: AgentContext): string {
   L.push(`dates: ${days.join(", ")}`);
   L.push(`page now: ${ctx.page}`);
   if (ctx.notes.length) L.push(`student notes (from earlier turns): ${ctx.notes.join("; ")}`);
-  if (ctx.files.length) L.push(`files by course: ${ctx.files.map((f) => `${f.course}: ${f.title} [${f.kind}]`).join("; ")}`);
-  else L.push("files by course: none uploaded yet");
-  if (ctx.weekIds.length) L.push(`week event ids: ${ctx.weekIds.map((e) => `${e.id}=${e.title} ${e.start.slice(5, 16).replace("T", " ")}`).join("; ")}`);
+  if (ctx.knowledge) L.push(ctx.knowledge);
+  else if (ctx.files.length) L.push(`files by course: ${ctx.files.map((f) => `${f.course}: ${f.title} [${f.kind}]`).join("; ")}`);
+  else L.push("course knowledge: nothing on file yet");
+  if (ctx.weekIds.length) {
+    const ends = new Map((ctx.week ?? []).map((e) => [`${e.title}|${e.start}`, `${e.end.slice(11, 16)} [${e.kind}]`]));
+    L.push(`calendar this week (id=title start-end [kind]): ${ctx.weekIds.map((e) => `${e.id}=${e.title} ${e.start.slice(5, 16).replace("T", " ")}-${ends.get(`${e.title}|${e.start}`) ?? ""}`).join("; ")}`);
+  }
   if (ctx.suggestionIds.length) L.push(`pending suggestion ids: ${ctx.suggestionIds.map((x) => `${x.id}=${x.title}`).join("; ")}`);
   if (ctx.recourse.length) L.push(`make-it-real plans: ${ctx.recourse.map((r) => `${r.course}: ${r.plan}`).join(" | ")}`);
   return L.join("\n");
@@ -178,7 +189,7 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
     },
     "fast",
   );
-  let parsed: { say?: string; actions?: AgentAction[]; remember?: string[] } = {};
+  let parsed: { say?: string; actions?: AgentAction[]; remember?: string[]; used?: string[] } = {};
   try {
     parsed = JSON.parse(res.text ?? "{}");
   } catch {
@@ -199,12 +210,16 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
     return false;
   });
   const u = res.usageMetadata;
-  return {
+  const reply: AgentReply = {
     say: (parsed.say ?? "").trim(),
     actions: actions.slice(0, 6),
     remember: (parsed.remember ?? []).filter((x) => typeof x === "string" && x.trim()).slice(0, 2),
+    used: (parsed.used ?? []).filter((x) => typeof x === "string" && /^n[0-9a-f]{8}$/.test(x)).slice(0, 8),
     specialist: sp.name,
     ms: Date.now() - t0,
     usage: { input: u?.promptTokenCount ?? 0, output: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0) },
   };
+  // Observability: every turn is logged (Tiger when configured) so Viva's view can show what she was given and used.
+  logTurn({ at: new Date().toISOString(), profile: ctx.profileId ?? "unknown", specialist: reply.specialist, ms: reply.ms, tokensIn: reply.usage.input, tokensOut: reply.usage.output, used: reply.used, question: message }).catch(() => {});
+  return reply;
 }

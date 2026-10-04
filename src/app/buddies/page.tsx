@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowUpRight, Award, Check, CircleDashed, ExternalLink, Link2, LogIn, LogOut, Radio, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import { Friends } from "@/components/Friends";
-import { Burst, Gate, PageHeader, Pending } from "@/components/ui";
+import { Bone, Burst, Gate, PageHeader, Pending } from "@/components/ui";
 import { getBuddies, getPots, potAction, type Pot, type PotsView } from "@/lib/data";
 import { blocksToGo, finished } from "@/lib/solana/payout";
 import { useNow, watchPots, type ChainPot } from "@/lib/solana/live";
@@ -108,7 +108,7 @@ function Buddies() {
     <main className="relative mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
       {burst > 0 && <Burst key={burst} />}
       <PageHeader title="Study buddies" lead="Keep each other going. Buddies see effort, like study blocks and streaks, never your status.">
-        {view ? <WalletChip wallet={view.wallet} /> : view === undefined && <span className="h-11 w-56 animate-pulse rounded-2xl bg-line/70" aria-hidden />}
+        {view ? <WalletChip wallet={view.wallet} /> : view === undefined && <Bone className="h-11 w-56 rounded-2xl" />}
       </PageHeader>
 
       {notice && (
@@ -339,27 +339,26 @@ function PotCard({ pot, chain, me, now, busy, onLeave }: { pot: Pot; chain?: Cha
 
 // Stands in for a pot card while the pots come back from the database and Solana devnet (a few seconds on a cold start).
 function PotSkeleton() {
-  const bar = "animate-pulse rounded-full bg-line/70";
   return (
     <section className="panel mb-8 border-2 border-grape/20 p-5 md:p-6" aria-busy="true" aria-label="Loading Study Pots">
       <div className="flex items-start justify-between gap-3 border-b-2 border-line pb-4">
         <div className="space-y-3">
-          <div className={`h-6 w-48 ${bar}`} />
-          <div className={`h-7 w-40 ${bar}`} />
+          <Bone className="h-6 w-48" />
+          <Bone className="h-7 w-40" />
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className={`h-3 w-16 ${bar}`} />
-          <div className={`h-7 w-24 ${bar}`} />
+          <Bone className="h-3 w-16" />
+          <Bone className="h-7 w-24" />
         </div>
       </div>
       <ul className="mt-5 space-y-3" aria-hidden>
         {[0, 1, 2].map((i) => (
           <li key={i} className="rounded-xl bg-polar p-3">
             <div className="flex justify-between gap-3">
-              <div className={`h-4 w-20 ${bar}`} />
-              <div className={`h-4 w-36 ${bar}`} />
+              <Bone className="h-4 w-20" />
+              <Bone className="h-4 w-36" />
             </div>
-            <div className={`mt-3 h-3 w-full ${bar}`} />
+            <Bone className="mt-3 h-3 w-full" />
           </li>
         ))}
       </ul>

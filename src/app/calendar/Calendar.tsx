@@ -11,6 +11,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
 import { Check, Link2, Trash2, X } from "lucide-react";
 import { PageHeader, SectionHeading } from "@/components/ui";
+import { DEMO_PROFILE } from "@/lib/demo";
 import { localIso, mondayOf, type CalEvent } from "@/lib/schedule";
 import { downloadIcs } from "@/lib/calendar";
 import { fmtTime, usePathway } from "@/lib/store";
@@ -61,7 +62,10 @@ function lanes(events: CalEvent[]): Map<string, { lane: number; of: number }> {
 }
 
 export function Calendar() {
-  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, googleShared, notices, dismissNotice, moveEvent, removeEvent } = usePathway();
+  const { now, events, suggestions, approveSuggestion, dismissSuggestion, googleOn, connectGoogle, disconnectGoogle, state, googleWho, googleShared, notices, dismissNotice, moveEvent, removeEvent, profile } = usePathway();
+  // The demo student (through /demo or the demo account) is on the shared calendar: it is their own,
+  // so there is never a calendar to connect, only one that is reachable from this server or not.
+  const demo = profile.id === DEMO_PROFILE;
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const mon = mondayOf(now);
@@ -164,12 +168,16 @@ export function Calendar() {
       <PageHeader title="This week" lead="Classes and due dates from Moodle, your study blocks from Pathway, all on one calendar.">
         {googleOn ? (
           <p className="flex items-center gap-2 text-sm font-bold text-muted">
-            <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {googleShared ? "Google Calendar synced" : (googleWho?.email ?? "Google Calendar")}
+            <Check size={15} strokeWidth={3} className="text-teal" aria-hidden /> {googleShared ? `Synced with ${demo ? `${profile.name}'s ` : ""}Google Calendar` : (googleWho?.email ?? "Google Calendar")}
             {!googleShared && (
               <button onClick={disconnectGoogle} className="underline underline-offset-4 hover:text-ink">
                 disconnect
               </button>
             )}
+          </p>
+        ) : demo ? (
+          <p className="text-sm font-bold text-muted" title="Set GOOGLE_SERVICE_ACCOUNT_JSON and GOOGLE_CALENDAR_ID on this server to sync">
+            {profile.name}&apos;s Google Calendar isn&apos;t reachable from this server
           </p>
         ) : (
           <div className="flex items-center gap-3">

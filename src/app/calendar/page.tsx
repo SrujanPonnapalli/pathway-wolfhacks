@@ -5,7 +5,7 @@ import { Calendar } from "./Calendar";
 
 export default function Page() {
   return (
-    <Gate>
+    <Gate wide>
       <Calendar />
     </Gate>
   );

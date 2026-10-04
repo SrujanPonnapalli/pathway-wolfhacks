@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Download, LogOut, ShieldCheck, Trash2 } from "lucide-react";
 import { fetchMe, GoogleSignIn, signOut, type Me } from "@/components/Account";
-import { Gate, PageHeader } from "@/components/ui";
+import { Bone, Gate, PageHeader } from "@/components/ui";
 import { usePathway } from "@/lib/store";
 
 export default function Page() {
@@ -39,7 +39,14 @@ function Account() {
     <main className="mx-auto max-w-2xl px-4 py-6 md:px-10 md:py-10">
       <PageHeader title="Account" lead="Your Pathway account, what it stores, and how to take it with you or delete it." />
 
-      {me === undefined && <p className="text-muted">Loading…</p>}
+      {me === undefined && (
+        <section className="panel space-y-3 p-6" aria-busy="true" aria-label="Loading your account">
+          <Bone className="h-6 w-56" />
+          <Bone className="h-4 w-full" />
+          <Bone className="h-4 w-4/5" />
+          <Bone className="mt-2 h-11 w-48 rounded-xl" />
+        </section>
+      )}
 
       {me === null && (
         <section className="panel p-6">

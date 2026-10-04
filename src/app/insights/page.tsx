@@ -4,7 +4,7 @@ import { Insights } from "./Insights";
 
 export default function Page() {
   return (
-    <Gate>
+    <Gate wide>
       <Suspense>
         <Insights />
       </Suspense>

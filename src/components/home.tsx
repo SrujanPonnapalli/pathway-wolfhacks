@@ -11,6 +11,7 @@ import { ArrowUp, Check, ChevronRight, FileUp, Mail, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar } from "@/components/Viva";
 import { PageHeader, SectionHeading, StatusMark } from "@/components/ui";
+import { DEMO_PROFILE } from "@/lib/demo";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { isSampleSource } from "@/lib/knowledge/sample";
 import { moveText, reasonFor } from "@/lib/features";
@@ -273,7 +274,7 @@ export function WeekPanel() {
           </ul>
         </>
       )}
-      {planned > 0 && !googleOn && (
+      {planned > 0 && !googleOn && profile.id !== DEMO_PROFILE && (
         <p className="mt-3 text-sm">
           <a href={googleCalendarUrl(state.blocks.find((b) => !b.done) ?? state.blocks[0])} target="_blank" rel="noreferrer" className="font-bold text-teal underline underline-offset-4">Add next block to Google Calendar</a>
         </p>

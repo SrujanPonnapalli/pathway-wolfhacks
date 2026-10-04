@@ -4,7 +4,7 @@ import { Courses } from "./Courses";
 
 export default function Page() {
   return (
-    <Gate>
+    <Gate wide>
       <Suspense>
         <Courses />
       </Suspense>

@@ -5,6 +5,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Check, Mail, UserPlus, X } from "lucide-react";
 import { DEMO_PROFILE, isDemo } from "@/lib/demo";
+import { Bone } from "@/components/ui";
 import { usePathway } from "@/lib/store";
 
 type Friends = { incoming: { id: number; name: string; email: string; picture?: string | null }[]; outgoing: { id: number; email: string }[]; buddies: { id: string; name: string; picture?: string | null }[] };
@@ -119,7 +120,7 @@ export function Friends({ onChange }: { onChange: () => void }) {
       {!data && (
         <div className="mt-4 flex gap-2" aria-busy="true" aria-label="Loading your buddies">
           {[0, 1, 2].map((i) => (
-            <span key={i} className="h-8 w-24 animate-pulse rounded-full bg-line/70" aria-hidden />
+            <Bone key={i} className="h-8 w-24" />
           ))}
         </div>
       )}

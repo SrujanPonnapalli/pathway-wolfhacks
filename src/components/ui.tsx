@@ -63,8 +63,64 @@ export function Pending({ what, wire, children }: { what: string; wire: string; 
   );
 }
 
-// Renders children once the model and profiles have loaded; otherwise a loading or error state.
-export function Gate({ children }: { children: ReactNode }) {
+/** One glowing placeholder bar. Size and shape it with classes (h-4 w-40, rounded-2xl…). */
+export function Bone({ className = "" }: { className?: string }) {
+  return <span className={`block animate-pulse rounded-full bg-line/70 ${className}`} aria-hidden />;
+}
+
+/** A page-shaped stand-in while the app loads: a title and cards (narrow), or chips, stat tiles and a panel (wide). */
+export function PageSkeleton({ wide = false, label = "Loading your classes" }: { wide?: boolean; label?: string }) {
+  return (
+    <main className={`mx-auto px-4 py-6 md:px-10 md:py-10 ${wide ? "max-w-wide" : "max-w-narrow"}`} aria-busy="true" aria-label={label}>
+      <p className="sr-only" aria-live="polite">{label}…</p>
+      <Bone className="h-10 w-56 rounded-2xl md:h-12" />
+      <Bone className="mt-3 h-5 w-full max-w-md" />
+      <div className="mt-6 flex gap-2">
+        {[0, 1, 2, 3].map((i) => (
+          <Bone key={i} className="h-9 w-24 rounded-xl" />
+        ))}
+      </div>
+      {wide ? (
+        <>
+          <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="panel space-y-3 p-4">
+                <Bone className="h-3.5 w-20" />
+                <Bone className="h-7 w-24" />
+                <Bone className="h-3.5 w-full" />
+              </div>
+            ))}
+          </div>
+          <div className="panel mt-4 space-y-3 p-5">
+            <Bone className="h-6 w-40" />
+            {[0, 1, 2, 3].map((i) => (
+              <Bone key={i} className="h-4 w-full" />
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="mt-8 space-y-4">
+          <div className="panel space-y-3 p-5">
+            <Bone className="h-6 w-2/3" />
+            <Bone className="h-4 w-full" />
+            <Bone className="h-4 w-5/6" />
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 pt-2">
+                <Bone className="size-5 shrink-0" />
+                <Bone className="h-4 flex-1" />
+                <Bone className="h-8 w-16 rounded-xl" />
+              </div>
+            ))}
+          </div>
+          <Bone className="h-12 w-full rounded-2xl" />
+        </div>
+      )}
+    </main>
+  );
+}
+
+// Renders children once the model and profiles have loaded; otherwise a page-shaped placeholder or an error.
+export function Gate({ children, wide = false, fallback }: { children: ReactNode; wide?: boolean; fallback?: ReactNode }) {
   const { ready, error } = usePathway();
   if (error)
     return (
@@ -73,12 +129,7 @@ export function Gate({ children }: { children: ReactNode }) {
         <p className="mt-1 text-muted">{error}. Check that the tree JSON files exist in public/models, then reload.</p>
       </div>
     );
-  if (!ready)
-    return (
-      <p className="mt-10 text-center text-muted" aria-live="polite">
-        Loading your classes…
-      </p>
-    );
+  if (!ready) return fallback ?? <PageSkeleton wide={wide} />;
   return <>{children}</>;
 }
 

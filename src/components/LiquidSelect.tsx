@@ -46,6 +46,9 @@ export function LiquidSelect({
     place();
     const ro = new ResizeObserver(place);
     ro.observe(box);
+    // The option itself can resize (e.g. the sidebar rail collapsing it to an icon).
+    const el = box.querySelector(`[data-liquid-key="${CSS.escape(active)}"]`);
+    if (el) ro.observe(el);
     return () => ro.disconnect();
   }, [active]);
 

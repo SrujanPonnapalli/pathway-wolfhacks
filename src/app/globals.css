@@ -64,6 +64,21 @@ body {
   }
 }
 
+/* Selects: the border itself lights up teal instead of a dark ring floating around it. Unlayered so it
+   beats the `border-line` utility each select carries. */
+select {
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+select:hover {
+  border-color: var(--color-muted);
+}
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px var(--color-teal-soft);
+}
+
 * {
   scrollbar-color: var(--color-line) transparent;
 }

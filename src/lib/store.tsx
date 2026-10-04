@@ -347,6 +347,7 @@ function useStore() {
     const localIds = new Set(localEvents.map((e) => e.id));
     const seen = new Set(localEvents.map(same));
     const extra = googleEvents.filter((g) => {
+      if (!g.localId && g.pathway) return false; // an older copy Pathway wrote without an id: cleaned up on the next sync
       if (g.localId && (localIds.has(g.localId) || g.kind !== "study" || g.profile !== profile?.id)) return false;
       const k = same(g);
       if (seen.has(k)) return false;
@@ -555,7 +556,7 @@ function useStore() {
       // what Google already holds (tagged by Pathway), fetched fresh so two visitors never double-write
       const all = await gcal.listWeek(monday);
       const localIds = new Set(localEvents.map((e) => e.id));
-      const stale = all.filter((g) => g.localId && ((g.profile && g.profile !== profile.id) || (!localIds.has(g.localId) && !(g.kind === "study" && g.profile === profile.id))));
+      const stale = all.filter((g) => (g.localId ? (g.profile && g.profile !== profile.id) || (!localIds.has(g.localId) && !(g.kind === "study" && g.profile === profile.id)) : g.pathway));
       if (stale.length) console.info(`[gcal] taking ${stale.length} stale cop${stale.length === 1 ? "y" : "ies"} off Google: ${stale.map((g) => `${g.title} (${g.localId}${g.profile ? ` · ${g.profile}` : ""})`).join(", ")}`);
       for (const g of stale) {
         markTouched(g.id.slice(2), "");
@@ -1080,6 +1081,9 @@ function useStore() {
             }
             await base.moveEvent(a.id!, a.start!, a.end!);
             receipts.push(`Moved “${ev.title}” to ${when(a.start!)}${gnote()}`);
+            // The student chose the time, so it moves; a clash with something fixed is worth a word.
+            const clash = events.find((e) => e.id !== ev.id && (e.kind === "class" || e.kind === "work" || e.kind === "exam") && e.start < a.end! && a.start! < e.end);
+            if (clash) receipts.push(`Heads up: that overlaps ${clash.title} (${fmtTime(clash.start)} to ${fmtTime(clash.end)})`);
             break;
           }
           case "resize_event": {
@@ -1345,5 +1349,7 @@ export function usePathway() {
   return v;
 }
 
-export const fmtDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-export const fmtTime = (iso: string) => new Date(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+// A date-only string ("2026-10-10") is a local calendar day, not UTC midnight (which would read as the day before in the Americas).
+const asDate = (iso: string) => (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00`) : new Date(iso));
+export const fmtDay = (iso: string) => asDate(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+export const fmtTime = (iso: string) => asDate(iso).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });

@@ -15,6 +15,7 @@ export type CalEvent = {
   source: "demo" | "google" | "pathway";
   localId?: string; // on a Google event: the local event it is a copy of (from the Pathway tag)
   profile?: string; // on a Google event Pathway wrote: the profile it was written for
+  pathway?: boolean; // on a Google event: its description says Pathway wrote it (even an older copy without an id)
 };
 
 /** Local wall-clock ISO without a zone, the form the grid and Google (with timeZone) both read. */

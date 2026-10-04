@@ -135,7 +135,7 @@ export async function listWeek(monday: Date): Promise<CalEvent[]> {
       const desc = e.description ?? "";
       const localId = desc.match(/Pathway:(\S+)/)?.[1];
       const profile = desc.match(/Profile:(\S+)/)?.[1];
-      return { id: `g-${e.id}`, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), kind: desc.includes("Planned in Pathway") ? "study" : kindOf(e.summary ?? ""), source: "google" as const, localId, profile };
+      return { id: `g-${e.id}`, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), kind: desc.includes("Planned in Pathway") ? "study" : kindOf(e.summary ?? ""), source: "google" as const, localId, profile, pathway: /\b(in|via) Pathway\b/.test(desc) };
     });
 }
 

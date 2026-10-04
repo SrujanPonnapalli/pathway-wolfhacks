@@ -212,6 +212,7 @@ export function VivaDock() {
               <ArrowUp size={18} strokeWidth={3} />
             </button>
           </form>
+          <p className="px-3 pb-2 text-[11px] font-bold leading-snug text-muted">Viva is AI and can be wrong. It only sees what you&apos;ve logged, and every change it makes gets a receipt.</p>
         </>
       )}
 

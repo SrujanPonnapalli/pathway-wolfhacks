@@ -68,7 +68,7 @@ export async function listWeek(monday: Date): Promise<CalEvent[]> {
   const r = await fetch(`/api/gcal?from=${encodeURIComponent(monday.toISOString())}&to=${encodeURIComponent(end.toISOString())}`, { cache: "no-store" });
   const j = (await r.json()) as { events: { id: string; title: string; start: string; end: string; description: string }[]; error?: string };
   if (j.error) throw new Error(j.error);
-  return j.events.map((e) => ({ id: `g-${e.id}`, title: e.title, start: e.start, end: e.end, kind: kindOf(e.title, e.description), source: "google" as const, localId: e.description.match(/Pathway:(\S+)/)?.[1], profile: e.description.match(/Profile:(\S+)/)?.[1] }));
+  return j.events.map((e) => ({ id: `g-${e.id}`, title: e.title, start: e.start, end: e.end, kind: kindOf(e.title, e.description), source: "google" as const, localId: e.description.match(/Pathway:(\S+)/)?.[1], profile: e.description.match(/Profile:(\S+)/)?.[1], pathway: /\b(in|via) Pathway\b/.test(e.description) }));
 }
 
 export async function insert(ev: Pick<CalEvent, "title" | "start" | "end">, description = "Planned in Pathway"): Promise<string> {

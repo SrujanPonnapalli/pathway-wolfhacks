@@ -116,7 +116,7 @@ export function Avatar({ size = 9 }: { size?: 9 | 10 }) {
  * (the desktop sidebar, where it sits at the bottom of the rail). `label` adds the name next to the
  * button when there is room for it.
  */
-export function AccountMenu({ placement = "below", label = false }: { placement?: "below" | "above"; label?: boolean }) {
+export function AccountMenu({ placement = "below", label = false, labelClassName = "" }: { placement?: "below" | "above"; label?: boolean; labelClassName?: string }) {
   const { profile, reloadProfiles } = usePathway();
   const [me, setMe] = useMe();
   const [open, setOpen] = useState(false);
@@ -150,7 +150,7 @@ export function AccountMenu({ placement = "below", label = false }: { placement?
           {me?.picture ? <img src={me.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" /> : initial || <UserRound size={18} aria-hidden />}
         </span>
         {label && (
-          <span className="min-w-0">
+          <span className={`min-w-0 ${labelClassName}`}>
             <span className="block truncate text-sm font-black text-ink">{who}</span>
             <span className="block truncate text-xs font-bold text-muted">{me ? me.email : "Sign in to keep your semester"}</span>
           </span>

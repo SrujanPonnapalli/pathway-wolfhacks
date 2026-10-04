@@ -3,11 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ComponentType, type FocusEvent } from "react";
-import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, MonitorSmartphone, Users } from "lucide-react";
-import { AccountMenu, Avatar } from "@/components/Account";
+import { BarChart3, BookOpen, CalendarDays, GraduationCap, House, Mail, Mic, MonitorSmartphone, Users } from "lucide-react";
+import { AccountMenu } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
-import { useViva, VivaCard } from "@/components/VivaDock";
+import { useViva } from "@/components/VivaDock";
 import { usePathway } from "@/lib/store";
 
 const VivaIcon = ({ size }: { size?: number; strokeWidth?: number }) => <VivaGlyph size={size} />;
@@ -71,7 +71,8 @@ function NavItem({ href, label, icon: Icon, on, open, onPick }: NavLink & { on: 
 export function Sidebar() {
   const path = usePathname();
   const { googleOn } = usePathway();
-  const { show, open: dockOpen } = useViva();
+  const { show, open: dockOpen, view, voice } = useViva();
+  const vivaLabel = voice.active ? (({ listening: "Listening…", thinking: "Thinking…", speaking: "Speaking…", connecting: "Connecting…" } as Record<string, string>)[voice.state] ?? "On a call") : "Ask, plan, or talk";
   // Move the highlight on click, not when the next page finishes loading. The pick only
   // counts while we're still on the page it was made from, so it clears itself after navigation.
   const [picked, setPicked] = useState<{ href: string; from: string } | null>(null);
@@ -178,37 +179,37 @@ export function Sidebar() {
           </ul>
         </LiquidSelect>
 
-        {/* Bottom of the rail: Viva and the account. Both versions stay mounted: the open one folds its height
-            away when the rail is closed (grid rows 1fr → 0fr animate), and the icons for the closed rail fold away
-            when it's open. Demo profiles switch in the demo banner, not here. */}
+        {/* Bottom of the rail: Viva and the account. The same two rows in both states, so the glyph you aim
+            at while the rail is still closed is the one you click once it has opened: the rail opening only
+            reveals the words and buttons beside them. Demo profiles switch in the demo banner, not here. */}
         <div className="hidden md:block">
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.45,0,0.15,1)] ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`} aria-hidden={!open || undefined}>
-            <div className={`min-h-0 overflow-hidden ${fade(open)}`}>
-              <div className="mb-4">
-                <VivaCard />
-              </div>
-              <div className="mt-4 border-t-2 border-line pt-3">
-                <AccountMenu placement="above" label />
-              </div>
-              <p className="mt-3 px-1 pb-1 text-xs font-bold leading-relaxed text-muted">
-                Sample Moodle, Gradescope and Gmail data
-                {googleOn ? " · Google Calendar connected" : ""}
-              </p>
-            </div>
-          </div>
-          <div className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.45,0,0.15,1)] ${open ? "grid-rows-[0fr]" : "grid-rows-[1fr]"}`} aria-hidden={open || undefined}>
-            <div className={`min-h-0 overflow-hidden ${fade(!open, false)}`}>
-              <div className="flex w-12 flex-col items-center gap-3">
-                <button onClick={() => show("chat")} aria-label="Open Viva" title="Viva" tabIndex={open ? -1 : 0} className="rounded-xl p-2 text-sky hover:bg-sky-soft">
-                  <VivaGlyph size={30} />
+          <div className={`flex items-start gap-2 rounded-2xl transition-colors ${open ? "bg-polar" : ""}`}>
+            <button onClick={() => show("chat")} aria-label="Open Viva" title="Viva" className="grid size-12 shrink-0 place-items-center rounded-xl text-sky hover:bg-sky-soft">
+              <span className="relative">
+                <VivaGlyph size={30} />
+                {voice.active && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-white bg-teal" aria-hidden />}
+              </span>
+            </button>
+            <div className={`min-w-0 flex-1 py-1.5 pr-2 ${fade(open)}`}>
+              <span className="block text-sm font-black leading-tight text-ink">Viva</span>
+              <span className="block truncate text-xs font-bold text-muted" aria-live="polite">{vivaLabel}</span>
+              <div className="mt-1.5 flex gap-1.5">
+                <button onClick={() => show("chat")} tabIndex={open ? 0 : -1} className={`btn min-h-8 px-2.5 text-xs ${dockOpen && view === "chat" ? "btn-sky" : "btn-ghost"}`}>
+                  Chat
                 </button>
-                {/* Opens the rail (hover does too); the account menu itself lives in the open rail. */}
-                <button type="button" onClick={() => setFocus(true)} tabIndex={-1} aria-label="Open the sidebar" className="pb-1">
-                  <Avatar />
+                <button onClick={() => show("voice")} tabIndex={open ? 0 : -1} className={`btn min-h-8 px-2.5 text-xs ${dockOpen && view === "voice" ? "btn-sky" : "btn-ghost"}`}>
+                  <Mic size={14} aria-hidden /> Voice
                 </button>
               </div>
             </div>
           </div>
+          <div className="mt-2 px-1.5">
+            <AccountMenu placement="above" label labelClassName={fade(open)} />
+          </div>
+          <p className={`mt-3 px-1.5 text-xs font-bold leading-relaxed text-muted ${fade(open)}`}>
+            Sample Moodle, Gradescope and Gmail data
+            {googleOn ? " · Google Calendar connected" : ""}
+          </p>
         </div>
       </nav>
     </>

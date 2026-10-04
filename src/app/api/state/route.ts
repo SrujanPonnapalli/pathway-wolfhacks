@@ -51,6 +51,11 @@ export async function DELETE(req: Request) {
     }
     // Stamp the reset in the extras document: a device whose copy predates it drops that copy instead of
     // merging it back (chats, "Viva has introduced herself"), and /api/extras refuses its stale writes.
+    // Stop the focus timer on every device: an idle state stamped now beats any older running one.
+    const [timers] = await tx`SELECT to_regclass('focus_timers') AS r`;
+    if (timers.r)
+      await tx`INSERT INTO focus_timers (profile_id, state) VALUES (${id}, ${tx.json({ status: "idle", course: "", endsAt: 0, left: 1500, at: Date.parse(resetAt), by: "reset" })})
+               ON CONFLICT (profile_id) DO UPDATE SET state = EXCLUDED.state, updated_at = now()`;
     const [extras] = await tx`SELECT to_regclass('profile_extras') AS r`;
     if (extras.r) await tx`INSERT INTO profile_extras (profile_id, data) VALUES (${id}, ${tx.json({ resetAt })})`;
     // The live judge profile starts empty again.

@@ -7,16 +7,18 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Brain, Check, FileText, FileUp, Layers, Pause, Play, RotateCcw, Sparkles, Timer } from "lucide-react";
+import { Brain, Check, FileText, FileUp, Layers, Pause, Play, RefreshCw, RotateCcw, Sparkles, Timer } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaGlyph } from "@/components/Viva";
 import { PageHeader } from "@/components/ui";
 import { makeStudyMaterial } from "@/lib/api";
 import type { CourseDoc } from "@/lib/coursework-data";
 import { docsFor } from "@/lib/knowledge/sample";
+import { readyDeck } from "@/lib/knowledge/studyDecks";
 import type { StudyMaterial } from "@/lib/intel/study";
 import { usePathway } from "@/lib/store";
 import { ReviewList } from "./ReviewList";
+import { FOCUS_SECONDS, MarkBlockDone, clock, useStudyTimer } from "@/components/StudyTimer";
 
 export function Study() {
   const { courses, logQuiz, logSession, knowledge, saveMaterial } = usePathway();
@@ -46,6 +48,15 @@ export function Study() {
   };
   // A course file goes through the same route as a dropped one, as plain text.
   const fromDoc = (d: CourseDoc) => read(new File([`${d.title}\n\n${d.body}`], `${d.title}.txt`, { type: "text/plain" }));
+  // Built-in lecture files come with a deck and quiz made ahead of time (npm run kb:decks): open those at once.
+  const readyFor = (d: CourseDoc & { sample?: boolean }) => (d.sample ? readyDeck(d.id, d.title, d.body) : undefined);
+  const openDoc = (d: CourseDoc & { sample?: boolean }) => {
+    const m = readyFor(d);
+    if (!m) return fromDoc(d);
+    setErr("");
+    setMaterial(m);
+    if (course) saveMaterial(course, m);
+  };
 
   // Switching course clears the material so work is never logged against the wrong class.
   const pickCourse = (slug: string) => {
@@ -62,7 +73,7 @@ export function Study() {
     const d = docs.find((x) => x.id === wanted);
     if (!d) return;
     started.current = wanted;
-    const t = setTimeout(() => void fromDoc(d), 0);
+    const t = setTimeout(() => void openDoc(d), 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wanted, docs]);
@@ -111,9 +122,22 @@ export function Study() {
                           <span className="block truncate font-bold">{d.title}</span>
                           <span className="block text-xs text-muted">{d.type}{d.week ? ` · week ${d.week}` : ""}{d.sample ? " · sample" : " · yours"}</span>
                         </span>
-                        <button onClick={() => fromDoc(d)} disabled={busy} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs disabled:opacity-60">
-                          {focus === "flashcards" ? "Make a deck" : "Quiz me"}
-                        </button>
+                        {(() => {
+                          const ready = readyFor(d);
+                          return (
+                            <>
+                              {ready && focus === "flashcards" && <span className="hidden shrink-0 text-xs font-bold text-teal sm:inline">{ready.flashcards.length} cards ready</span>}
+                              <button onClick={() => void openDoc(d)} disabled={busy} className="btn btn-ghost min-h-9 shrink-0 px-3 text-xs disabled:opacity-60">
+                                {focus === "flashcards" ? (ready ? "Open deck" : "Make a deck") : "Quiz me"}
+                              </button>
+                              {ready && (
+                                <button onClick={() => fromDoc(d)} disabled={busy} title={focus === "flashcards" ? "Make a new deck with Gemini" : "Make new questions with Gemini"} aria-label={`${focus === "flashcards" ? "Make a new deck" : "Make new questions"} from ${d.title} with Gemini`} className="grid size-9 shrink-0 place-items-center rounded-xl text-muted hover:bg-polar hover:text-teal disabled:opacity-60">
+                                  <RefreshCw size={15} aria-hidden />
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </li>
                     ))}
                   </ul>
@@ -141,7 +165,7 @@ export function Study() {
 
       {focus === "quiz" && <Quiz key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logQuiz(course)} />}
       {focus === "flashcards" && <Flashcards key={material?.title ?? "none"} course={course} material={material} onDone={() => course && logSession(course)} />}
-      {focus === "timer" && <FocusTimer course={course} onDone={() => course && logSession(course)} />}
+      {focus === "timer" && <FocusTimer course={course} />}
 
       <Link href={`/viva?mode=teach&course=${course}`} className="mt-10 flex items-center gap-4 border-t-2 border-line pt-6 hover:text-teal">
         <VivaGlyph size={36} className="shrink-0 text-sky" />
@@ -388,66 +412,43 @@ function Flashcards({ material, course, onDone }: { material: StudyMaterial | nu
   );
 }
 
-function FocusTimer({ course, onDone }: { course: string; onDone: () => void }) {
-  const TOTAL = 25 * 60;
-  const [left, setLeft] = useState(TOTAL);
-  const [running, setRunning] = useState(false);
-  const [logged, setLogged] = useState(false);
-  const ref = useRef<ReturnType<typeof setInterval> | null>(null);
-  const doneRef = useRef(onDone);
-  useEffect(() => {
-    doneRef.current = onDone;
-  }, [onDone]);
-  useEffect(() => {
-    if (!running) return;
-    ref.current = setInterval(() => {
-      setLeft((l) => {
-        if (l <= 1) {
-          if (ref.current) clearInterval(ref.current);
-          setTimeout(() => {
-            setRunning(false);
-            setLogged(true);
-            doneRef.current();
-          }, 0);
-          return 0;
-        }
-        return l - 1;
-      });
-    }, 1000);
-    return () => { if (ref.current) clearInterval(ref.current); };
-  }, [running]);
-
-  const triggerDone = () => {
-    setRunning(false);
-    setLeft(TOTAL);
-    setLogged(true);
-    onDone();
-  };
-
-  const mm = String(Math.floor(left / 60)).padStart(2, "0");
-  const ss = String(left % 60).padStart(2, "0");
+function FocusTimer({ course }: { course: string }) {
+  // The timer itself lives in the app shell (src/components/StudyTimer.tsx), so switching to the quiz,
+  // flashcards or another page keeps it running; this tab is its full-size view.
+  const t = useStudyTimer();
+  const { courses } = usePathway();
+  const left = t.status === "idle" ? FOCUS_SECONDS : t.left;
+  const running = t.status === "running";
+  const logged = t.status === "done";
+  const other = t.status !== "idle" && t.course && t.course !== course ? (courses.find((c) => c.slug === t.course)?.code ?? "") : "";
+  const mm = clock(left).slice(0, 2);
+  const ss = clock(left).slice(3);
   return (
     <div className="panel p-5 text-center">
       <p className="text-5xl font-extrabold tabular-nums tracking-tight">{mm}:{ss}</p>
-      <p className="mt-1 text-sm text-muted">25-minute focus block. Logs a session when it ends.</p>
+      <p className="mt-1 text-sm text-muted">25-minute focus block. Logs a session when it ends, and keeps running while you switch to a quiz, flashcards or another page.</p>
+      {other && <p className="mt-1 text-xs font-bold text-teal">Running for {other}</p>}
       <div className="mt-4 flex justify-center gap-2">
-        <button onClick={() => setRunning((r) => !r)} className="btn btn-primary min-h-10 px-4 text-xs">{running ? <><Pause size={15} aria-hidden /> Pause</> : <><Play size={15} aria-hidden /> Start</>}</button>
-        <button onClick={() => { setRunning(false); setLeft(TOTAL); setLogged(false); }} className="btn btn-ghost min-h-10 px-4 text-xs"><RotateCcw size={15} aria-hidden /> Reset</button>
-        <button onClick={triggerDone} className="btn btn-ghost min-h-10 px-4 text-xs">Log 25 min now</button>
+        <button onClick={() => (running ? t.pause() : t.status === "paused" ? t.resume() : t.start(course))} className="btn btn-primary min-h-10 px-4 text-xs">{running ? <><Pause size={15} aria-hidden /> Pause</> : <><Play size={15} aria-hidden /> {t.status === "paused" ? "Resume" : "Start"}</>}</button>
+        <button onClick={t.reset} className="btn btn-ghost min-h-10 px-4 text-xs"><RotateCcw size={15} aria-hidden /> Reset</button>
+        <button onClick={() => t.logNow(course)} className="btn btn-ghost min-h-10 px-4 text-xs">Log 25 min now</button>
       </div>
 
       {logged && (
         <div className="mt-5 rounded-xl border border-teal/20 bg-teal-soft/60 p-4 text-left">
           <div className="flex items-center gap-2 font-black text-xs text-teal-lip">
             <Sparkles size={14} className="text-teal" />
-            <span>25-Minute Focus Session Logged On-Device</span>
+            <span>25-minute focus session logged</span>
           </div>
           <p className="mt-1 text-xs text-muted">
-            Logged to study telemetry. Average weekly study hours and session counts updated in your decision tree.
+            Saved as a study session: it counts toward your sessions on Insights, your streak, and the effort your buddies see.
           </p>
           <Link href={`/insights?course=${course}`} className="mt-2 inline-block text-xs font-black text-teal underline underline-offset-4">
-            Check your updated standing on Insights &rarr;
+            See your sessions on Insights &rarr;
           </Link>
+          <div>
+            <MarkBlockDone course={t.course || course} />
+          </div>
         </div>
       )}
     </div>

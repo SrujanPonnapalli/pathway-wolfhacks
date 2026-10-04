@@ -19,7 +19,8 @@
     "kb:seed": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb-seed.ts",
     "kb:materials": "python3 scripts/demo-materials.py",
     "kb:teach": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import jiti/register scripts/teach-concepts.ts",
-    "kb:export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb-export.ts"
+    "kb:export": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/kb-export.ts",
+    "kb:decks": "node --env-file=.env.local --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import jiti/register scripts/study-decks.ts"
   },
   "dependencies": {
     "@anchor-lang/core": "^1.2.0",

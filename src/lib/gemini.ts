@@ -68,15 +68,18 @@ export async function generate(args: GenArgs, tier: "fast" | "heavy" = "heavy") 
       try {
         const res = await ai().models.generateContent({ ...args, config: { ...args.config, abortSignal: AbortSignal.timeout(timeoutMs) }, model });
         return Object.assign(res, { modelUsed: model });
-      } catch (e) {
+      } catch (first) {
+        let e = first;
         lastErr = e;
-        // A model that rejects the requested thinking level: retry it once without the setting.
+        // A model that rejects the requested thinking level: retry it once without the setting (same timeout).
+        // What happens next depends on how that retry failed, not on the original 400.
         if (/thinking/i.test((e as Error).message ?? "") && args.config?.thinkingConfig) {
           const { thinkingConfig: _drop, ...rest } = args.config;
           void _drop;
           try {
-            return Object.assign(await ai().models.generateContent({ ...args, config: rest, model }), { modelUsed: model });
+            return Object.assign(await ai().models.generateContent({ ...args, config: { ...rest, abortSignal: AbortSignal.timeout(timeoutMs) }, model }), { modelUsed: model });
           } catch (e2) {
+            e = e2;
             lastErr = e2;
           }
         }

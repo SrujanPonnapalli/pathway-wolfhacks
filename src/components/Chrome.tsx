@@ -1,9 +1,10 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
 import { Sidebar } from "@/components/Sidebar";
+import { PinnedTimer, StudyTimerProvider } from "@/components/StudyTimer";
 import { VivaDock, VivaProvider } from "@/components/VivaDock";
 import { usePathway } from "@/lib/store";
 
@@ -21,6 +22,7 @@ export function Chrome({ children }: { children: ReactNode }) {
   }, [entry, path, router]);
   return (
     <VivaProvider>
+      <StudyTimerProvider>
       {fullscreen ? (
         children
       ) : (
@@ -33,8 +35,13 @@ export function Chrome({ children }: { children: ReactNode }) {
             {children}
           </div>
           <VivaDock />
+          {/* The focus timer, pinned to a corner while it runs and you're anywhere but Study's Timer tab. */}
+          <Suspense>
+            <PinnedTimer />
+          </Suspense>
         </>
       )}
+      </StudyTimerProvider>
     </VivaProvider>
   );
 }

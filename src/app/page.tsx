@@ -51,19 +51,24 @@ function HomeBody() {
       </main>
     );
 
-  // One column: greeting, the route, one line to Viva. Then the quiet sections.
+  // Wide screens: the route and Viva in the main column, the quiet glanceable sections in a rail beside it,
+  // so the whole day fits on screen. Narrower screens stack them in the same order: route first.
   return (
-    <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10">
-      <Greeting />
-      <div className="mt-8"><Route /></div>
-      <PotLine offer />
-      <div className="mt-5"><AskLine /></div>
-      <div className="mt-12 grid gap-10 md:grid-cols-2 md:gap-x-12">
-        <WeekPanel />
-        <div className="space-y-10">
-          <InboxPanel />
-          <Files />
+    <main className="mx-auto max-w-narrow px-4 py-6 md:px-10 md:py-10 lg:max-w-wide">
+      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-x-12">
+        <div className="min-w-0">
+          <Greeting />
+          <div className="mt-8"><Route /></div>
+          <PotLine offer />
+          <div className="mt-5"><AskLine /></div>
         </div>
+        <aside aria-label="This week, inbox and files" className="mt-12 grid gap-10 md:grid-cols-2 md:gap-x-12 lg:mt-1 lg:grid-cols-1 lg:gap-y-10">
+          <WeekPanel />
+          <div className="space-y-10">
+            <InboxPanel />
+            <Files />
+          </div>
+        </aside>
       </div>
     </main>
   );

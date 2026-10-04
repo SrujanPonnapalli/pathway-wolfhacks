@@ -860,6 +860,12 @@ function useStore() {
       const blocks = mine ? s.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) : [...s.blocks, { ...b, done: true }];
       bump(b.course, "sessions", "Study block done", { blocks }, { kind: "study", minutes: 45 });
     },
+    /** A focus-timer session finished in this block's time: mark it done without logging study again (the timer did). */
+    markBlockDone: (b: Block) => {
+      sync.blockDone(profile.id, b.id, true);
+      update((st) => ({ ...st, blocks: st.blocks.map((x) => (x.id === b.id ? { ...x, done: true } : x)) }));
+      say(`"${b.title}" marked done. Your focus session already counted the study time.`);
+    },
     toggleTodo: (id: string) => {
       sync.todo(profile.id, id, !s.done[id]);
       update((st) => ({ ...st, done: { ...st.done, [id]: !st.done[id] } }));

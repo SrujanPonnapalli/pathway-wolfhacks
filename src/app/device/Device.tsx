@@ -12,6 +12,7 @@ import { BarChart3, BookOpen, Check, ChevronDown, Compass, Eye, FastForward, Fla
 import { VoiceBeam } from "voice-glow";
 import { Wordmark } from "@/components/Sidebar";
 import { VivaAvatar } from "@/components/Viva";
+import { BeaconTimer } from "@/components/StudyTimer";
 import { useViva } from "@/components/VivaDock";
 import { deviceContext, onVisionEvents, reportObservation } from "@/lib/awareness";
 import { goalText } from "@/lib/features";
@@ -588,7 +589,11 @@ export function Device() {
 
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,2fr)_minmax(0,3fr)] gap-3 px-5 pb-5">
         {/* Left: the assistant. */}
-        <section aria-label="Viva" className="panel flex min-h-0 flex-col items-center p-4 text-center">
+        <section aria-label="Viva" className="panel relative flex min-h-0 flex-col items-center p-4 text-center">
+          {/* The focus timer started on the laptop or phone shows here too (shared per profile, src/components/StudyTimer.tsx). */}
+          <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2">
+            <BeaconTimer />
+          </div>
           <div className="relative flex min-h-0 flex-1 flex-col items-center justify-center">
             {/* Soft halo so the orb reads as a presence, not an image. */}
             <span

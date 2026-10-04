@@ -1,0 +1,3186 @@
+{
+ "bio-l12": {
+  "hash": "1fflqiv",
+  "material": {
+   "title": "Cellular Respiration Study Guide",
+   "topics": [
+    "Glycolysis",
+    "Citric Acid Cycle",
+    "Oxidative Phosphorylation",
+    "Fermentation"
+   ],
+   "quiz": [
+    {
+     "question": "How is the key regulatory enzyme of glycolysis, phosphofructokinase, controlled by the cell's energy state?",
+     "options": [
+      "It is activated by ATP and inhibited by AMP.",
+      "It is inhibited by ATP and activated by AMP.",
+      "It is activated by oxygen and inhibited by carbon dioxide.",
+      "It is inhibited by pyruvate and activated by glucose."
+     ],
+     "answer_index": 1,
+     "hint": "Think about whether a cell needs to run glycolysis when it already has plenty of energy (ATP).",
+     "explanation": "Phosphofructokinase is inhibited by ATP (signaling high energy) and activated by AMP (signaling low energy), allowing the cell to regulate glycolysis based on its energy needs.",
+     "topic": "Glycolysis",
+     "source_ref": "Stage 1: Glycolysis"
+    },
+    {
+     "question": "What is the actual role of ATP synthase during oxidative phosphorylation?",
+     "options": [
+      "It actively pumps protons into the intermembrane space.",
+      "It reduces oxygen to form water in the mitochondrial matrix.",
+      "It allows protons to flow back into the matrix, using this flow to make ATP.",
+      "It oxidizes NADH and FADH2 to regenerate NAD+ and FAD."
+     ],
+     "answer_index": 2,
+     "hint": "ATP synthase does not pump protons; it acts as a channel that lets them flow down their gradient.",
+     "explanation": "ATP synthase allows protons to flow back into the mitochondrial matrix down their gradient (chemiosmosis) and uses this flow of energy to synthesize ATP. The electron transport chain, not ATP synthase, is responsible for pumping protons.",
+     "topic": "Oxidative Phosphorylation",
+     "source_ref": "Stage 3: Oxidative phosphorylation"
+    },
+    {
+     "question": "Why must fermentation occur in a cell when oxygen is absent?",
+     "options": [
+      "To produce oxygen so the citric acid cycle can resume.",
+      "To regenerate NAD+ from NADH so glycolysis can continue.",
+      "To pump protons across the inner mitochondrial membrane.",
+      "To directly synthesize 30-32 ATP molecules without the electron transport chain."
+     ],
+     "answer_index": 1,
+     "hint": "Without oxygen, NADH piles up and glycolysis would halt without a specific reactant.",
+     "explanation": "Without oxygen, the electron transport chain stops and NADH piles up. Fermentation reduces pyruvate (to lactate or ethanol) to regenerate NAD+, which is required for glycolysis to continue producing its net 2 ATP.",
+     "topic": "Fermentation",
+     "source_ref": "Without oxygen: fermentation"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain the differences in ATP yield between NADH and FADH2 during oxidative phosphorylation.",
+     "key_points": [
+      "NADH yields about 2.5 ATP while FADH2 yields about 1.5 ATP.",
+      "FADH2 enters the electron transport chain later than NADH.",
+      "Because FADH2 enters later, it contributes less to the proton gradient used for ATP synthesis."
+     ],
+     "hint": "Consider where each electron carrier enters the electron transport chain.",
+     "topic": "Oxidative Phosphorylation"
+    },
+    {
+     "question": "Describe the pathway and products of the citric acid cycle per glucose molecule.",
+     "key_points": [
+      "The cycle occurs in the mitochondrial matrix.",
+      "It requires two turns per glucose molecule because glucose yields two pyruvates.",
+      "Each turn produces 3 NADH, 1 FADH2, and 1 ATP (or GTP), resulting in double that amount per glucose.",
+      "It fully oxidizes acetyl groups to CO2."
+     ],
+     "hint": "Remember that one glucose molecule is split into two pyruvates during glycolysis.",
+     "topic": "Citric Acid Cycle"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What is the overall chemical equation for cellular respiration?",
+     "back": "C6H12O6 + 6 O2 -> 6 CO2 + 6 H2O + energy (about 30-32 ATP).",
+     "topic": "Cellular Respiration Overview"
+    },
+    {
+     "front": "Where does glycolysis take place in the cell?",
+     "back": "In the cytosol.",
+     "topic": "Glycolysis"
+    },
+    {
+     "front": "What are the net products of glycolysis from one molecule of glucose?",
+     "back": "2 pyruvate, 2 ATP, and 2 NADH.",
+     "topic": "Glycolysis"
+    },
+    {
+     "front": "Which enzyme is the key regulator of glycolysis, and what inhibits it?",
+     "back": "Phosphofructokinase; it is inhibited by ATP.",
+     "topic": "Glycolysis"
+    },
+    {
+     "front": "Where do pyruvate oxidation and the citric acid cycle occur?",
+     "back": "In the mitochondrial matrix.",
+     "topic": "Citric Acid Cycle"
+    },
+    {
+     "front": "What is the final electron acceptor in the electron transport chain?",
+     "back": "Oxygen (O2), which forms water.",
+     "topic": "Oxidative Phosphorylation"
+    },
+    {
+     "front": "What is chemiosmosis?",
+     "back": "The flow of protons back into the matrix through ATP synthase, which drives ATP synthesis.",
+     "topic": "Oxidative Phosphorylation"
+    },
+    {
+     "front": "What are the two types of fermentation and their products?",
+     "back": "Lactic acid fermentation (produces lactate) and alcohol fermentation (produces ethanol and CO2).",
+     "topic": "Fermentation"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Glycolysis",
+     "key_points": [
+      "Occurs in the cytosol and does not require oxygen.",
+      "Splits one 6-carbon glucose into two 3-carbon pyruvates.",
+      "Yields a net of 2 ATP (via substrate-level phosphorylation) and 2 NADH.",
+      "Regulated by phosphofructokinase, which is inhibited by ATP and activated by AMP."
+     ],
+     "source_ref": "Stage 1: Glycolysis"
+    },
+    {
+     "topic": "The Citric Acid Cycle",
+     "key_points": [
+      "Takes place in the mitochondrial matrix.",
+      "Requires pyruvate oxidation to acetyl-CoA first, releasing CO2.",
+      "Each turn of the cycle produces 3 NADH, 1 FADH2, and 1 ATP (or GTP).",
+      "Runs twice per glucose molecule because glucose yields two pyruvates."
+     ],
+     "source_ref": "Stage 2: Pyruvate oxidation and the citric acid cycle"
+    },
+    {
+     "topic": "Oxidative Phosphorylation",
+     "key_points": [
+      "Occurs across the inner mitochondrial membrane.",
+      "The electron transport chain pumps protons (H+) into the intermembrane space to build a gradient.",
+      "Oxygen acts as the final electron acceptor, forming water.",
+      "ATP synthase uses the flow of protons back into the matrix (chemiosmosis) to generate 26-28 ATP."
+     ],
+     "source_ref": "Stage 3: Oxidative phosphorylation"
+    },
+    {
+     "topic": "Fermentation",
+     "key_points": [
+      "Occurs in the absence of oxygen when the electron transport chain stops.",
+      "Serves to regenerate NAD+ from NADH so glycolysis can continue.",
+      "Lactic acid fermentation produces lactate; alcohol fermentation produces ethanol and CO2.",
+      "Yields only the 2 ATP produced during glycolysis."
+     ],
+     "source_ref": "Without oxygen: fermentation"
+    }
+   ]
+  }
+ },
+ "bio-l15": {
+  "hash": "1lqwgnd",
+  "material": {
+   "title": "Lecture 15: Photosynthesis",
+   "topics": [
+    "Overall Reaction",
+    "Light Reactions",
+    "Calvin Cycle",
+    "Photorespiration and Adaptations"
+   ],
+   "quiz": [
+    {
+     "question": "Where do the light reactions of photosynthesis take place?",
+     "options": [
+      "Stroma",
+      "Thylakoid membranes",
+      "Inner mitochondrial membrane",
+      "Bundle-sheath cells"
+     ],
+     "answer_index": 1,
+     "hint": "Think about where chlorophyll and the photosystems are located inside the chloroplast.",
+     "explanation": "The light reactions take place in the thylakoid membranes where chlorophyll and the photosystems are embedded.",
+     "topic": "Light Reactions",
+     "source_ref": "Light reactions"
+    },
+    {
+     "question": "What is the primary function of rubisco binding to oxygen instead of carbon dioxide?",
+     "options": [
+      "It produces extra glucose.",
+      "It stores water.",
+      "It wastes energy and releases carbon dioxide.",
+      "It speeds up the Calvin cycle."
+     ],
+     "answer_index": 2,
+     "hint": "This process happens when plants close their stomata on hot, dry days.",
+     "explanation": "When rubisco binds O2, it causes photorespiration, which wastes energy and releases CO2 instead of fixing carbon efficiently.",
+     "topic": "Photorespiration and Adaptations",
+     "source_ref": "Photorespiration"
+    },
+    {
+     "question": "How do C4 plants like corn initially fix carbon dioxide?",
+     "options": [
+      "Directly in the Calvin cycle during the night",
+      "Into a 4-carbon compound using PEP carboxylase in mesophyll cells",
+      "By splitting water molecules in photosystem II",
+      "Using rubisco inside the thylakoid space"
+     ],
+     "answer_index": 1,
+     "hint": "These plants use a special enzyme that ignores oxygen to capture CO2 first.",
+     "explanation": "C4 plants fix CO2 first as a 4-carbon compound using PEP carboxylase in mesophyll cells before sending it to bundle-sheath cells.",
+     "topic": "Photorespiration and Adaptations",
+     "source_ref": "Adaptations"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain where the oxygen released during photosynthesis actually originates.",
+     "key_points": [
+      "Oxygen comes from water, not carbon dioxide.",
+      "Water is split during Photosystem II in the light reactions.",
+      "This splitting generates O2 as a byproduct."
+     ],
+     "hint": "Think about which reactant molecule is split at the start of the light reactions.",
+     "topic": "Light Reactions"
+    },
+    {
+     "question": "Why do C4 and CAM plants have an advantage in hot, dry climates?",
+     "key_points": [
+      "Hot and dry conditions cause plants to close stomata, lowering internal CO2 and increasing photorespiration.",
+      "C4 plants use PEP carboxylase to separate carbon fixation from the Calvin cycle spatially.",
+      "CAM plants separate carbon fixation temporally by opening stomata only at night."
+     ],
+     "hint": "Consider how these plants prevent photorespiration when stomata are closed to save water.",
+     "topic": "Photorespiration and Adaptations"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Overall reaction of photosynthesis",
+     "back": "6 CO2 + 6 H2O + light -> C6H12O6 + 6 O2",
+     "topic": "Overall Reaction"
+    },
+    {
+     "front": "Where do the light reactions occur?",
+     "back": "Thylakoid membranes",
+     "topic": "Light Reactions"
+    },
+    {
+     "front": "Products of the light reactions",
+     "back": "ATP, NADPH, and O2",
+     "topic": "Light Reactions"
+    },
+    {
+     "front": "Where does the Calvin cycle occur?",
+     "back": "Stroma",
+     "topic": "Calvin Cycle"
+    },
+    {
+     "front": "Enzyme that attaches CO2 to RuBP in the Calvin cycle",
+     "back": "Rubisco",
+     "topic": "Calvin Cycle"
+    },
+    {
+     "front": "What is photorespiration?",
+     "back": "When rubisco binds O2 instead of CO2, wasting energy and releasing CO2.",
+     "topic": "Photorespiration and Adaptations"
+    },
+    {
+     "front": "How do C4 plants fix carbon initially?",
+     "back": "Using PEP carboxylase in mesophyll cells to form a 4-carbon compound.",
+     "topic": "Photorespiration and Adaptations"
+    },
+    {
+     "front": "How do CAM plants avoid water loss?",
+     "back": "They open stomata at night to store CO2 as an acid and run the Calvin cycle by day.",
+     "topic": "Photorespiration and Adaptations"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Overall Reaction and Organelle",
+     "key_points": [
+      "Photosynthesis reverses the bookkeeping of cellular respiration.",
+      "It uses carbon dioxide, water, and light to produce glucose and oxygen.",
+      "It takes place inside chloroplasts using specialized machinery."
+     ],
+     "source_ref": "Overall reaction"
+    },
+    {
+     "topic": "Light Reactions",
+     "key_points": [
+      "Pigments like chlorophyll absorb blue and red light while reflecting green.",
+      "Photosystem II splits water to release oxygen and sends electrons down a transport chain.",
+      "Proton pumping creates a gradient that ATP synthase uses to make ATP.",
+      "Photosystem I passes energized electrons to NADP+ to form NADPH."
+     ],
+     "source_ref": "Light reactions"
+    },
+    {
+     "topic": "Calvin Cycle",
+     "key_points": [
+      "It takes place in the stroma and consists of carbon fixation, reduction, and regeneration.",
+      "Rubisco attaches CO2 to RuBP to start carbon fixation.",
+      "ATP and NADPH convert molecules into G3P.",
+      "It takes 3 turns and consumes 9 ATP and 6 NADPH to produce one net G3P."
+     ],
+     "source_ref": "Calvin cycle"
+    },
+    {
+     "topic": "Plant Adaptations to Heat",
+     "key_points": [
+      "Hot and dry conditions force plants to close stomata, causing high photorespiration with normal rubisco.",
+      "C4 plants separate carbon capture spatially using PEP carboxylase.",
+      "CAM plants separate carbon capture temporally by opening stomata only at night."
+     ],
+     "source_ref": "Adaptations"
+    }
+   ]
+  }
+ },
+ "bio-l18": {
+  "hash": "og9u5f",
+  "material": {
+   "title": "Lecture 18: The cell cycle and mitosis",
+   "topics": [
+    "Interphase",
+    "Mitosis phases",
+    "Cell cycle control",
+    "Cancer"
+   ],
+   "quiz": [
+    {
+     "question": "During which phase of the cell cycle is DNA synthesized and chromosomes are copied into sister chromatids?",
+     "options": [
+      "G1 phase",
+      "S phase",
+      "G2 phase",
+      "M phase"
+     ],
+     "answer_index": 1,
+     "hint": "Think about synthesis.",
+     "explanation": "During the S (synthesis) phase, DNA is copied so each chromosome has two sister chromatids.",
+     "topic": "Interphase",
+     "source_ref": "Chapter 8"
+    },
+    {
+     "question": "What happens during metaphase of mitosis?",
+     "options": [
+      "Chromatin condenses into visible chromosomes",
+      "Nuclear envelopes re-form",
+      "Chromosomes line up at the metaphase plate",
+      "Sister chromatids separate and are pulled to opposite poles"
+     ],
+     "answer_index": 2,
+     "hint": "Picture the chromosomes lined up in the middle of the cell.",
+     "explanation": "In metaphase, chromosomes line up at the metaphase plate, which is the cell's equator.",
+     "topic": "Mitosis phases",
+     "source_ref": "Chapter 8"
+    },
+    {
+     "question": "What is the primary role of the tumor suppressor gene p53?",
+     "options": [
+      "Promote uncontrolled cell division",
+      "Halt the cell cycle when DNA is damaged",
+      "Form the cleavage furrow in animal cells",
+      "Activate cyclin-dependent kinases to trigger mitosis"
+     ],
+     "answer_index": 1,
+     "hint": "It acts as a brake when things go wrong with DNA.",
+     "explanation": "p53 is a tumor suppressor that halts the cycle when DNA is damaged and is mutated in roughly half of human cancers.",
+     "topic": "Cancer",
+     "source_ref": "Chapter 8"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Can you walk me through the main events of mitosis in their correct order?",
+     "key_points": [
+      "Prophase: chromatin condenses and spindle starts forming",
+      "Prometaphase: nuclear envelope breaks down and microtubules attach",
+      "Metaphase: chromosomes line up at the equator",
+      "Anaphase: sister chromatids separate to opposite poles",
+      "Telophase: nuclear envelopes re-form and chromosomes decondense"
+     ],
+     "hint": "Remember the memory aid PMAT.",
+     "topic": "Mitosis phases"
+    },
+    {
+     "question": "How do checkpoints regulate the cell cycle, and what happens at the G1 checkpoint?",
+     "key_points": [
+      "Checkpoints decide whether the cycle proceeds using regulatory signals",
+      "G1 checkpoint checks if the cell is big enough",
+      "It checks if DNA is undamaged",
+      "It checks if growth factors are present"
+     ],
+     "hint": "Think about what the cell needs before it commits to dividing.",
+     "topic": "Cell cycle control"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What are the two main parts of the cell cycle?",
+     "back": "Interphase and M phase (mitosis plus cytokinesis).",
+     "topic": "Interphase"
+    },
+    {
+     "front": "What do cells enter if they stop dividing?",
+     "back": "G0 phase.",
+     "topic": "Interphase"
+    },
+    {
+     "front": "What memory aid helps remember the four stages of mitosis?",
+     "back": "PMAT (Prophase, Metaphase, Anaphase, Telophase).",
+     "topic": "Mitosis phases"
+    },
+    {
+     "front": "How do animal and plant cells differ in cytokinesis?",
+     "back": "Animal cells pinch in with a cleavage furrow; plant cells build a cell plate.",
+     "topic": "Mitosis phases"
+    },
+    {
+     "front": "What is the product of mitosis?",
+     "back": "Two genetically identical diploid cells.",
+     "topic": "Mitosis phases"
+    },
+    {
+     "front": "What is MPF?",
+     "back": "A cyclin-CDK complex that triggers entry into mitosis.",
+     "topic": "Cell cycle control"
+    },
+    {
+     "front": "What is the function of proto-oncogenes?",
+     "back": "They normally promote cell division.",
+     "topic": "Cancer"
+    },
+    {
+     "front": "What percentage of human cancers feature mutations in the p53 gene?",
+     "back": "Roughly half.",
+     "topic": "Cancer"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Interphase and M Phase",
+     "key_points": [
+      "Interphase takes about 90% of the cell cycle time.",
+      "It consists of G1 for growth, S for DNA synthesis, and G2 for preparation.",
+      "M phase includes mitosis and cytokinesis to divide the cell."
+     ],
+     "source_ref": "Chapter 8"
+    },
+    {
+     "topic": "Mitosis Stages",
+     "key_points": [
+      "Prophase and prometaphase condense chromosomes and break down the nuclear envelope.",
+      "Metaphase aligns chromosomes at the cell equator.",
+      "Anaphase separates sister chromatids to opposite poles.",
+      "Telophase and cytokinesis rebuild nuclei and divide the cytoplasm."
+     ],
+     "source_ref": "Chapter 8"
+    },
+    {
+     "topic": "Cell Cycle Control System",
+     "key_points": [
+      "Checkpoints at G1, G2, and M decide if the cycle proceeds.",
+      "Cyclin levels rise and fall to activate CDKs.",
+      "MPF triggers a cell's entry into mitosis from G2."
+     ],
+     "source_ref": "Chapter 8"
+    },
+    {
+     "topic": "Cancer Biology",
+     "key_points": [
+      "Cancer cells ignore checkpoints and divide indefinitely.",
+      "p53 is a tumor suppressor that halts damaged cells.",
+      "Proto-oncogenes mutate into oncogenes that drive uncontrolled division."
+     ],
+     "source_ref": "Chapter 8"
+    }
+   ]
+  }
+ },
+ "bio-lab4": {
+  "hash": "1duounz",
+  "material": {
+   "title": "Lab 4: Enzyme Kinetics with Catalase",
+   "topics": [
+    "Catalase Reaction",
+    "Substrate Concentration",
+    "Temperature Effects",
+    "Report Requirements"
+   ],
+   "quiz": [
+    {
+     "question": "What is the chemical reaction catalyzed by catalase in this experiment?",
+     "options": [
+      "2 H2O2 -> 2 H2O + O2",
+      "H2O -> H2 + O2",
+      "2 H2O -> 2 H2 + O2",
+      "H2O2 -> H2 + O2"
+     ],
+     "answer_index": 0,
+     "hint": "Think about what hydrogen peroxide breaks down into.",
+     "explanation": "Catalase breaks hydrogen peroxide into water and oxygen.",
+     "topic": "Catalase Reaction",
+     "source_ref": "Purpose"
+    },
+    {
+     "question": "Why does the reaction rate level off at high substrate concentrations in Part A?",
+     "options": [
+      "The enzyme becomes denatured",
+      "Saturation is reached because every enzyme molecule is busy",
+      "The temperature gets too high",
+      "All the substrate is used up"
+     ],
+     "answer_index": 1,
+     "hint": "Consider what happens when all active sites are occupied.",
+     "explanation": "At high concentration, every enzyme molecule is busy, leading to saturation (Vmax).",
+     "topic": "Substrate Concentration",
+     "source_ref": "What you should see"
+    },
+    {
+     "question": "What happens to the enzyme activity at 70 C in Part B?",
+     "options": [
+      "Activity reaches its maximum",
+      "Activity increases slightly",
+      "The enzyme denatures because heat breaks weak bonds",
+      "The enzyme is destroyed and completely disappears"
+     ],
+     "answer_index": 2,
+     "hint": "Think about how high heat affects protein shape.",
+     "explanation": "At 70 C the enzyme denatures because heat breaks the weak bonds holding its active-site shape.",
+     "topic": "Temperature Effects",
+     "source_ref": "What you should see"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain why the boiled extract at 70 C fails to produce significant foam, and clarify a common misconception about the enzyme in this boiled extract.",
+     "key_points": [
+      "The high temperature denatures the enzyme by breaking weak bonds.",
+      "The enzyme loses its active-site shape.",
+      "It is incorrect to say the boiled extract has 'no enzyme'; the enzyme is still present but denatured."
+     ],
+     "hint": "Think about whether the protein vanishes or just changes shape.",
+     "topic": "Temperature Effects"
+    },
+    {
+     "question": "How do we measure the reaction rate in this lab, and what causes the leveling off in Part A?",
+     "key_points": [
+      "Rate is measured as the height of foam in a graduated tube after 60 seconds.",
+      "Leveling off is caused by saturation.",
+      "Every enzyme molecule is busy at high substrate concentration, so adding more cannot speed things up."
+     ],
+     "hint": "Consider the physical measurement and what the active sites are doing.",
+     "topic": "Substrate Concentration"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What does catalase do?",
+     "back": "Breaks hydrogen peroxide into water and oxygen.",
+     "topic": "Catalase Reaction"
+    },
+    {
+     "front": "Where does the catalase come from in this lab?",
+     "back": "Potato extract.",
+     "topic": "Catalase Reaction"
+    },
+    {
+     "front": "How is the reaction rate measured?",
+     "back": "As the height of foam in a graduated tube after 60 seconds.",
+     "topic": "Catalase Reaction"
+    },
+    {
+     "front": "What are the substrate concentrations used in Part A?",
+     "back": "0.5%, 1%, 2%, 4%, and 8% H2O2.",
+     "topic": "Substrate Concentration"
+    },
+    {
+     "front": "What is saturation (Vmax)?",
+     "back": "When every enzyme molecule is busy, so adding more substrate cannot speed up the reaction.",
+     "topic": "Substrate Concentration"
+    },
+    {
+     "front": "What temperatures are tested in Part B?",
+     "back": "4 C, 22 C, 37 C, and 70 C.",
+     "topic": "Temperature Effects"
+    },
+    {
+     "front": "Why does enzyme activity drop at 70 C?",
+     "back": "Denaturation: heat breaks the weak bonds holding the active-site shape.",
+     "topic": "Temperature Effects"
+    },
+    {
+     "front": "When is the lab report due?",
+     "back": "Thursday Oct 1 at 11:59 PM on Gradescope.",
+     "topic": "Report Requirements"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Catalase Reaction Setup",
+     "key_points": [
+      "Catalase comes from potato extract.",
+      "It breaks hydrogen peroxide into water and oxygen.",
+      "Oxygen production is measured by foam height at 60 seconds."
+     ],
+     "source_ref": "Purpose"
+    },
+    {
+     "topic": "Substrate Concentration and Saturation",
+     "key_points": [
+      "Testing concentrations from 0.5% to 8% H2O2 shows how rate changes.",
+      "Rate rises then levels off at high concentrations.",
+      "Saturation occurs when every enzyme molecule is busy (Vmax)."
+     ],
+     "source_ref": "What you should see"
+    },
+    {
+     "topic": "Temperature and Denaturation",
+     "key_points": [
+      "Reaction rate rises with temperature up to an optimum near 37 C.",
+      "At 70 C, the rate collapses because the enzyme denatures.",
+      "Heat breaks the weak bonds that hold the active-site shape."
+     ],
+     "source_ref": "What you should see"
+    },
+    {
+     "topic": "Report Common Pitfalls",
+     "key_points": [
+      "Graphs must have labeled axes and units.",
+      "Curves must be discussed using the term saturation.",
+      "Boiled extract still contains enzyme, but it is denatured."
+     ],
+     "source_ref": "Common deductions"
+    }
+   ]
+  }
+ },
+ "bio-mid": {
+  "hash": "1kz93nw",
+  "material": {
+   "title": "BIO 181 Midterm Study Guide (Chapters 1-7)",
+   "topics": [
+    "Scientific Method and Macromolecules",
+    "Cell Structure and Transport",
+    "Energy and Enzymes",
+    "Cellular Respiration and Photosynthesis"
+   ],
+   "quiz": [
+    {
+     "question": "Which of the following properties of water is directly responsible for its high specific heat?",
+     "options": [
+      "Covalent bonding",
+      "Hydrogen bonding",
+      "Ionic charges",
+      "Nonpolar interactions"
+     ],
+     "answer_index": 1,
+     "hint": "Think about the intermolecular forces that hold water molecules together.",
+     "explanation": "Hydrogen bonds between water molecules require a large amount of energy to break, which gives water its high specific heat.",
+     "topic": "Scientific Method and Macromolecules",
+     "source_ref": "Chapter 1-2"
+    },
+    {
+     "question": "What happens to an animal cell when it is placed in a hypertonic solution?",
+     "options": [
+      "It swells and lyses",
+      "It stays the same size",
+      "It shrinks or shrivels",
+      "It undergoes active transport"
+     ],
+     "answer_index": 2,
+     "hint": "Consider where water flows when the surrounding solution has a higher solute concentration.",
+     "explanation": "In a hypertonic solution, water moves out of the cell via osmosis, causing the cell to shrivel.",
+     "topic": "Cell Structure and Transport",
+     "source_ref": "Chapter 3-4"
+    },
+    {
+     "question": "Where does the citric acid cycle take place in a eukaryotic cell?",
+     "options": [
+      "Cytoplasm",
+      "Thylakoid membrane",
+      "Mitochondrial matrix",
+      "Stroma"
+     ],
+     "answer_index": 2,
+     "hint": "This process occurs inside the powerhouse of the cell, specifically in the innermost compartment.",
+     "explanation": "The citric acid cycle takes place in the mitochondrial matrix.",
+     "topic": "Cellular Respiration and Photosynthesis",
+     "source_ref": "Chapter 6"
+    }
+   ],
+   "viva": [
+    {
+     "question": "How do competitive and noncompetitive inhibitors differ in how they affect enzyme activity?",
+     "key_points": [
+      "Competitive inhibitors bind to the active site of the enzyme.",
+      "Noncompetitive inhibitors bind to an allosteric site, changing the enzyme's shape.",
+      "Adding more substrate can overcome competitive inhibition, but not noncompetitive inhibition."
+     ],
+     "hint": "Think about where each type of inhibitor binds on the enzyme.",
+     "topic": "Energy and Enzymes"
+    },
+    {
+     "question": "Explain the primary differences between the light reactions and the Calvin cycle in photosynthesis.",
+     "key_points": [
+      "Light reactions occur in the thylakoid membrane and produce ATP and NADPH using water and light.",
+      "The Calvin cycle occurs in the stroma and uses ATP and NADPH to fix carbon dioxide into sugars.",
+      "Rubisco is the key enzyme used during the Calvin cycle."
+     ],
+     "hint": "Consider where each stage takes place and what they consume versus produce.",
+     "topic": "Cellular Respiration and Photosynthesis"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What are the monomers of proteins?",
+     "back": "Amino acids.",
+     "topic": "Scientific Method and Macromolecules"
+    },
+    {
+     "front": "What is the fluid mosaic model?",
+     "back": "A description of membrane structure as a mosaic of proteins embedded in a fluid bilayer of phospholipids.",
+     "topic": "Cell Structure and Transport"
+    },
+    {
+     "front": "What is passive transport?",
+     "back": "Movement of substances across a cell membrane down their concentration gradient without using cellular energy.",
+     "topic": "Cell Structure and Transport"
+    },
+    {
+     "front": "How do enzymes lower activation energy?",
+     "back": "By stabilizing transition states and orienting substrates properly for reactions.",
+     "topic": "Energy and Enzymes"
+    },
+    {
+     "front": "What is the net ATP yield of glycolysis per glucose molecule?",
+     "back": "2 ATP.",
+     "topic": "Cellular Respiration and Photosynthesis"
+    },
+    {
+     "front": "What is the role of NADH and FADH2 in cellular respiration?",
+     "back": "They donate electrons to the electron transport chain during oxidative phosphorylation.",
+     "topic": "Cellular Respiration and Photosynthesis"
+    },
+    {
+     "front": "What is the primary enzyme responsible for carbon fixation in the Calvin cycle?",
+     "back": "Rubisco.",
+     "topic": "Cellular Respiration and Photosynthesis"
+    },
+    {
+     "front": "What are the four classes of macromolecules?",
+     "back": "Carbohydrates, lipids, proteins, and nucleic acids.",
+     "topic": "Scientific Method and Macromolecules"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Properties of Water",
+     "key_points": [
+      "Hydrogen bonds explain water's unique traits.",
+      "Cohesion allows water molecules to stick together.",
+      "Water has a high specific heat capacity.",
+      "Water is an effective solvent for polar and ionic substances."
+     ],
+     "source_ref": "Chapter 1-2"
+    },
+    {
+     "topic": "Membrane Transport",
+     "key_points": [
+      "Passive transport moves materials down their concentration gradient without energy.",
+      "Active transport requires ATP to move materials against their gradient.",
+      "Hypotonic solutions cause cells to swell; hypertonic solutions cause cells to shrink."
+     ],
+     "source_ref": "Chapter 3-4"
+    },
+    {
+     "topic": "Enzyme Regulation",
+     "key_points": [
+      "Enzymes lower activation energy to speed up reactions.",
+      "Competitive inhibitors block the active site.",
+      "Noncompetitive inhibitors bind to allosteric sites.",
+      "Feedback inhibition uses the end product to stop earlier steps."
+     ],
+     "source_ref": "Chapter 5"
+    },
+    {
+     "topic": "Cellular Respiration Stages",
+     "key_points": [
+      "Glycolysis breaks glucose into pyruvate in the cytoplasm.",
+      "The citric acid cycle processes acetyl CoA in the mitochondrial matrix.",
+      "Oxidative phosphorylation uses chemiosmosis to produce large amounts of ATP."
+     ],
+     "source_ref": "Chapter 6"
+    }
+   ]
+  }
+ },
+ "csc-exam1": {
+  "hash": "kzaiu5",
+  "material": {
+   "title": "CSC 216 Exam 1 Study Material",
+   "topics": [
+    "Java basics and style",
+    "JUnit 5",
+    "Inheritance and polymorphism",
+    "Exceptions",
+    "Finite state machines"
+   ],
+   "quiz": [
+    {
+     "question": "What is the allowed format for the cheat sheet on Exam 1?",
+     "options": [
+      "One double-sided page of handwritten notes",
+      "Three printed pages of lecture slides",
+      "No notes are allowed",
+      "A digital tablet with course readings"
+     ],
+     "answer_index": 0,
+     "hint": "Check the exam rules section regarding permitted materials.",
+     "explanation": "The exam allows one double-sided page of handwritten notes, but no electronics or books.",
+     "topic": "Java basics and style",
+     "source_ref": "Exam 1 Overview"
+    },
+    {
+     "question": "Which JUnit 5 feature should you use to test that a specific exception is thrown?",
+     "options": [
+      "assertThrows",
+      "assertTrue",
+      "assertEquals",
+      "assertCatch"
+     ],
+     "answer_index": 0,
+     "hint": "Look for the method containing the word 'Throws'.",
+     "explanation": "assertThrows is used in JUnit 5 to verify that a code block throws the expected exception type.",
+     "topic": "JUnit 5",
+     "source_ref": "JUnit 5 topics"
+    },
+    {
+     "question": "What percentage of the exam is dedicated to writing code?",
+     "options": [
+      "About 10%",
+      "About 30%",
+      "About 40%",
+      "About 50%"
+     ],
+     "answer_index": 1,
+     "hint": "Review the breakdown under the Question types section.",
+     "explanation": "The question types state that writing code makes up about 30% of the exam.",
+     "topic": "Java basics and style",
+     "source_ref": "Question types"
+    }
+   ],
+   "viva": [
+    {
+     "question": "What is the difference between checked and unchecked exceptions in Java?",
+     "key_points": [
+      "Checked exceptions must be caught or declared in the method signature.",
+      "Unchecked exceptions extend RuntimeException and do not require explicit catching.",
+      "Checked exceptions represent predictable errors like file not found."
+     ],
+     "hint": "Think about whether the compiler forces you to handle them.",
+     "topic": "Exceptions"
+    },
+    {
+     "question": "How do inheritance and polymorphism work together with dynamic dispatch?",
+     "key_points": [
+      "Subclasses inherit fields and methods from a superclass.",
+      "Dynamic dispatch determines which overridden method version to run at runtime based on the actual object type.",
+      "Polymorphism allows treating objects of different subclasses through a common superclass type."
+     ],
+     "hint": "Consider how Java decides which method to call when an object is referenced by its parent type.",
+     "topic": "Inheritance and polymorphism"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Exam Date and Time",
+     "back": "Friday Oct 16, 11:45 AM",
+     "topic": "Java basics and style"
+    },
+    {
+     "front": "Exam Room",
+     "back": "EB2 1230",
+     "topic": "Java basics and style"
+    },
+    {
+     "front": "Exam Duration",
+     "back": "50 minutes",
+     "topic": "Java basics and style"
+    },
+    {
+     "front": "Allowed Aids",
+     "back": "One double-sided page of handwritten notes",
+     "topic": "Java basics and style"
+    },
+    {
+     "front": "JUnit Testing Library",
+     "back": "JUnit 5",
+     "topic": "JUnit 5"
+    },
+    {
+     "front": "Exception Types",
+     "back": "Checked vs. unchecked",
+     "topic": "Exceptions"
+    },
+    {
+     "front": "Design Pattern for States",
+     "back": "State pattern with finite state machines",
+     "topic": "Finite state machines"
+    },
+    {
+     "front": "Interface Comparison Method",
+     "back": "Comparable interface",
+     "topic": "Inheritance and polymorphism"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Exam Logistics",
+     "key_points": [
+      "Exam 1 is on Friday Oct 16 at 11:45 AM in room EB2 1230.",
+      "The test is 50 minutes, closed book, and closed electronics.",
+      "One double-sided page of handwritten notes is permitted."
+     ],
+     "source_ref": "Exam 1 Overview"
+    },
+    {
+     "topic": "Exam Content Breakdown",
+     "key_points": [
+      "About 40% multiple choice and short answer.",
+      "About 30% code tracing.",
+      "About 30% writing code."
+     ],
+     "source_ref": "Question types"
+    },
+    {
+     "topic": "Core Java and OOP Topics",
+     "key_points": [
+      "Covers visibility, static vs. instance, final, constructors, and this.",
+      "Includes encapsulation, JavaDoc, and JUnit 5 testing.",
+      "Covers inheritance, polymorphism, abstract classes, equals, and hashCode."
+     ],
+     "source_ref": "Topics"
+    },
+    {
+     "topic": "Advanced OOP and Preparation",
+     "key_points": [
+      "Includes interfaces, Comparable, and exception handling.",
+      "Covers finite state machines and the State pattern.",
+      "Preparation includes redoing Labs 3 through 7 without starter code."
+     ],
+     "source_ref": "Topics and How to prepare"
+    }
+   ]
+  }
+ },
+ "csc-l14": {
+  "hash": "almgjs",
+  "material": {
+   "title": "Lecture 14: Inheritance and Polymorphism",
+   "topics": [
+    "Inheritance",
+    "Overriding vs Overloading",
+    "Dynamic Dispatch",
+    "Abstract Classes",
+    "Equals and HashCode",
+    "Composition"
+   ],
+   "quiz": [
+    {
+     "question": "Which of the following describes method overloading?",
+     "options": [
+      "Same name, same parameters, in a subclass",
+      "Same name, different parameter lists, in the same class",
+      "Different name, same parameters, in a subclass",
+      "Same name, same parameters, resolved at run time"
+     ],
+     "answer_index": 1,
+     "hint": "Think about writing multiple constructors or methods with the exact same name inside the very same class.",
+     "explanation": "Overloading happens in the same class with the same method name but different parameter lists. Overriding happens in subclasses with the exact same parameters.",
+     "topic": "Overriding vs Overloading",
+     "source_ref": "Slide 2"
+    },
+    {
+     "question": "When Person p = new Student(\"Maya\"); calls p.describe(), which version runs and why?",
+     "options": [
+      "Person's version, because the declared type of p is Person",
+      "Student's version, because the actual run-time object type decides",
+      "Both versions run in sequence",
+      "An error occurs because the declared type lacks the method"
+     ],
+     "answer_index": 1,
+     "hint": "Remember that dynamic dispatch uses the actual object type created with new, not the variable's declared type.",
+     "explanation": "Dynamic dispatch means the run-time type of the object determines which method implementation executes.",
+     "topic": "Dynamic Dispatch",
+     "source_ref": "Slide 3"
+    },
+    {
+     "question": "Why should you override hashCode whenever you override equals?",
+     "options": [
+      "To make the compiler stop giving warnings",
+      "So that data structures like HashMap and HashSet do not misbehave",
+      "To allow super() to be called correctly",
+      "To enable dynamic dispatch for private fields"
+     ],
+     "answer_index": 1,
+     "hint": "Think about hash-based collections mentioned in the notes.",
+     "explanation": "If you override equals without hashCode, collections like HashMap and HashSet will misbehave when trying to store and look up objects.",
+     "topic": "Equals and HashCode",
+     "source_ref": "Slide 5"
+    }
+   ],
+   "viva": [
+    {
+     "question": "What is the difference between how method overriding and method overloading are resolved?",
+     "key_points": [
+      "Overloading is resolved at compile time based on parameter lists.",
+      "Overriding is resolved at run time through dynamic dispatch.",
+      "Overriding involves the same signature in a subclass, while overloading involves different parameters in the same class."
+     ],
+     "hint": "Think about when the Java compiler checks the code versus when the program actually runs.",
+     "topic": "Overriding vs Overloading"
+    },
+    {
+     "question": "When should you prefer composition over inheritance, and what happens if you choose inheritance incorrectly?",
+     "key_points": [
+      "Prefer composition when the relationship is 'has a' rather than a true 'is a'.",
+      "Inheriting incorrectly (like making a Course inherit from ArrayList) exposes unwanted methods.",
+      "Composition keeps classes properly encapsulated."
+     ],
+     "hint": "Think about whether a Course is actually a kind of ArrayList or just contains a list.",
+     "topic": "Composition"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "How do you write a subclass inheritance relationship in Java?",
+     "back": "class Student extends Person",
+     "topic": "Inheritance"
+    },
+    {
+     "front": "Are constructors inherited by subclasses?",
+     "back": "No, constructors are not inherited. Subclass constructors must call super(...) explicitly or implicitly.",
+     "topic": "Inheritance"
+    },
+    {
+     "front": "What annotation should you use when overriding a method?",
+     "back": "@Override",
+     "topic": "Overriding vs Overloading"
+    },
+    {
+     "front": "What decides which methods you are allowed to call on an object variable?",
+     "back": "The variable's declared type.",
+     "topic": "Dynamic Dispatch"
+    },
+    {
+     "front": "What decides which method implementation actually runs during a method call?",
+     "back": "The run-time type of the object.",
+     "topic": "Dynamic Dispatch"
+    },
+    {
+     "front": "Can an abstract class be instantiated directly with new?",
+     "back": "No, abstract classes cannot be instantiated; subclasses must implement their abstract methods.",
+     "topic": "Abstract Classes"
+    },
+    {
+     "front": "Should generated equals methods use getClass() or instanceof?",
+     "back": "getClass(), when subclasses must not be equal to superclass objects.",
+     "topic": "Equals and HashCode"
+    },
+    {
+     "front": "What is the 'has a' design principle called instead of inheritance?",
+     "back": "Composition",
+     "topic": "Composition"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Inheritance",
+     "key_points": [
+      "Allows a subclass to reuse and specialize a superclass.",
+      "Subclasses inherit public and protected members.",
+      "Constructors are not inherited and require super calls."
+     ],
+     "source_ref": "Slide 1"
+    },
+    {
+     "topic": "Dynamic Dispatch",
+     "key_points": [
+      "Declared type determines which methods you are allowed to call.",
+      "Run-time type determines which method implementation actually runs.",
+      "Enables polymorphism where one call produces many behaviors."
+     ],
+     "source_ref": "Slide 3"
+    },
+    {
+     "topic": "Abstract Classes",
+     "key_points": [
+      "Cannot be instantiated directly using new.",
+      "Subclasses are forced to implement abstract methods.",
+      "Used when subclasses share state or common code."
+     ],
+     "source_ref": "Slide 4"
+    },
+    {
+     "topic": "Composition",
+     "key_points": [
+      "Use composition ('has a') when the relationship is not truly 'is a'.",
+      "Prevents exposing unwanted inherited methods from utility classes.",
+      "Example: A Course has a list of Students rather than extending ArrayList."
+     ],
+     "source_ref": "Slide 6"
+    }
+   ]
+  }
+ },
+ "csc-l16": {
+  "hash": "1vel5su",
+  "material": {
+   "title": "Lecture 16: JUnit and test-driven development",
+   "topics": [
+    "Unit Testing with JUnit",
+    "Test-Driven Development",
+    "Test Independence and Fixtures",
+    "Coverage and Common Mistakes"
+   ],
+   "quiz": [
+    {
+     "question": "What is the correct order of parameters in the JUnit 5 assertEquals method?",
+     "options": [
+      "actual, expected",
+      "expected, actual",
+      "message, expected, actual",
+      "actual, expected, message"
+     ],
+     "answer_index": 1,
+     "hint": "Check the instructions on which value always goes first.",
+     "explanation": "In JUnit assertions, the expected value always comes before the actual value.",
+     "topic": "Unit Testing with JUnit",
+     "source_ref": "Lecture 16"
+    },
+    {
+     "question": "What are the three steps in the test-driven development (TDD) cycle?",
+     "options": [
+      "Plan, Code, Test",
+      "Write, Compile, Run",
+      "Red, green, refactor",
+      "Arrange, act, assert"
+     ],
+     "answer_index": 2,
+     "hint": "Think about the color coding of test results and the cleanup phase.",
+     "explanation": "TDD follows a red (failing test), green (passing code), and refactor cycle.",
+     "topic": "Test-Driven Development",
+     "source_ref": "Lecture 16"
+    },
+    {
+     "question": "How should you prevent tests from depending on each other's state?",
+     "options": [
+      "Run them in alphabetical order",
+      "Use @BeforeEach to rebuild fixtures for every test",
+      "Share mutable state in static variables",
+      "Catch all exceptions silently"
+     ],
+     "answer_index": 1,
+     "hint": "Look for the annotation used to set up fresh objects before each test method.",
+     "explanation": "@BeforeEach ensures that fresh fixtures are rebuilt for every single test, maintaining test independence.",
+     "topic": "Test Independence and Fixtures",
+     "source_ref": "Lecture 16"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain the Arrange-Act-Assert pattern in unit testing.",
+     "key_points": [
+      "Arrange involves building the required objects.",
+      "Act involves calling the method being tested.",
+      "Assert involves checking the result against expectations."
+     ],
+     "hint": "Think about the three distinct phases a well-structured test goes through.",
+     "topic": "Unit Testing with JUnit"
+    },
+    {
+     "question": "Why is testing exceptions thoroughly important, and how do you do it in JUnit 5?",
+     "key_points": [
+      "It ensures invalid inputs are handled correctly.",
+      "Use assertThrows to check the exception type.",
+      "Check the exception message to ensure it matches the requirement."
+     ],
+     "hint": "Consider checking both the type of exception thrown and its error message text.",
+     "topic": "Test Independence and Fixtures"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What does a unit test check?",
+     "back": "One behavior of one class in isolation.",
+     "topic": "Unit Testing with JUnit"
+    },
+    {
+     "front": "What annotation marks a JUnit 5 test method?",
+     "back": "@Test",
+     "topic": "Unit Testing with JUnit"
+    },
+    {
+     "front": "What are the three steps of TDD?",
+     "back": "Red, green, refactor.",
+     "topic": "Test-Driven Development"
+    },
+    {
+     "front": "What is the minimum line and branch coverage required for projects?",
+     "back": "At least 80% of each.",
+     "topic": "Coverage and Common Mistakes"
+    },
+    {
+     "front": "What annotation is used to rebuild fixtures before every test?",
+     "back": "@BeforeEach",
+     "topic": "Test Independence and Fixtures"
+    },
+    {
+     "front": "How do you test that an exception is thrown with a specific message?",
+     "back": "Use assertThrows and check the message with assertEquals.",
+     "topic": "Test Independence and Fixtures"
+    },
+    {
+     "front": "What tool measures line and branch code coverage?",
+     "back": "Jenkins",
+     "topic": "Coverage and Common Mistakes"
+    },
+    {
+     "front": "What are boundary and error cases to test?",
+     "back": "Empty strings, null, zero, negative sizes, array ends, and duplicates.",
+     "topic": "Coverage and Common Mistakes"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Unit Testing Anatomy",
+     "key_points": [
+      "A unit test checks one behavior of one class in isolation.",
+      "Follows the arrange, act, assert pattern.",
+      "Method names should clearly state what behavior is being checked."
+     ],
+     "source_ref": "Lecture 16"
+    },
+    {
+     "topic": "Test-Driven Development",
+     "key_points": [
+      "Write a failing test first before writing implementation code.",
+      "Write the minimum code required to pass the test.",
+      "Refactor code afterward while keeping tests passing."
+     ],
+     "source_ref": "Lecture 16"
+    },
+    {
+     "topic": "Test Independence",
+     "key_points": [
+      "Tests must not depend on execution order or on each other.",
+      "Avoid sharing mutable state across tests.",
+      "Use @BeforeEach to rebuild fresh fixtures for every test."
+     ],
+     "source_ref": "Lecture 16"
+    },
+    {
+     "topic": "Coverage and Exceptions",
+     "key_points": [
+      "Projects require at least 80% line and branch coverage via Jenkins.",
+      "Use assertThrows to verify exception types and error messages.",
+      "Avoid tests with no assertions or catching exceptions silently."
+     ],
+     "source_ref": "Lecture 16"
+    }
+   ]
+  }
+ },
+ "csc-l18": {
+  "hash": "13rjxkj",
+  "material": {
+   "title": "Lecture 18: Exceptions and finite state machines",
+   "topics": [
+    "Exceptions",
+    "try catch finally",
+    "Custom exceptions",
+    "Finite state machines",
+    "The State pattern"
+   ],
+   "quiz": [
+    {
+     "question": "Which type of exception must be explicitly handled or declared with throws?",
+     "options": [
+      "Unchecked exceptions",
+      "Checked exceptions",
+      "Errors",
+      "Runtime exceptions"
+     ],
+     "answer_index": 1,
+     "hint": "Think about exceptions that extend Exception directly rather than RuntimeException.",
+     "explanation": "Checked exceptions, such as IOException or custom exceptions extending Exception, must be declared using throws or handled using try-catch.",
+     "topic": "Exceptions",
+     "source_ref": "Lecture 18"
+    },
+    {
+     "question": "What is the primary benefit of the finally block?",
+     "options": [
+      "It only runs if an exception occurs.",
+      "It allows you to ignore unhandled exceptions.",
+      "It always runs, making it ideal for closing files.",
+      "It replaces the need for a catch block."
+     ],
+     "answer_index": 2,
+     "hint": "Consider which block guarantees execution even after a return statement.",
+     "explanation": "The finally block always runs, even after a return or an uncaught exception, which makes it the correct place to close files.",
+     "topic": "try catch finally",
+     "source_ref": "Lecture 18"
+    },
+    {
+     "question": "How do you avoid giant switch statements when implementing a finite state machine in object-oriented programming?",
+     "options": [
+      "Use the State pattern",
+      "Use only checked exceptions",
+      "Put all logic in the finally block",
+      "Extend RuntimeException"
+     ],
+     "answer_index": 0,
+     "hint": "This pattern delegates behavior to concrete state objects.",
+     "explanation": "The State pattern lets each concrete state implement its own transitions and delegate behavior, avoiding giant switch statements.",
+     "topic": "The State pattern",
+     "source_ref": "Lecture 18"
+    }
+   ],
+   "viva": [
+    {
+     "question": "What is the difference between checked and unchecked exceptions in Java?",
+     "key_points": [
+      "Checked exceptions must be declared with throws or handled in a try-catch block.",
+      "Unchecked exceptions extend RuntimeException and signal programmer errors or invalid input.",
+      "Examples of checked include IOException, while unchecked include NullPointerException and IllegalArgumentException."
+     ],
+     "hint": "Think about compiler enforcement and which ones represent programmer errors.",
+     "topic": "Exceptions"
+    },
+    {
+     "question": "Explain how the State pattern works and what benefits it provides over a traditional switch statement.",
+     "key_points": [
+      "The context class holds a reference to the current State object and delegates behavior to it.",
+      "Each concrete state implements valid transitions and updates the context's current state.",
+      "It eliminates giant switch statements and allows adding new states without modifying existing ones."
+     ],
+     "hint": "Think about how behavior is delegated to separate state classes.",
+     "topic": "The State pattern"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Checked Exceptions",
+     "back": "Exceptions that must be declared with throws or handled in code. They include IOException and custom exceptions extending Exception.",
+     "topic": "Exceptions"
+    },
+    {
+     "front": "Unchecked Exceptions",
+     "back": "Exceptions extending RuntimeException (like IllegalArgumentException) that signal programmer errors or invalid input and do not require explicit declaration.",
+     "topic": "Exceptions"
+    },
+    {
+     "front": "finally block",
+     "back": "A block that always runs, even after a return or an uncaught exception, making it ideal for closing files.",
+     "topic": "try catch finally"
+    },
+    {
+     "front": "Catch block ordering",
+     "back": "Catch specific exceptions before general ones. The compiler rejects an unreachable catch.",
+     "topic": "try catch finally"
+    },
+    {
+     "front": "Custom Exception",
+     "back": "A user-defined exception class extending Exception, typically created with a message and a default constructor.",
+     "topic": "Custom exceptions"
+    },
+    {
+     "front": "Finite State Machine (FSM)",
+     "back": "A model with a finite set of states, an initial state, and transitions triggered by inputs, represented as a diagram before coding.",
+     "topic": "Finite state machines"
+    },
+    {
+     "front": "The State Pattern",
+     "back": "A design pattern where a context holds a current State object and delegates calls to it, avoiding giant switch statements.",
+     "topic": "The State pattern"
+    },
+    {
+     "front": "Testing a State Machine",
+     "back": "Write one test per transition, plus tests ensuring invalid inputs in a given state throw exceptions or are ignored.",
+     "topic": "Finite state machines"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Exception Handling",
+     "key_points": [
+      "Throwable splits into Error and Exception.",
+      "Checked exceptions require handling or declaration.",
+      "Unchecked exceptions signal programmer errors like invalid arguments."
+     ],
+     "source_ref": "Lecture 18"
+    },
+    {
+     "topic": "Try Catch Finally Rules",
+     "key_points": [
+      "Always catch specific exceptions before general ones.",
+      "Never leave a catch block empty.",
+      "The finally block always runs and is used to close files."
+     ],
+     "source_ref": "Lecture 18"
+    },
+    {
+     "topic": "Finite State Machines",
+     "key_points": [
+      "Consists of a finite set of states, an initial state, and transitions.",
+      "Draw a diagram before coding where each arrow represents one transition.",
+      "Test every transition and handle invalid inputs appropriately."
+     ],
+     "source_ref": "Lecture 18"
+    },
+    {
+     "topic": "The State Pattern",
+     "key_points": [
+      "Context holds a reference to the current State object.",
+      "Behaviors and transitions are delegated to concrete state classes.",
+      "Removes giant switch statements and simplifies adding new states."
+     ],
+     "source_ref": "Lecture 18"
+    }
+   ]
+  }
+ },
+ "csc-p1": {
+  "hash": "wtg3bg",
+  "material": {
+   "title": "Project 1: WolfScheduler",
+   "topics": [
+    "WolfScheduler Overview",
+    "Required Classes",
+    "Rules and Validation",
+    "Conflicts"
+   ],
+   "quiz": [
+    {
+     "question": "What exception is thrown when an invalid value is provided for a course field like credits or section?",
+     "options": [
+      "ConflictException",
+      "IllegalArgumentException",
+      "NullPointerException",
+      "RuntimeException"
+     ],
+     "answer_index": 1,
+     "hint": "Check the rules to enforce section regarding invalid values.",
+     "explanation": "Any invalid value throws IllegalArgumentException with the exact message in the requirements document.",
+     "topic": "Rules and Validation",
+     "source_ref": "Rules to enforce."
+    },
+    {
+     "question": "Which of the following describes the formatting rule for a course name?",
+     "options": [
+      "3 letters followed by 4 digits",
+      "1-4 letters, a space, and 3 digits",
+      "Only numbers",
+      "Any combination of letters and dashes"
+     ],
+     "answer_index": 1,
+     "hint": "Look closely at the department code and digit counts.",
+     "explanation": "Course names match a department code of 1-4 letters, a space, and 3 digits.",
+     "topic": "Rules and Validation",
+     "source_ref": "Rules to enforce."
+    },
+    {
+     "question": "When do two activities conflict based on the project requirements?",
+     "options": [
+      "If they share at least one meeting day and their times overlap, including sharing a single minute",
+      "Only if they happen on the exact same day for the exact same duration",
+      "If they are in the same department",
+      "Whenever they have the same instructor ID"
+     ],
+     "answer_index": 0,
+     "hint": "Think about overlapping minutes.",
+     "explanation": "Two activities conflict if they share at least one meeting day and their times overlap, including sharing a single minute.",
+     "topic": "Conflicts",
+     "source_ref": "Conflicts."
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain the inheritance relationship between Activity, Course, and Event.",
+     "key_points": [
+      "Activity is an abstract class containing title, meeting days, start time, and end time.",
+      "Course extends Activity and adds specific fields like name, section, credits, and instructor id.",
+      "Event extends Activity to handle other schedule items like work shifts."
+     ],
+     "hint": "Think about what fields are shared versus specialized.",
+     "topic": "Required Classes"
+    },
+    {
+     "question": "How does WolfScheduler handle arranged courses when checking for time conflicts?",
+     "key_points": [
+      "Arranged courses use the day letter A and have no times.",
+      "Arranged courses do not have start and end times, so they avoid standard time overlap conflicts."
+     ],
+     "hint": "Consider what 'A' means for meeting days and times.",
+     "topic": "Conflicts"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What is WolfScheduler?",
+     "back": "A program where students load a catalog of courses from a text file and build a schedule.",
+     "topic": "WolfScheduler Overview"
+    },
+    {
+     "front": "What is the role of Activity?",
+     "back": "An abstract class with title, meeting days, start time, and end time.",
+     "topic": "Required Classes"
+    },
+    {
+     "front": "What does Course extend?",
+     "back": "Course extends Activity and adds name, section, credits, and instructor id.",
+     "topic": "Required Classes"
+    },
+    {
+     "front": "What is ConflictException?",
+     "back": "A checked exception that extends Exception and is thrown when adding conflicting activities to the schedule.",
+     "topic": "Conflicts"
+    },
+    {
+     "front": "What are the allowed meeting day letters?",
+     "back": "M, T, W, H, F, or A for arranged.",
+     "topic": "Rules and Validation"
+    },
+    {
+     "front": "What are the valid ranges for course credits?",
+     "back": "Between 1 and 5 inclusive.",
+     "topic": "Rules and Validation"
+    },
+    {
+     "front": "When do two activities conflict?",
+     "back": "If they share at least one meeting day and their times overlap, even by a single minute.",
+     "topic": "Conflicts"
+    },
+    {
+     "front": "What is delivered in Part 1?",
+     "back": "Activity, Course, Event, ConflictException, conflict check, and unit tests with 80% coverage.",
+     "topic": "WolfScheduler Overview"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "WolfScheduler Overview",
+     "key_points": [
+      "Loads a catalog from a text file to build schedules.",
+      "Rejects time conflicts and exports schedules.",
+      "Allows non-course events alongside regular courses."
+     ],
+     "source_ref": "Overview."
+    },
+    {
+     "topic": "Required Classes",
+     "key_points": [
+      "Activity is an abstract base class.",
+      "Course and Event inherit from Activity.",
+      "WolfScheduler manages the catalog and schedule."
+     ],
+     "source_ref": "Required classes."
+    },
+    {
+     "topic": "Rules and Validation",
+     "key_points": [
+      "Course names use 1-4 letters, a space, and 3 digits.",
+      "Credits must be between 1 and 5.",
+      "Invalid values throw IllegalArgumentException."
+     ],
+     "source_ref": "Rules to enforce."
+    },
+    {
+     "topic": "Conflicts",
+     "key_points": [
+      "Checked via checkConflict method in Activity.",
+      "Triggered when meeting days overlap and times intersect.",
+      "Throws ConflictException when added to the schedule."
+     ],
+     "source_ref": "Conflicts."
+    }
+   ]
+  }
+ },
+ "ma-l10": {
+  "hash": "1oaf1f",
+  "material": {
+   "title": "Lecture 10: Integration by Parts",
+   "topics": [
+    "Integration by parts formula",
+    "LIATE rule",
+    "Repeated integration by parts",
+    "Tabular method",
+    "Integrals returning to themselves",
+    "Sneaky single-factor cases",
+    "Definite integrals"
+   ],
+   "quiz": [
+    {
+     "question": "What does the acronym LIATE help you choose when using integration by parts?",
+     "options": [
+      "The integration constant C",
+      "The factor u",
+      "The limits for definite integrals",
+      "The derivative of v"
+     ],
+     "answer_index": 1,
+     "hint": "Think about which part of the formula needs to get simpler when differentiated.",
+     "explanation": "LIATE stands for Logarithmic, Inverse trig, Algebraic, Trigonometric, Exponential, helping you select the best choice for u.",
+     "topic": "LIATE rule",
+     "source_ref": "Section 7.1"
+    },
+    {
+     "question": "When evaluating the integral of ln x dx using integration by parts, what is the best choice for dv?",
+     "options": [
+      "ln x",
+      "1 / x",
+      "dx",
+      "x dx"
+     ],
+     "answer_index": 2,
+     "hint": "Treat the single factor as a product of ln x and the differential of x.",
+     "explanation": "For single-factor cases like ln x, you set u = ln x and dv = dx.",
+     "topic": "Sneaky single-factor cases",
+     "source_ref": "Section 7.1"
+    },
+    {
+     "question": "Which method is faster and allowed on tests for integrals requiring integration by parts multiple times?",
+     "options": [
+      "The substitution method",
+      "The tabular method",
+      "Partial fraction decomposition",
+      "Trigonometric substitution"
+     ],
+     "answer_index": 1,
+     "hint": "It involves columns of alternating signs, derivatives, and integrals.",
+     "explanation": "The tabular method uses columns for derivatives of u and integrals of dv with alternating signs, making repeated parts faster.",
+     "topic": "Tabular method",
+     "source_ref": "Section 7.1"
+    }
+   ],
+   "viva": [
+    {
+     "question": "How do you handle an integral like the integral of e^x cos x where the original integral reappears after applying parts twice?",
+     "key_points": [
+      "Apply integration by parts twice",
+      "Recognize that the original integral appears on the right side of the equation",
+      "Move the recurring integral to the left-hand side and solve algebraically by dividing by the coefficient"
+     ],
+     "hint": "Think about moving like terms across the equals sign.",
+     "topic": "Integrals that return to themselves"
+    },
+    {
+     "question": "What is the purpose of the LIATE rule and how do you prioritize functions using it?",
+     "key_points": [
+      "It helps choose the function for u",
+      "Stands for Logarithmic, Inverse trig, Algebraic, Trigonometric, Exponential",
+      "Earlier items in the list are chosen as u because they become simpler when differentiated"
+     ],
+     "hint": "Consider the order of function types from logarithms down to exponentials.",
+     "topic": "LIATE rule"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Integration by parts formula",
+     "back": "integral of u dv = u v - integral of v du",
+     "topic": "Integration by parts formula"
+    },
+    {
+     "front": "What does LIATE stand for?",
+     "back": "Logarithmic, Inverse trig, Algebraic, Trigonometric, Exponential",
+     "topic": "LIATE rule"
+    },
+    {
+     "front": "Integral of ln x dx",
+     "back": "x ln x - x + C",
+     "topic": "Sneaky single-factor cases"
+    },
+    {
+     "front": "Integral of arctan x dx",
+     "back": "x arctan x - (1/2) ln(1 + x^2) + C",
+     "topic": "Sneaky single-factor cases"
+    },
+    {
+     "front": "Most common error in integrals requiring parts twice",
+     "back": "A sign mistake in the second round",
+     "topic": "Repeated integration by parts"
+    },
+    {
+     "front": "How to handle definite integrals with parts",
+     "back": "Evaluate the u v term at the limits as well as the resulting integral",
+     "topic": "Definite integrals"
+    },
+    {
+     "front": "Trick for integrals that return to themselves like e^x cos x",
+     "back": "Apply parts twice, move the original integral to the left side, and divide by 2",
+     "topic": "Integrals that return to themselves"
+    },
+    {
+     "front": "Tabular method usage",
+     "back": "Alternating signs with derivatives of u in one column and integrals of dv in the other",
+     "topic": "Tabular method"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Integration by Parts Formula",
+     "key_points": [
+      "Derived from the product rule for differentiation",
+      "Expressed as the integral of u dv equals u times v minus the integral of v du",
+      "Requires splitting the integrand into u and dv"
+     ],
+     "source_ref": "Section 7.1"
+    },
+    {
+     "topic": "Choosing u using LIATE",
+     "key_points": [
+      "LIATE prioritizes Logarithmic, Inverse trig, Algebraic, Trigonometric, and Exponential functions",
+      "Choose u to be the factor that gets simpler when differentiated",
+      "Choose dv to be the remaining part that you can easily integrate"
+     ],
+     "source_ref": "Section 7.1"
+    },
+    {
+     "topic": "Tabular Method",
+     "key_points": [
+      "A faster alternative for integrals requiring parts multiple times",
+      "Uses two columns: derivatives of u and integrals of dv",
+      "Applies alternating signs (+, -, +, -) down the rows"
+     ],
+     "source_ref": "Section 7.1"
+    },
+    {
+     "topic": "Self-Referencing Integrals",
+     "key_points": [
+      "Applies to functions like e^x cos x, e^x sin x, and sec^3 x",
+      "Requires applying integration by parts twice until the original integral reappears",
+      "Solved by moving the identical integral to the opposite side and dividing by the coefficient"
+     ],
+     "source_ref": "Section 7.1"
+    }
+   ]
+  }
+ },
+ "ma-l13": {
+  "hash": "1ryuq82",
+  "material": {
+   "title": "Lecture 13: Trig Substitution and Partial Fractions",
+   "topics": [
+    "Trigonometric Substitution",
+    "Partial Fractions"
+   ],
+   "quiz": [
+    {
+     "question": "Which substitution should be used for an integral containing the expression sqrt(a^2 - x^2)?",
+     "options": [
+      "x = a sin t",
+      "x = a tan t",
+      "x = a sec t",
+      "x = a cos t"
+     ],
+     "answer_index": 0,
+     "hint": "Think about the identity 1 - sin^2 t = cos^2 t.",
+     "explanation": "For sqrt(a^2 - x^2), we use x = a sin t so that the square root collapses using the identity 1 - sin^2 = cos^2.",
+     "topic": "Trigonometric Substitution",
+     "source_ref": "Section 7.3"
+    },
+    {
+     "question": "What is the proper partial fraction decomposition setup for a repeated linear factor like (x - a)^2?",
+     "options": [
+      "A / (x - a)",
+      "A / (x - a) + B / (x - a)^2",
+      "(Ax + B) / (x - a)^2",
+      "A / (x - a)^2"
+     ],
+     "answer_index": 1,
+     "hint": "Repeated factors require a term for each power up to the exponent.",
+     "explanation": "A repeated linear factor (x - a)^2 gets broken down into A / (x - a) + B / (x - a)^2.",
+     "topic": "Partial Fractions",
+     "source_ref": "Section 7.4"
+    },
+    {
+     "question": "What must you do first if the degree of the polynomial P(x) is greater than or equal to the degree of Q(x) in a rational function P(x)/Q(x)?",
+     "options": [
+      "Use trig substitution",
+      "Factor Q completely",
+      "Divide first",
+      "Apply the cover-up method"
+     ],
+     "answer_index": 2,
+     "hint": "Partial fractions only work on proper rational functions.",
+     "explanation": "Partial fractions require a proper rational function where the degree of P is less than the degree of Q. If not, you must divide first.",
+     "topic": "Partial Fractions",
+     "source_ref": "Section 7.4"
+    }
+   ],
+   "viva": [
+    {
+     "question": "How do you convert your trigonometric answer back to the variable x after evaluating a trig substitution integral?",
+     "key_points": [
+      "Draw a right triangle at the end",
+      "Use the original substitution definition to label the triangle sides",
+      "Substitute the trigonometric ratio back in terms of x"
+     ],
+     "hint": "Think about drawing a geometric shape.",
+     "topic": "Trigonometric Substitution"
+    },
+    {
+     "question": "Explain how the cover-up method works for finding constants in partial fractions.",
+     "key_points": [
+      "Works for distinct linear factors",
+      "Involves multiplying through by Q(x)",
+      "Plug in the root that makes the factor zero to quickly find the constant"
+     ],
+     "hint": "It is a fast way to find constants by plugging in roots.",
+     "topic": "Partial Fractions"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Trig substitution for sqrt(a^2 - x^2)",
+     "back": "x = a sin t",
+     "topic": "Trigonometric Substitution"
+    },
+    {
+     "front": "Trig substitution for sqrt(a^2 + x^2)",
+     "back": "x = a tan t",
+     "topic": "Trigonometric Substitution"
+    },
+    {
+     "front": "Trig substitution for sqrt(x^2 - a^2)",
+     "back": "x = a sec t",
+     "topic": "Trigonometric Substitution"
+    },
+    {
+     "front": "Identity used to collapse sqrt(a^2 - x^2)",
+     "back": "1 - sin^2 t = cos^2 t",
+     "topic": "Trigonometric Substitution"
+    },
+    {
+     "front": "Decomposition term for an irreducible quadratic factor x^2 + bx + c",
+     "back": "(Ax + B) / (x^2 + bx + c)",
+     "topic": "Partial Fractions"
+    },
+    {
+     "front": "Requirement for P(x)/Q(x) before partial fractions",
+     "back": "P(x) must have a strictly lower degree than Q(x).",
+     "topic": "Partial Fractions"
+    },
+    {
+     "front": "Integration result form for quadratic pieces like (Ax + B) / (x^2 + 4)",
+     "back": "A log plus an arctan",
+     "topic": "Partial Fractions"
+    },
+    {
+     "front": "Fast method for finding constants of distinct linear factors",
+     "back": "The cover-up method by plugging in the roots",
+     "topic": "Partial Fractions"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Trigonometric Substitution",
+     "key_points": [
+      "Used to handle square roots of quadratics.",
+      "Choose substitution based on the form: sin, tan, or sec.",
+      "Trig identities collapse the square root.",
+      "Draw a right triangle to convert back to x at the end."
+     ],
+     "source_ref": "Section 7.3"
+    },
+    {
+     "topic": "Partial Fraction Decomposition",
+     "key_points": [
+      "Decomposes proper rational functions into simpler fractions.",
+      "Must divide first if the numerator degree is greater than or equal to the denominator degree.",
+      "Factor the denominator completely to set up the terms.",
+      "Distinct linear, repeated linear, and irreducible quadratic factors each have specific setup rules."
+     ],
+     "source_ref": "Section 7.4"
+    },
+    {
+     "topic": "Finding Constants",
+     "key_points": [
+      "Multiply through by the original denominator Q(x).",
+      "Use the cover-up method by plugging in roots for fast results on distinct linear factors.",
+      "Alternatively, match coefficients of powers of x."
+     ],
+     "source_ref": "Section 7.4"
+    },
+    {
+     "topic": "Integrating Quadratic Pieces",
+     "key_points": [
+      "Split fractions of the form (Ax + B)/(x^2 + c) into two parts.",
+      "One part integrates to a logarithmic function.",
+      "The other part integrates to an arctangent function."
+     ],
+     "source_ref": "Section 7.4"
+    }
+   ]
+  }
+ },
+ "ma-l16": {
+  "hash": "16zrrx6",
+  "material": {
+   "title": "Lecture 16: Improper Integrals",
+   "topics": [
+    "Type 1 Improper Integrals",
+    "Type 2 Improper Integrals",
+    "Comparison Test",
+    "Worked Example"
+   ],
+   "quiz": [
+    {
+     "question": "For what values of p does the integral from 1 to infinity of 1/x^p dx converge?",
+     "options": [
+      "p < 1",
+      "p <= 1",
+      "p > 1",
+      "p >= 2"
+     ],
+     "answer_index": 2,
+     "hint": "Think about the behavior of 1/x versus 1/x^2 at infinity.",
+     "explanation": "Type 1 integrals of the form 1/x^p converge exactly when p > 1 and diverge when p <= 1.",
+     "topic": "Type 1 Improper Integrals",
+     "source_ref": "Section 7.8"
+    },
+    {
+     "question": "What is the primary reason the integral from -1 to 1 of 1/x^2 dx diverges?",
+     "options": [
+      "The interval of integration is symmetric.",
+      "The function is discontinuous at 0, which is inside the interval.",
+      "The antiderivative is negative.",
+      "The limit to infinity does not exist."
+     ],
+     "answer_index": 1,
+     "hint": "Check the function values and continuity right in the middle of the interval.",
+     "explanation": "The function 1/x^2 has an infinite discontinuity at x = 0, which lies inside the interval [-1, 1]. A discontinuity in the middle requires splitting the integral.",
+     "topic": "Type 2 Improper Integrals",
+     "source_ref": "Section 7.8"
+    },
+    {
+     "question": "How do you evaluate a Type 1 improper integral with an infinite upper limit?",
+     "options": [
+      "Plug in infinity directly into the antiderivative.",
+      "Replace the infinite upper limit with a variable and take the limit as that variable goes to infinity.",
+      "Take the derivative of the integrand instead.",
+      "Always split the interval into two finite parts."
+     ],
+     "answer_index": 1,
+     "hint": "Infinity is not a number, so we use limits to approach it.",
+     "explanation": "Type 1 improper integrals are defined using limits, replacing the infinity with a variable like b and taking the limit as b approaches infinity.",
+     "topic": "Type 1 Improper Integrals",
+     "source_ref": "Section 7.8"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain how to handle a function with an infinite discontinuity located in the middle of an integration interval.",
+     "key_points": [
+      "Identify the exact point of discontinuity inside the interval.",
+      "Split the integral into two separate integrals at that point.",
+      "State that both resulting integrals must converge for the original integral to converge."
+     ],
+     "hint": "Think about breaking the domain into pieces around the problem area.",
+     "topic": "Type 2 Improper Integrals"
+    },
+    {
+     "question": "When should you use the Comparison Test for improper integrals, and how does it work?",
+     "key_points": [
+      "Use it when you cannot find an explicit antiderivative.",
+      "Compare your function to a simpler function whose convergence or divergence is known.",
+      "If a larger function's integral converges, the smaller function's integral converges."
+     ],
+     "hint": "Think about bounding your function above or below by a known integral.",
+     "topic": "Comparison Test"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Type 1 Improper Integral",
+     "back": "An integral over an infinite interval, evaluated using a limit as an endpoint approaches infinity.",
+     "topic": "Type 1 Improper Integrals"
+    },
+    {
+     "front": "Type 2 Improper Integral",
+     "back": "An integral with an infinite discontinuity at an endpoint or inside the interval, evaluated using one-sided limits.",
+     "topic": "Type 2 Improper Integrals"
+    },
+    {
+     "front": "P-test for Type 1 (1/x^p)",
+     "back": "Converges when p > 1; diverges when p <= 1.",
+     "topic": "Type 1 Improper Integrals"
+    },
+    {
+     "front": "P-test for Type 2 (1/x^p from 0 to 1)",
+     "back": "Converges when p < 1; diverges when p >= 1.",
+     "topic": "Type 2 Improper Integrals"
+    },
+    {
+     "front": "Common Trap in Improper Integrals",
+     "back": "Failing to check for discontinuities inside the interval before integrating.",
+     "topic": "Type 2 Improper Integrals"
+    },
+    {
+     "front": "Comparison Test Rule",
+     "back": "If 0 <= f(x) <= g(x) and g's integral converges, f's integral converges too.",
+     "topic": "Comparison Test"
+    },
+    {
+     "front": "Convergence Definition",
+     "back": "An improper integral converges if its limit exists and is finite.",
+     "topic": "Type 1 Improper Integrals"
+    },
+    {
+     "front": "Divergence Definition",
+     "back": "An improper integral diverges if its limit does not exist or is infinite.",
+     "topic": "Type 1 Improper Integrals"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Type 1 Improper Integrals",
+     "key_points": [
+      "Involves infinite intervals like from 1 to infinity.",
+      "Replaces the infinity with a variable like b.",
+      "Evaluates the integral as a limit as b goes to infinity.",
+      "Converges if the limit exists and is finite, otherwise diverges."
+     ],
+     "source_ref": "Section 7.8"
+    },
+    {
+     "topic": "Type 2 Improper Integrals",
+     "key_points": [
+      "Involves functions that blow up or have infinite discontinuities.",
+      "Uses one-sided limits by replacing the bad endpoint with a variable.",
+      "Discontinuities in the middle of the interval require splitting the integral.",
+      "Both split parts must converge for the total integral to converge."
+     ],
+     "source_ref": "Section 7.8"
+    },
+    {
+     "topic": "Comparison Test",
+     "key_points": [
+      "Used when an explicit antiderivative cannot be found.",
+      "Involves bounding the function between zero and a known function.",
+      "If the larger function converges, the smaller function converges.",
+      "If the smaller function diverges, the larger function diverges."
+     ],
+     "source_ref": "Section 7.8"
+    },
+    {
+     "topic": "Common Traps",
+     "key_points": [
+      "Always check for interior discontinuities before doing any integration.",
+      "Do not blindly integrate across points where the function is undefined.",
+      "Recognize that functions going to zero at infinity can still have divergent integrals."
+     ],
+     "source_ref": "Section 7.8"
+    }
+   ]
+  }
+ },
+ "ma-q3": {
+  "hash": "13t4bjp",
+  "material": {
+   "title": "MA 241 Quiz 3 Solutions Review",
+   "topics": [
+    "Improper Integrals",
+    "Partial Fractions Integration",
+    "Discontinuous Integrands",
+    "Comparison Test"
+   ],
+   "quiz": [
+    {
+     "question": "What is the value of the convergent improper integral of 1 / (x^2 + x) from 1 to infinity?",
+     "options": [
+      "ln 2",
+      "0",
+      "ln (1/2)",
+      "Infinity"
+     ],
+     "answer_index": 0,
+     "hint": "Use partial fractions to split the denominator into 1/x - 1/(x + 1).",
+     "explanation": "Using partial fractions and evaluating the limit as b goes to infinity yields 0 - ln(1/2), which simplifies to ln 2.",
+     "topic": "Improper Integrals",
+     "source_ref": "Problem 1"
+    },
+    {
+     "question": "Why does the integral from 0 to 2 of 1 / (x - 1)^2 dx diverge?",
+     "options": [
+      "The upper limit is infinity.",
+      "The integrand is undefined at x = 1 inside the interval, requiring a split where the limit goes to infinity.",
+      "The antiderivative results in a negative value.",
+      "The p-value is less than 1."
+     ],
+     "answer_index": 1,
+     "hint": "Look closely at the interval of integration and where the denominator equals zero.",
+     "explanation": "The integrand has an infinite discontinuity at x = 1. Splitting the integral at 1 shows that the limit approaches infinity, meaning it diverges.",
+     "topic": "Discontinuous Integrands",
+     "source_ref": "Problem 2"
+    },
+    {
+     "question": "Which test determines whether the integral from 1 to infinity of (2 + sin x) / x^2 dx converges?",
+     "options": [
+      "Partial fraction decomposition",
+      "The limit comparison test with sin x",
+      "The comparison test using 3 / x^2 and the p-test (p = 2)",
+      "Integration by parts"
+     ],
+     "answer_index": 2,
+     "hint": "Bound the numerator using the maximum value of the sine function.",
+     "explanation": "Since 2 + sin x is at most 3, you can compare it to 3/x^2. The integral of 3/x^2 converges because p = 2 > 1.",
+     "topic": "Comparison Test",
+     "source_ref": "Problem 3"
+    }
+   ],
+   "viva": [
+    {
+     "question": "How do you handle an improper integral where the function has a vertical asymptote inside the integration interval, such as from 0 to 2 for 1 / (x - 1)^2?",
+     "key_points": [
+      "Identify the point of discontinuity within the interval.",
+      "Split the integral into two parts at that point.",
+      "Use limits to evaluate the improper boundaries."
+     ],
+     "hint": "Think about why you cannot just integrate straight through across an undefined point.",
+     "topic": "Discontinuous Integrands"
+    },
+    {
+     "question": "Explain how the comparison test is used to determine convergence for an integral like (2 + sin x) / x^2 from 1 to infinity.",
+     "key_points": [
+      "Bound the numerator using known properties of trigonometric functions.",
+      "Set up a simpler inequality using a standard p-integral.",
+      "Reference the p-test value to prove convergence."
+     ],
+     "hint": "What are the maximum and minimum bounds for 2 + sin x?",
+     "topic": "Comparison Test"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Partial fraction expansion for 1 / (x^2 + x)",
+     "back": "1/x - 1/(x + 1)",
+     "topic": "Partial Fractions Integration"
+    },
+    {
+     "front": "Antiderivative of 1/x - 1/(x + 1)",
+     "back": "ln(x / (x + 1))",
+     "topic": "Improper Integrals"
+    },
+    {
+     "front": "Result of the integral of 1 / (x^2 + x) from 1 to infinity",
+     "back": "ln 2",
+     "topic": "Improper Integrals"
+    },
+    {
+     "front": "Common error in Problem 1",
+     "back": "Forgetting the limit and writing infinity minus ln(1/2).",
+     "topic": "Improper Integrals"
+    },
+    {
+     "front": "Why does the integral of 1 / (x - 1)^2 from 0 to 2 diverge?",
+     "back": "The integrand is undefined at x = 1 inside the interval, and the limit goes to infinity.",
+     "topic": "Discontinuous Integrands"
+    },
+    {
+     "front": "Common error in Problem 2",
+     "back": "Integrating straight through without splitting, getting -2.",
+     "topic": "Discontinuous Integrands"
+    },
+    {
+     "front": "Upper bound used for 2 + sin x in Problem 3",
+     "back": "3",
+     "topic": "Comparison Test"
+    },
+    {
+     "front": "What value of p proves convergence for 3 / x^2 on [1, infinity)?",
+     "back": "p = 2",
+     "topic": "Comparison Test"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Evaluating Infinite Limits in Integrals",
+     "key_points": [
+      "Replace the infinity bound with a variable like b.",
+      "Evaluate the antiderivative with the variable.",
+      "Take the limit as b approaches infinity to find the final value."
+     ],
+     "source_ref": "Problem 1"
+    },
+    {
+     "topic": "Partial Fractions in Integration",
+     "key_points": [
+      "Factor the denominator into linear terms.",
+      "Rewrite the fraction as a sum of simpler fractions.",
+      "Integrate each simpler term separately."
+     ],
+     "source_ref": "Problem 1"
+    },
+    {
+     "topic": "Handling Internal Discontinuities",
+     "key_points": [
+      "Check if the function is continuous across the entire interval.",
+      "Split the integral at any point where the integrand is undefined.",
+      "Treat each new piece as a limit-based improper integral."
+     ],
+     "source_ref": "Problem 2"
+    },
+    {
+     "topic": "The Comparison Test for Integrals",
+     "key_points": [
+      "Find a simpler function that is always larger than or equal to your integrand.",
+      "Ensure the simpler function's integral is easy to evaluate.",
+      "Use the p-test to conclude convergence if the bounding integral converges."
+     ],
+     "source_ref": "Problem 3"
+    }
+   ]
+  }
+ },
+ "ma-test2": {
+  "hash": "rodzft",
+  "material": {
+   "title": "MA 241 Test 2 Review: Sequences and Series",
+   "topics": [
+    "Improper Integrals",
+    "Arc Length and Surface Area",
+    "Sequences",
+    "Series and Tests"
+   ],
+   "quiz": [
+    {
+     "question": "What is the condition for a geometric series sum of a r^n to converge?",
+     "options": [
+      "|r| < 1",
+      "r > 1",
+      "|r| > 1",
+      "r = 1"
+     ],
+     "answer_index": 0,
+     "hint": "Think about powers of a number getting smaller as n increases.",
+     "explanation": "A geometric series converges when the absolute value of the common ratio r is strictly less than 1.",
+     "topic": "Series and Tests",
+     "source_ref": "Section 11.2"
+    },
+    {
+     "question": "When does the Divergence Test show that a series converges?",
+     "options": [
+      "When the limit of a_n as n approaches infinity is 0",
+      "When the limit of a_n as n approaches infinity does not exist",
+      "When the limit of a_n as n approaches infinity is a positive number",
+      "The Divergence Test can never prove that a series converges"
+     ],
+     "answer_index": 3,
+     "hint": "Read the warning example about the harmonic series.",
+     "explanation": "The divergence test only tests for divergence. If a_n goes to 0, the test is inconclusive.",
+     "topic": "Series and Tests",
+     "source_ref": "Section 11.2"
+    },
+    {
+     "question": "For what values of p does a p-series sum of 1/n^p converge?",
+     "options": [
+      "p >= 1",
+      "p > 1",
+      "p < 1",
+      "p <= 1"
+     ],
+     "answer_index": 1,
+     "hint": "Compare this with the p-test for improper integrals.",
+     "explanation": "A p-series converges if and only if p is strictly greater than 1.",
+     "topic": "Series and Tests",
+     "source_ref": "Section 11.3"
+    }
+   ],
+   "viva": [
+    {
+     "question": "How do you use the Limit Comparison Test to determine if a series converges?",
+     "key_points": [
+      "Take the limit of a_n divided by b_n as n goes to infinity.",
+      "Ensure the limit results in a positive, finite number.",
+      "Conclude that both series share the same behavior, either both converge or both diverge."
+     ],
+     "hint": "Think about comparing an awkward series to a known p-series or geometric series using a ratio.",
+     "topic": "Series and Tests"
+    },
+    {
+     "question": "What are the key steps for solving an improper integral problem?",
+     "key_points": [
+      "Write the integral using a limit.",
+      "Evaluate the antiderivative and take the limit.",
+      "State clearly whether the integral converges or diverges."
+     ],
+     "hint": "You need to swap the infinity symbol for a variable and put a limit in front.",
+     "topic": "Improper Integrals"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Arc Length Formula",
+     "back": "L = integral of sqrt(1 + (dy/dx)^2) dx",
+     "topic": "Arc Length and Surface Area"
+    },
+    {
+     "front": "Surface Area of Revolution about x-axis",
+     "back": "S = integral of 2 pi y sqrt(1 + (dy/dx)^2) dx",
+     "topic": "Arc Length and Surface Area"
+    },
+    {
+     "front": "When does a sequence converge?",
+     "back": "A sequence converges if the limit of a_n as n approaches infinity exists.",
+     "topic": "Sequences"
+    },
+    {
+     "front": "Geometric Series Sum Formula",
+     "back": "Sum of a r^n equals a / (1 - r) when |r| < 1.",
+     "topic": "Series and Tests"
+    },
+    {
+     "front": "Divergence Test Warning Example",
+     "back": "The harmonic series, where a_n goes to 0 but the series still diverges.",
+     "topic": "Series and Tests"
+    },
+    {
+     "front": "Integral Test Conditions",
+     "back": "The terms must be positive, continuous, and decreasing.",
+     "topic": "Series and Tests"
+    },
+    {
+     "front": "Limit Comparison Test Condition",
+     "back": "If a_n / b_n has a positive finite limit, both series behave the same way.",
+     "topic": "Series and Tests"
+    },
+    {
+     "front": "Remainder Estimate for Integral Test",
+     "back": "R_n is bounded between the integral from n+1 to infinity and the integral from n to infinity.",
+     "topic": "Series and Tests"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Improper Integrals",
+     "key_points": [
+      "Always rewrite improper integrals using limits.",
+      "Evaluate the limit after finding the antiderivative.",
+      "State whether the integral converges or diverges based on the result."
+     ],
+     "source_ref": "Section 7.8"
+    },
+    {
+     "topic": "Sequences",
+     "key_points": [
+      "A sequence converges if the limit of its terms exists as n goes to infinity.",
+      "Use L'Hopital's rule on related functions or the squeeze theorem to find limits.",
+      "A bounded monotonic sequence always converges."
+     ],
+     "source_ref": "Section 11.1"
+    },
+    {
+     "topic": "Series Convergence",
+     "key_points": [
+      "A series converges if the sequence of its partial sums converges.",
+      "The divergence test shows a series diverges if terms do not go to zero.",
+      "Geometric series converge when the absolute value of the ratio is less than one."
+     ],
+     "source_ref": "Section 11.2"
+    },
+    {
+     "topic": "Integral and Comparison Tests",
+     "key_points": [
+      "The integral test links series convergence to improper integrals for positive, decreasing terms.",
+      "p-series converge when p is strictly greater than 1.",
+      "Direct and limit comparison tests let you compare unknown series to known benchmark series."
+     ],
+     "source_ref": "Sections 11.3-11.4"
+    }
+   ]
+  }
+ },
+ "st-formula": {
+  "hash": "v16qsf",
+  "material": {
+   "title": "ST 311 Midterm Formula Sheet Study Material",
+   "topics": [
+    "Descriptive statistics",
+    "Probability",
+    "Random variables",
+    "Sampling distribution",
+    "Confidence intervals",
+    "Two-sample t tests",
+    "Paired data"
+   ],
+   "quiz": [
+    {
+     "question": "What is the formula for the sample variance?",
+     "options": [
+      "sum of (x - mean)^2 over n",
+      "sum of (x - mean)^2 over (n - 1)",
+      "square root of the variance",
+      "sum of x over n"
+     ],
+     "answer_index": 1,
+     "hint": "Check the denominator in the descriptive statistics section.",
+     "explanation": "Sample variance is calculated by summing the squared deviations from the mean and dividing by n minus 1.",
+     "topic": "Descriptive statistics",
+     "source_ref": "Descriptive statistics"
+    },
+    {
+     "question": "According to the Central Limit Theorem, the sampling distribution of the mean is approximately normal when sample size n is at least what value?",
+     "options": [
+      "10",
+      "20",
+      "30",
+      "40"
+     ],
+     "answer_index": 2,
+     "hint": "Look for the threshold mentioned in the sampling distribution section.",
+     "explanation": "The Central Limit Theorem states that the distribution is approximately normal when n is at least 30.",
+     "topic": "Sampling distribution",
+     "source_ref": "Sampling distribution of the mean"
+    },
+    {
+     "question": "How do you handle paired data for a t test?",
+     "options": [
+      "Run two separate one-sample t tests",
+      "Compute the differences, then use the one-sample procedure on the differences",
+      "Use the pooled two-sample t test formula directly",
+      "Multiply the two samples together"
+     ],
+     "answer_index": 1,
+     "hint": "Think about converting two dependent measurements into a single variable.",
+     "explanation": "For paired data, you first compute the differences and then apply the standard one-sample procedure on those differences.",
+     "topic": "Paired data",
+     "source_ref": "Paired data"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain how to calculate an outlier using the IQR rule.",
+     "key_points": [
+      "Calculate Q1 and Q3 to find the IQR as Q3 - Q1.",
+      "Multiply the IQR by 1.5.",
+      "Identify outliers as values below Q1 minus 1.5 IQR or above Q3 plus 1.5 IQR."
+     ],
+     "hint": "Consider the formulas for IQR and the upper/lower fences.",
+     "topic": "Descriptive statistics"
+    },
+    {
+     "question": "What is the difference between how you handle standard error in a pooled two-sample t test versus a Welch two-sample t test?",
+     "key_points": [
+      "Pooled assumes equal variances and uses a pooled variance sp^2 to calculate standard error.",
+      "Welch does not assume equal variances and uses a standard error based on individual sample variances s1^2/n1 and s2^2/n2."
+     ],
+     "hint": "Look at the variance assumption and how the standard error formula changes.",
+     "topic": "Two-sample t tests"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Z-score formula",
+     "back": "(x - mean) / sd",
+     "topic": "Descriptive statistics"
+    },
+    {
+     "front": "Addition rule for probability",
+     "back": "P(A or B) = P(A) + P(B) - P(A and B)",
+     "topic": "Probability"
+    },
+    {
+     "front": "Multiplication rule for independent events",
+     "back": "P(A and B) = P(A) P(B)",
+     "topic": "Probability"
+    },
+    {
+     "front": "Binomial mean formula",
+     "back": "n p",
+     "topic": "Random variables"
+    },
+    {
+     "front": "Standard error of the mean",
+     "back": "sigma / sqrt(n)",
+     "topic": "Sampling distribution"
+    },
+    {
+     "front": "Confidence interval for a mean",
+     "back": "x-bar +/- t* s / sqrt(n)",
+     "topic": "Confidence intervals"
+    },
+    {
+     "front": "Degrees of freedom for a one-sample t interval",
+     "back": "n - 1",
+     "topic": "Confidence intervals"
+    },
+    {
+     "front": "Complement probability rule",
+     "back": "P(not A) = 1 - P(A)",
+     "topic": "Probability"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Descriptive Statistics and Outliers",
+     "key_points": [
+      "Mean is the sum of x divided by n.",
+      "Variance uses n minus 1 in the denominator.",
+      "IQR is the difference between Q3 and Q1.",
+      "Outliers sit outside 1.5 times the IQR beyond the quartiles."
+     ],
+     "source_ref": "Descriptive statistics"
+    },
+    {
+     "topic": "Probability Rules",
+     "key_points": [
+      "The complement of an event is one minus the probability of the event.",
+      "Independent events use multiplication for the joint probability.",
+      "General addition subtracts the overlap of A and B."
+     ],
+     "source_ref": "Probability"
+    },
+    {
+     "topic": "Random Variables and Binomials",
+     "key_points": [
+      "Expected value is the sum of x times its probability.",
+      "Binomial mean is n times p.",
+      "Binomial standard deviation uses the square root of n times p times one minus p."
+     ],
+     "source_ref": "Random variables"
+    },
+    {
+     "topic": "Inference for Means",
+     "key_points": [
+      "Confidence intervals combine the sample mean with a t-star critical value and standard error.",
+      "Paired data reduces to a one-sample test on the differences.",
+      "Welch and pooled tests handle two independent samples differently regarding variance."
+     ],
+     "source_ref": "Confidence interval for a mean"
+    }
+   ]
+  }
+ },
+ "st-l11": {
+  "hash": "19ps1u0",
+  "material": {
+   "title": "Lecture 11: Confidence Intervals for a Mean",
+   "topics": [
+    "Confidence Interval Basics",
+    "Student's t Distribution",
+    "Conditions and Interpretation",
+    "Margin of Error and R"
+   ],
+   "quiz": [
+    {
+     "question": "What is the formula for a confidence interval for a population mean when the population standard deviation is unknown?",
+     "options": [
+      "x-bar +/- z* times sigma / sqrt(n)",
+      "x-bar +/- t* times s / sqrt(n)",
+      "s +/- t* times x-bar / sqrt(n)",
+      "x-bar +/- t* times sigma / n"
+     ],
+     "answer_index": 1,
+     "hint": "Think about what replaces sigma and which distribution is used for the critical value.",
+     "explanation": "When population standard deviation is unknown, we use the sample standard deviation s and the t critical value, giving x-bar +/- t* times s / sqrt(n).",
+     "topic": "Confidence Interval Basics",
+     "source_ref": "Lecture 11"
+    },
+    {
+     "question": "How many degrees of freedom are used when calculating a confidence interval for a single mean from a sample of size n?",
+     "options": [
+      "n",
+      "n + 1",
+      "n - 1",
+      "30"
+     ],
+     "answer_index": 2,
+     "hint": "It is slightly smaller than the sample size.",
+     "explanation": "The t distribution uses n - 1 degrees of freedom.",
+     "topic": "Student's t Distribution",
+     "source_ref": "Lecture 11"
+    },
+    {
+     "question": "To cut the margin of error in half, what must you do to the sample size n?",
+     "options": [
+      "Double it",
+      "Halve it",
+      "Quadruple it",
+      "Square root it"
+     ],
+     "answer_index": 2,
+     "hint": "Look at the square root in the denominator of the margin of error formula.",
+     "explanation": "Because of the square root of n in the denominator, you must multiply the sample size by 4 (quadruple it) to halve the margin of error.",
+     "topic": "Margin of Error and R",
+     "source_ref": "Lecture 11"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Why do we use the t distribution instead of the standard normal z distribution when building a confidence interval for a mean?",
+     "key_points": [
+      "We have to replace the unknown population standard deviation sigma with the sample standard deviation s.",
+      "Replacing sigma with s adds extra uncertainty to our calculation.",
+      "The t distribution has heavier tails than the normal distribution to account for this added uncertainty."
+     ],
+     "hint": "Think about what statistic replaces the population parameter and how that affects uncertainty.",
+     "topic": "Student's t Distribution"
+    },
+    {
+     "question": "Explain the correct interpretation of a 95% confidence interval for a mean.",
+     "key_points": [
+      "It means the method used captures the true population mean in 95% of repeated samples.",
+      "It does NOT mean there is a 95% probability that the fixed true mean lies inside this specific interval.",
+      "It says nothing about individual observations."
+     ],
+     "hint": "Focus on the long-run behavior of the method rather than the probability of a single interval.",
+     "topic": "Conditions and Interpretation"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "What is the general formula for a confidence interval?",
+     "back": "Point estimate +/- margin of error.",
+     "topic": "Confidence Interval Basics"
+    },
+    {
+     "front": "Why use t instead of z?",
+     "back": "Replacing sigma with s adds uncertainty, and the t distribution has heavier tails to account for this.",
+     "topic": "Student's t Distribution"
+    },
+    {
+     "front": "What are the three conditions for a mean confidence interval?",
+     "back": "Random sample, independence (under 10% of population), and normality (population normal or n >= 30 without extreme outliers).",
+     "topic": "Conditions and Interpretation"
+    },
+    {
+     "front": "What does a 95% confidence level actually mean?",
+     "back": "The method captures the true population mean in 95% of samples.",
+     "topic": "Conditions and Interpretation"
+    },
+    {
+     "front": "How does sample size affect the margin of error?",
+     "back": "Larger sample size shrinks the margin of error by the square root of n.",
+     "topic": "Margin of Error and R"
+    },
+    {
+     "front": "What happens to the interval width if confidence increases from 95% to 99%?",
+     "back": "The interval gets wider.",
+     "topic": "Margin of Error and R"
+    },
+    {
+     "front": "What R function computes confidence intervals for a mean automatically?",
+     "back": "t.test(x)$conf.int",
+     "topic": "Margin of Error and R"
+    },
+    {
+     "front": "What is the degrees of freedom for a sample of size n?",
+     "back": "n - 1",
+     "topic": "Student's t Distribution"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Confidence Interval Definition",
+     "key_points": [
+      "A confidence interval gives a range of plausible values for a population parameter.",
+      "It is built from sample data using a point estimate and a margin of error.",
+      "It provides a range rather than just a single guess."
+     ],
+     "source_ref": "Lecture 11"
+    },
+    {
+     "topic": "The t Distribution",
+     "key_points": [
+      "Used when the population standard deviation is unknown.",
+      "Bell-shaped but with heavier tails than the normal distribution.",
+      "Approaches the normal distribution as degrees of freedom increase."
+     ],
+     "source_ref": "Lecture 11"
+    },
+    {
+     "topic": "Required Conditions",
+     "key_points": [
+      "Data must come from a random sample or be representative.",
+      "Observations must be independent, meaning the sample is under 10% of the population.",
+      "The population must be roughly normal or the sample size must be at least 30."
+     ],
+     "source_ref": "Lecture 11"
+    },
+    {
+     "topic": "Margin of Error Control",
+     "key_points": [
+      "Shrinks as sample size increases.",
+      "Grows wider when you increase the confidence level.",
+      "Halving the margin of error requires quadrupling the sample size."
+     ],
+     "source_ref": "Lecture 11"
+    }
+   ]
+  }
+ },
+ "st-l7": {
+  "hash": "sqoqty",
+  "material": {
+   "title": "Sampling distributions and the Central Limit Theorem",
+   "topics": [
+    "Sampling Distribution",
+    "Standard Error",
+    "Central Limit Theorem",
+    "R Lab Simulation"
+   ],
+   "quiz": [
+    {
+     "question": "What happens to the standard error of the sample mean if you quadruple the sample size n?",
+     "options": [
+      "It is halved",
+      "It is quartered",
+      "It doubles",
+      "It stays the same"
+     ],
+     "answer_index": 0,
+     "hint": "Look at the formula for standard error: sigma divided by the square root of n.",
+     "explanation": "Because the standard error is sigma divided by the square root of n, quadrupling n makes the denominator twice as large, which cuts the standard error in half.",
+     "topic": "Standard Error",
+     "source_ref": "Lecture 7"
+    },
+    {
+     "question": "According to the Central Limit Theorem, what is the rule of thumb for a large enough sample size to assume the sampling distribution of x-bar is approximately normal?",
+     "options": [
+      "n >= 10",
+      "n >= 30",
+      "n >= 100",
+      "n >= 50"
+     ],
+     "answer_index": 1,
+     "hint": "Recall the rule of thumb mentioned for non-normal or skewed populations.",
+     "explanation": "The material states the rule of thumb is n >= 30, or smaller if the population is roughly symmetric.",
+     "topic": "Central Limit Theorem",
+     "source_ref": "Lecture 7"
+    },
+    {
+     "question": "If the original population is already normally distributed, what can be said about the sampling distribution of the sample mean?",
+     "options": [
+      "It is only normal if n >= 30",
+      "It is skewed right",
+      "It is exactly normal for any sample size n",
+      "It is uniform"
+     ],
+     "answer_index": 2,
+     "hint": "Check what happens when the starting population is not skewed.",
+     "explanation": "The notes state that if the population is already normal, x-bar is exactly normal for any n.",
+     "topic": "Central Limit Theorem",
+     "source_ref": "Lecture 7"
+    }
+   ],
+   "viva": [
+    {
+     "question": "Explain what a sampling distribution is and how it relates to individual samples.",
+     "key_points": [
+      "A statistic like the sample mean changes from sample to sample.",
+      "The sampling distribution is the distribution of that statistic over all possible samples of size n.",
+      "It helps us understand how far a sample mean is likely to be from the population mean."
+     ],
+     "hint": "Think about taking many different samples from the same population and looking at their means.",
+     "topic": "Sampling Distribution"
+    },
+    {
+     "question": "Why is the Central Limit Theorem so important for statistical inference methods like confidence intervals?",
+     "key_points": [
+      "It guarantees that the sampling distribution is approximately normal for large enough n.",
+      "It works regardless of the shape of the underlying population.",
+      "Confidence intervals and tests rely on this normal or t shape to be trustworthy."
+     ],
+     "hint": "Consider what shape methods like confidence intervals require and what the CLT provides.",
+     "topic": "Central Limit Theorem"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Sampling distribution",
+     "back": "The distribution of a statistic (like the sample mean) over all possible samples of size n.",
+     "topic": "Sampling Distribution"
+    },
+    {
+     "front": "Unbiased estimator",
+     "back": "A statistic whose mean equals the population parameter it estimates, such as the mean of x-bar equaling mu.",
+     "topic": "Sampling Distribution"
+    },
+    {
+     "front": "Standard error",
+     "back": "The standard deviation of the sampling distribution, calculated as sigma divided by the square root of n.",
+     "topic": "Standard Error"
+    },
+    {
+     "front": "Central Limit Theorem rule of thumb",
+     "back": "A sample size of n >= 30 is typically large enough for the sampling distribution to be approximately normal.",
+     "topic": "Central Limit Theorem"
+    },
+    {
+     "front": "Effect of population normality",
+     "back": "If the population is already normal, the sample mean is exactly normal for any sample size n.",
+     "topic": "Central Limit Theorem"
+    },
+    {
+     "front": "Effect of sample size on histograms",
+     "back": "As n grows, histograms of sample means get narrower and more bell-shaped.",
+     "topic": "R Lab Simulation"
+    },
+    {
+     "front": "Why CLT matters",
+     "back": "It provides the normal or t shape that confidence intervals and hypothesis tests rely upon.",
+     "topic": "Central Limit Theorem"
+    },
+    {
+     "front": "Skewed populations and CLT",
+     "back": "Skewed populations require a larger sample size (n >= 30) for the Central Limit Theorem approximation to hold well.",
+     "topic": "Central Limit Theorem"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Sampling Distribution",
+     "key_points": [
+      "A statistic like the sample mean changes from sample to sample.",
+      "The sampling distribution is its distribution over all possible samples of size n.",
+      "The mean of this distribution equals the population mean mu."
+     ],
+     "source_ref": "Lecture 7"
+    },
+    {
+     "topic": "Standard Error",
+     "key_points": [
+      "It is the standard deviation of the sample mean.",
+      "Calculated as the population standard deviation sigma divided by the square root of n.",
+      "Larger samples reduce variability, and quadrupling n halves the standard error."
+     ],
+     "source_ref": "Lecture 7"
+    },
+    {
+     "topic": "Central Limit Theorem",
+     "key_points": [
+      "For large enough samples (n >= 30), the sampling distribution is approximately normal.",
+      "This applies regardless of the shape of the underlying population.",
+      "If the population is already normal, x-bar is normal for any n."
+     ],
+     "source_ref": "Lecture 7"
+    },
+    {
+     "topic": "Practical Importance of CLT",
+     "key_points": [
+      "Every confidence interval and test for a mean relies on the shape guaranteed by the CLT.",
+      "When n is small and the population is not normal, these methods are not trustworthy."
+     ],
+     "source_ref": "Lecture 7"
+    }
+   ]
+  }
+ },
+ "st-l9": {
+  "hash": "jrhii1",
+  "material": {
+   "title": "Lecture 9: Two-sample t tests (pooled vs. Welch)",
+   "topics": [
+    "Two-sample t tests",
+    "Pooled t test",
+    "Welch t test",
+    "Conditions and R output"
+   ],
+   "quiz": [
+    {
+     "question": "When should you use the pooled t test over the Welch t test?",
+     "options": [
+      "When sample standard deviations are within a factor of about 2 of each other or study was designed for equal variances",
+      "Whenever R runs the default t.test function",
+      "When sample sizes are both strictly below 30 and populations are skewed",
+      "When you want to avoid using the Welch-Satterthwaite formula for degrees of freedom"
+     ],
+     "answer_index": 0,
+     "hint": "Think about the rule of thumb regarding sample standard deviations and study design.",
+     "explanation": "The pooled t test assumes equal variance and is appropriate when sample standard deviations are within a factor of 2 or when equal variances were designed into the study.",
+     "topic": "Pooled t test",
+     "source_ref": "Pooled t test."
+    },
+    {
+     "question": "What is R's default behavior when running the t.test function?",
+     "options": [
+      "It always runs the pooled t test automatically.",
+      "It runs the Welch t test by default.",
+      "It prompts the user to check boxplots before running.",
+      "It skips checking degrees of freedom."
+     ],
+     "answer_index": 1,
+     "hint": "Recall which test R runs when you do not specify the var.equal argument.",
+     "explanation": "R uses the Welch t test by default because it does not assume equal variances and loses very little power when variances actually are equal.",
+     "topic": "Welch t test",
+     "source_ref": "Welch t test."
+    },
+    {
+     "question": "What sample size guideline is typically used alongside the Central Limit Theorem when checking conditions for t tests?",
+     "options": [
+      "About 10 each",
+      "About 20 each",
+      "About 30 each",
+      "About 100 each"
+     ],
+     "answer_index": 2,
+     "hint": "Look at the conditions section mentioning the CLT.",
+     "explanation": "Sample sizes of about 30 each are typically large enough for the CLT when populations are not normal, provided there is no strong skew or outliers.",
+     "topic": "Conditions and R output",
+     "source_ref": "Conditions for both."
+    }
+   ],
+   "viva": [
+    {
+     "question": "Why do many statisticians recommend using the Welch t test by default instead of the pooled t test?",
+     "key_points": [
+      "Welch does not assume equal variances.",
+      "It loses very little power when variances really are equal.",
+      "It is safer because real-world data often violate the equal variance assumption."
+     ],
+     "hint": "Consider what happens if populations do not have equal variances and how much power is lost.",
+     "topic": "Welch t test"
+    },
+    {
+     "question": "What conditions must be checked before interpreting the results of a two-sample t test?",
+     "key_points": [
+      "Independent random samples.",
+      "Normal populations or sample sizes large enough for the CLT (about 30 each).",
+      "Checking for strong skew and outliers using boxplots."
+     ],
+     "hint": "Think about randomness, sample size, and checking data distributions visually.",
+     "topic": "Conditions and R output"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "Null hypothesis for a two-sample t test",
+     "back": "mu1 = mu2",
+     "topic": "Two-sample t tests"
+    },
+    {
+     "front": "Alternative hypothesis (two-sided)",
+     "back": "mu1 != mu2",
+     "topic": "Two-sample t tests"
+    },
+    {
+     "front": "Pooled t test variance assumption",
+     "back": "Assumes the two populations have the same variance.",
+     "topic": "Pooled t test"
+    },
+    {
+     "front": "Welch t test default status in R",
+     "back": "It is R's default in t.test().",
+     "topic": "Welch t test"
+    },
+    {
+     "front": "Degrees of freedom source in Welch t test",
+     "back": "The Welch-Satterthwaite formula, usually not a whole number.",
+     "topic": "Welch t test"
+    },
+    {
+     "front": "CLT sample size guideline",
+     "back": "About 30 each.",
+     "topic": "Conditions and R output"
+    },
+    {
+     "front": "Visual tool to check for strong skew and outliers",
+     "back": "Boxplots.",
+     "topic": "Conditions and R output"
+    },
+    {
+     "front": "R code argument for pooled t test",
+     "back": "var.equal = TRUE",
+     "topic": "Conditions and R output"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Two-sample t tests setup",
+     "key_points": [
+      "Involves two independent samples with sizes, means, and standard deviations.",
+      "Tests the null hypothesis that the two population means are equal.",
+      "Can be tested using a two-sided or one-directional alternative."
+     ],
+     "source_ref": "Setup."
+    },
+    {
+     "topic": "Pooled t test",
+     "key_points": [
+      "Assumes equal population variances.",
+      "Combines sample variances into a pooled variance value.",
+      "Used when standard deviations are within a factor of 2 or study was designed for equal variances."
+     ],
+     "source_ref": "Pooled t test."
+    },
+    {
+     "topic": "Welch t test",
+     "key_points": [
+      "Does not assume equal variances between the two groups.",
+      "Uses standard error based on individual group variances and sample sizes.",
+      "Calculates degrees of freedom using the Welch-Satterthwaite formula."
+     ],
+     "source_ref": "Welch t test."
+    },
+    {
+     "topic": "Conditions and R output interpretation",
+     "key_points": [
+      "Requires independent random samples and normal data or large sample sizes.",
+      "R defaults to the Welch test unless var.equal = TRUE is specified.",
+      "Confidence intervals show plausible effect sizes, which matter more than just a p-value."
+     ],
+     "source_ref": "Reading R output."
+    }
+   ]
+  }
+ },
+ "st-lab3": {
+  "hash": "1sc0182",
+  "material": {
+   "title": "R Lab 3: t tests in R",
+   "topics": [
+    "Assumption Checks",
+    "One-Sample t-Test",
+    "Two-Sample t-Test",
+    "Effect Size and Write-up"
+   ],
+   "quiz": [
+    {
+     "question": "Which R function argument runs a pooled two-sample t-test instead of Welch's t-test?",
+     "options": [
+      "var.equal = TRUE",
+      "pooled = TRUE",
+      "welch = FALSE",
+      "t.test(..., paired = FALSE)"
+     ],
+     "answer_index": 0,
+     "hint": "Look at Step 3 in the handout.",
+     "explanation": "By default, t.test runs Welch's test. Adding var.equal = TRUE specifies the pooled test.",
+     "topic": "Two-Sample t-Test",
+     "source_ref": "Step 3"
+    },
+    {
+     "question": "What does a QQ plot with points near the straight line suggest?",
+     "options": [
+      "The data is bimodal",
+      "Approximate normality",
+      "Severe skewness",
+      "Unequal variances"
+     ],
+     "answer_index": 1,
+     "hint": "Check Step 1 regarding the QQ plot and line.",
+     "explanation": "Points near the line on the QQ plot suggest approximate normality.",
+     "topic": "Assumption Checks",
+     "source_ref": "Step 1"
+    },
+    {
+     "question": "How many points is the interpretation portion of the lab worth?",
+     "options": [
+      "6 points",
+      "10 points",
+      "4 points",
+      "2 points"
+     ],
+     "answer_index": 2,
+     "hint": "Read the grading breakdown at the end of the handout.",
+     "explanation": "The lab is graded on code correctness (6 points) and the interpretation (4 points).",
+     "topic": "Effect Size and Write-up",
+     "source_ref": "Submission"
+    }
+   ],
+   "viva": [
+    {
+     "question": "What is the difference between Welch's t-test and the pooled t-test in R, and how do you switch between them?",
+     "key_points": [
+      "Welch's test is the default in R and does not assume equal variances.",
+      "The pooled test assumes equal variances between groups.",
+      "You add var.equal = TRUE to run the pooled test."
+     ],
+     "hint": "Step 3 talks about the default test and an added argument.",
+     "topic": "Two-Sample t-Test"
+    },
+    {
+     "question": "Why should you inspect your data visually before running a formal hypothesis test?",
+     "key_points": [
+      "To check assumptions like approximate normality using histograms, boxplots, or QQ plots.",
+      "To spot potential outliers or mild skew.",
+      "To determine if sample sizes are large enough (e.g., n above 30)."
+     ],
+     "hint": "Look at Step 1: 'look before testing'.",
+     "topic": "Assumption Checks"
+    }
+   ],
+   "flashcards": [
+    {
+     "front": "How do you load data from a CSV file in R?",
+     "back": "d <- read.csv(\"sleep_work.csv\")",
+     "topic": "Assumption Checks"
+    },
+    {
+     "front": "What functions are used to visualize data before a t-test in R?",
+     "back": "hist(), boxplot(), qqnorm(), and qqline()",
+     "topic": "Assumption Checks"
+    },
+    {
+     "front": "What does sample size above 30 per group allow for in a t-test?",
+     "back": "It means mild skew in the data is fine.",
+     "topic": "Assumption Checks"
+    },
+    {
+     "front": "How do you run a one-sample t-test to check if mean sleep equals 7 hours?",
+     "back": "t.test(d$hours, mu = 7)",
+     "topic": "One-Sample t-Test"
+    },
+    {
+     "front": "What is the default two-sample t-test run by t.test() in R?",
+     "back": "Welch's t-test",
+     "topic": "Two-Sample t-Test"
+    },
+    {
+     "front": "How do you switch a two-sample t-test to assume equal variances?",
+     "back": "Add the argument var.equal = TRUE",
+     "topic": "Two-Sample t-Test"
+    },
+    {
+     "front": "What is considered the most useful number to report for effect size?",
+     "back": "The confidence interval for the difference in means.",
+     "topic": "Effect Size and Write-up"
+    },
+    {
+     "front": "What are the submission requirements for R Lab 3?",
+     "back": "An R script and a PDF of the write-up on Gradescope.",
+     "topic": "Effect Size and Write-up"
+    }
+   ],
+   "concepts": [
+    {
+     "topic": "Assumption Checks",
+     "key_points": [
+      "Always look at your data visually before testing using histograms, boxplots, and QQ plots.",
+      "Points near the line on a QQ plot indicate approximate normality.",
+      "Mild skew is acceptable if sample sizes are above 30 per group."
+     ],
+     "source_ref": "Step 1"
+    },
+    {
+     "topic": "One-Sample t-Test",
+     "key_points": [
+      "Used to test if a single sample mean differs from a specific value using the mu argument.",
+      "Syntax is t.test(d$hours, mu = 7).",
+      "Key outputs include the t statistic, degrees of freedom, p-value, and confidence interval."
+     ],
+     "source_ref": "Step 2"
+    },
+    {
+     "topic": "Two-Sample t-Test",
+     "key_points": [
+      "Compares means between two groups using formula notation like hours ~ group.",
+      "Welch's t-test is the default and does not assume equal variances.",
+      "Adding var.equal = TRUE runs the pooled variance test."
+     ],
+     "source_ref": "Step 3"
+    },
+    {
+     "topic": "Effect Size and Write-up",
+     "key_points": [
+      "The confidence interval for the difference in means is the most useful effect size number to report.",
+      "A proper write-up includes what was compared, the test used, the estimate with its interval, and a plain language conclusion.",
+      "Write-ups should be concise, typically two or three sentences."
+     ],
+     "source_ref": "Step 4 and Step 5"
+    }
+   ]
+  }
+ }
+}

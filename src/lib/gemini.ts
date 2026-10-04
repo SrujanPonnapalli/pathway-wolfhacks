@@ -30,41 +30,63 @@ export function textPart(text: string): Part {
 type GenArgs = Omit<Parameters<GoogleGenAI["models"]["generateContent"]>[0], "model">;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const cooling = new Map<string, number>(); // model -> timestamp until which it is skipped
+const COOL_MS = 120_000;
 
-/** generateContent with retry on 429/503 and a model fallback chain. Every call goes through here. */
+/** How long a model should sit out after an error: a daily quota ("retry in 20h52m") for that long, anything else two minutes. */
+function coolFor(e: unknown): number {
+  const msg = `${(e as Error).message ?? ""}`;
+  const m = msg.match(/retry in (?:(\d+)h)?(?:(\d+)m)?(?:([\d.]+)s)?/i);
+  if (m && /per ?day|PerDay|daily/i.test(msg)) {
+    const ms = ((+(m[1] ?? 0) * 60 + +(m[2] ?? 0)) * 60 + +(m[3] ?? 0)) * 1000;
+    if (ms > COOL_MS) return Math.min(ms, 24 * 3600_000);
+  }
+  return COOL_MS;
+}
+
+const isTransient = (e: unknown) => {
+  const status = (e as { status?: number }).status ?? 0;
+  return status === 429 || status === 503 || /high demand|UNAVAILABLE|RESOURCE_EXHAUSTED|quota|abort|timeout/i.test(`${(e as Error).name} ${(e as Error).message ?? ""}`);
+};
+
+/** generateContent with a model fallback chain, per-model circuit breakers and one second pass. Every call goes through here. */
 export async function generate(args: GenArgs, tier: "fast" | "heavy" = "heavy") {
   const primary = tier === "fast" ? FAST_MODEL : HEAVY_MODEL;
   // Documents fall back to the bigger 3.5 first (reads PDFs well, ~2 s); chat falls back to it too
-  // because it is still fast enough. One try per model: the chain itself is the retry.
-  const chain = tier === "fast" ? [primary, "gemini-3.5-flash", ...FALLBACK_MODELS] : [primary, "gemini-3.5-flash", ...FALLBACK_MODELS];
-  const models = [...new Set(chain)];
+  // because it is still fast enough. One try per model per pass: the chain itself is the retry.
+  const all = [...new Set([primary, "gemini-3.5-flash", ...FALLBACK_MODELS])];
+  // A model that hangs under load is worse than a fallback: cap each attempt and move down the chain.
+  const timeoutMs = tier === "fast" ? 15_000 : 20_000;
   let lastErr: unknown;
-  for (const model of models) {
-    const attempts = 1;
-    // A model that hangs under load is worse than a fallback: cap each attempt and move down the chain.
-    const timeoutMs = tier === "fast" ? 15_000 : 25_000;
-    for (let attempt = 0; attempt < attempts; attempt++) {
+  for (let pass = 0; pass < 2; pass++) {
+    // Circuit breaker: a model that just timed out or hit a limit sits out (two minutes, or the rest of
+    // the day for a daily quota), so one failure costs one call, not every call after it.
+    const now = Date.now();
+    const ready = all.filter((m) => (cooling.get(m) ?? 0) < now);
+    const models = ready.length ? ready : all;
+    for (const model of models) {
       try {
-        return await ai().models.generateContent({ ...args, config: { ...args.config, abortSignal: AbortSignal.timeout(timeoutMs) }, model });
+        const res = await ai().models.generateContent({ ...args, config: { ...args.config, abortSignal: AbortSignal.timeout(timeoutMs) }, model });
+        return Object.assign(res, { modelUsed: model });
       } catch (e) {
         lastErr = e;
-        const status = (e as { status?: number }).status ?? 0;
         // A model that rejects the requested thinking level: retry it once without the setting.
         if (/thinking/i.test((e as Error).message ?? "") && args.config?.thinkingConfig) {
           const { thinkingConfig: _drop, ...rest } = args.config;
           void _drop;
           try {
-            return await ai().models.generateContent({ ...args, config: rest, model });
+            return Object.assign(await ai().models.generateContent({ ...args, config: rest, model }), { modelUsed: model });
           } catch (e2) {
             lastErr = e2;
           }
         }
-        const transient = status === 429 || status === 503 || /high demand|UNAVAILABLE|RESOURCE_EXHAUSTED|quota|abort|timeout/i.test(`${(e as Error).name} ${(e as Error).message ?? ""}`);
-        if (!transient) throw e;
-        if (attempt < attempts - 1) await sleep(500);
+        if (!isTransient(e)) throw e;
+        const cool = coolFor(e);
+        cooling.set(model, Date.now() + cool);
+        console.warn(`[gemini] ${model} unavailable (${String((e as Error).message ?? e).slice(0, 80).replace(/\s+/g, " ")}), sitting out ${Math.round(cool / 60_000)} min`);
       }
     }
-    console.warn(`[gemini] ${model} unavailable, trying next model`);
+    if (pass === 0) await sleep(1500); // everything was busy at once: one more pass after a breath
   }
   throw lastErr;
 }
@@ -88,28 +110,36 @@ export async function answerFast(opts: { system: string; context: string; histor
   return res.text ?? "";
 }
 
-/** Structured output: the model must return JSON matching `schema`. */
-export async function generateJSON<T>(opts: {
-  parts: Part[];
-  schema: Schema;
-  system?: string;
-  temperature?: number;
-}): Promise<T> {
-  const res = await generate({
-    contents: [{ role: "user", parts: opts.parts }],
-    config: {
-      systemInstruction: opts.system,
-      responseMimeType: "application/json",
-      responseSchema: opts.schema,
-      temperature: opts.temperature ?? 0.2,
+export type CallMeta = { model: string; usage: { input: number; output: number }; ms: number };
+
+/** Structured output with telemetry: which model answered, tokens, and time. */
+export async function generateJSONMeta<T>(opts: { parts: Part[]; schema: Schema; system?: string; temperature?: number; tier?: "fast" | "heavy" }): Promise<{ data: T; meta: CallMeta }> {
+  const t0 = Date.now();
+  const res = await generate(
+    {
+      contents: [{ role: "user", parts: opts.parts }],
+      config: {
+        systemInstruction: opts.system,
+        responseMimeType: "application/json",
+        responseSchema: opts.schema,
+        temperature: opts.temperature ?? 0.2,
+      },
     },
-  });
+    opts.tier ?? "heavy",
+  );
   const text = res.text ?? "";
+  const u = res.usageMetadata;
+  const meta: CallMeta = { model: (res as { modelUsed?: string }).modelUsed ?? MODEL, usage: { input: u?.promptTokenCount ?? 0, output: (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0) }, ms: Date.now() - t0 };
   try {
-    return JSON.parse(text) as T;
+    return { data: JSON.parse(text) as T, meta };
   } catch {
     throw new Error(`Gemini returned non-JSON: ${text.slice(0, 200)}`);
   }
+}
+
+/** Structured output: the model must return JSON matching `schema`. */
+export async function generateJSON<T>(opts: { parts: Part[]; schema: Schema; system?: string; temperature?: number }): Promise<T> {
+  return (await generateJSONMeta<T>(opts)).data;
 }
 
 /** Plain text answer. */

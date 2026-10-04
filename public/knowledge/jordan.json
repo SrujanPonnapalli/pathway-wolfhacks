@@ -1,0 +1,2682 @@
+{
+ "version": "2026-10-04",
+ "sources": [
+  {
+   "id": "s8a21ec4edc5d",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "filename": "ECE200-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2470,
+   "sha256": "8a21ec4edc5d54b2b9a6e00b2c89852bfbf97273fab9a90ed7a491dd012835ec",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document is explicitly a Gradescope page listing assignments, statuses, scores, and due dates for ECE 200.",
+   "uploadedAt": "2026-10-04T03:10:35.153Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:10:24.364Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "8a21ec4edc5d54b2b9a6e00b2c89852bfbf97273fab9a90ed7a491dd012835ec",
+      "size": 2470,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:10:25.531Z",
+     "ms": 1167,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 644,
+     "tokensOut": 79,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document is explicitly a Gradescope page listing assignments, statuses, scores, and due dates for ECE 200."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:10:35.153Z",
+     "ms": 9622,
+     "model": "gemini-3.5-flash",
+     "tokensIn": 595,
+     "tokensOut": 3249,
+     "detail": {
+      "facts": 14,
+      "types": {
+       "grade_item": 14
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:10:35.153Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:10:35.153Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 14,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "s344974cffe1f",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "filename": "ECE200-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2798,
+   "sha256": "344974cffe1f19d6b16f051bd4e450c4ca0851ef5ad513e700caf484b0c9792c",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document explicitly contains grading weight breakdowns, a detailed schedule and deadlines, course policies, and instructor information, which define a standard course syllabus.",
+   "uploadedAt": "2026-10-04T03:11:10.100Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:10:35.165Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "344974cffe1f19d6b16f051bd4e450c4ca0851ef5ad513e700caf484b0c9792c",
+      "size": 2798,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:10:36.874Z",
+     "ms": 1709,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 643,
+     "tokensOut": 88,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document explicitly contains grading weight breakdowns, a detailed schedule and deadlines, course policies, and instructor information, which define a standard course syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:11:10.100Z",
+     "ms": 33226,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 20,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 4,
+       "deadline": 10,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:11:10.100Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:11:10.100Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 10,
+      "needsYou": 10
+     }
+    }
+   ]
+  },
+  {
+   "id": "s4944ff2f5719",
+   "profile": "jordan",
+   "course": "EC 201",
+   "filename": "EC201-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2624,
+   "sha256": "4944ff2f571977c352fe988cdfadd63801c721e877ab2e6d0e4f161fc3e04138",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document clearly displays a Gradescope student view interface showing assignments, statuses, scores, and due dates.",
+   "uploadedAt": "2026-10-04T03:11:23.674Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:11:10.112Z",
+     "ms": 1,
+     "detail": {
+      "sha256": "4944ff2f571977c352fe988cdfadd63801c721e877ab2e6d0e4f161fc3e04138",
+      "size": 2624,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:11:11.383Z",
+     "ms": 1271,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 643,
+     "tokensOut": 76,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document clearly displays a Gradescope student view interface showing assignments, statuses, scores, and due dates."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:11:23.674Z",
+     "ms": 12291,
+     "model": "gemini-3.5-flash",
+     "tokensIn": 595,
+     "tokensOut": 4336,
+     "detail": {
+      "facts": 19,
+      "types": {
+       "grade_item": 19
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:11:23.674Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:11:23.674Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 19,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "s46b9317ebb69",
+   "profile": "jordan",
+   "course": "EC 201",
+   "filename": "EC201-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2747,
+   "sha256": "46b9317ebb695a540b518344e2a8c0cd6bf95d41d6d593a623f3a0d033bed5d0",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document contains course grading weights, instructor details, policies, and a complete schedule with deadlines, which defines a course syllabus.",
+   "uploadedAt": "2026-10-04T03:12:30.312Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:11:23.687Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "46b9317ebb695a540b518344e2a8c0cd6bf95d41d6d593a623f3a0d033bed5d0",
+      "size": 2747,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:11:25.331Z",
+     "ms": 1644,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 642,
+     "tokensOut": 82,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document contains course grading weights, instructor details, policies, and a complete schedule with deadlines, which defines a course syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:12:30.312Z",
+     "ms": 64981,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 17,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 3,
+       "deadline": 8,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:12:30.312Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:12:30.312Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 9,
+      "needsYou": 8
+     }
+    }
+   ]
+  },
+  {
+   "id": "s61498028dd41",
+   "profile": "jordan",
+   "course": "PY 205",
+   "filename": "PY205-gradescope.pdf",
+   "mime": "application/pdf",
+   "size": 2439,
+   "sha256": "61498028dd4122907e5ea24e438233cd1df198ee3a245476ff45f2869e4b57a3",
+   "kind": "grades",
+   "kindConfidence": "high",
+   "why": "The document is a Gradescope page listing assignments, statuses, and scores for PY 205 Physics for Engineers I.",
+   "uploadedAt": "2026-10-04T03:13:23.242Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:12:30.324Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "61498028dd4122907e5ea24e438233cd1df198ee3a245476ff45f2869e4b57a3",
+      "size": 2439,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:12:43.335Z",
+     "ms": 13011,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 643,
+     "tokensOut": 76,
+     "detail": {
+      "kind": "grades",
+      "confidence": "high",
+      "why": "The document is a Gradescope page listing assignments, statuses, and scores for PY 205 Physics for Engineers I."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:13:23.241Z",
+     "ms": 39906,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 595,
+     "tokensOut": 829,
+     "detail": {
+      "facts": 13,
+      "types": {
+       "grade_item": 13
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:13:23.242Z",
+     "ms": 1,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:13:23.242Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 13,
+      "needsYou": 0
+     }
+    }
+   ]
+  },
+  {
+   "id": "s6f155d99188c",
+   "profile": "jordan",
+   "course": "PY 205",
+   "filename": "PY205-syllabus.pdf",
+   "mime": "application/pdf",
+   "size": 2865,
+   "sha256": "6f155d99188cc054a37596f8fdc0f6a146016c706515cef5490cade0ff590cd5",
+   "kind": "syllabus",
+   "kindConfidence": "high",
+   "why": "The document contains course grading weights, a schedule and deadlines, instructor details, and course policies, which precisely matches the definition of a syllabus.",
+   "uploadedAt": "2026-10-04T03:13:33.900Z",
+   "steps": [
+    {
+     "step": "received",
+     "at": "2026-10-04T03:13:23.253Z",
+     "ms": 0,
+     "detail": {
+      "sha256": "6f155d99188cc054a37596f8fdc0f6a146016c706515cef5490cade0ff590cd5",
+      "size": 2865,
+      "mime": "application/pdf"
+     }
+    },
+    {
+     "step": "classified",
+     "at": "2026-10-04T03:13:30.565Z",
+     "ms": 7312,
+     "model": "gemini-3.5-flash-lite",
+     "tokensIn": 642,
+     "tokensOut": 84,
+     "detail": {
+      "kind": "syllabus",
+      "confidence": "high",
+      "why": "The document contains course grading weights, a schedule and deadlines, instructor details, and course policies, which precisely matches the definition of a syllabus."
+     }
+    },
+    {
+     "step": "extracted",
+     "at": "2026-10-04T03:13:33.900Z",
+     "ms": 3335,
+     "model": "",
+     "tokensIn": 0,
+     "tokensOut": 0,
+     "detail": {
+      "facts": 21,
+      "types": {
+       "contact": 1,
+       "course_info": 1,
+       "grading": 4,
+       "deadline": 11,
+       "policy": 4
+      }
+     }
+    },
+    {
+     "step": "linked",
+     "at": "2026-10-04T03:13:33.900Z",
+     "ms": 0,
+     "detail": {
+      "merged": 0,
+      "conflicts": 0,
+      "edges": 0
+     }
+    },
+    {
+     "step": "reviewed",
+     "at": "2026-10-04T03:13:33.900Z",
+     "ms": 0,
+     "detail": {
+      "confirmed": 21,
+      "needsYou": 0
+     }
+    }
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "id": "n9075b136",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 15,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Reading check 1: 15/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "neae76707",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "HW 1",
+   "body": {
+    "score": 44,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-01",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "HW 1: 44/50 · graded · due 2026-09-01",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n014786e3",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 38,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Practice set 1: 38/50 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n35a1495f",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Lab 1",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Lab 1: 0/50 · missing · due 2026-09-05",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n927375c5",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 15,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Reading check 2: 15/20 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "ne8e0a81c",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "HW 2",
+   "body": {
+    "score": 44,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-12",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "HW 2: 44/50 · graded · due 2026-09-12",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "nff3f34f8",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Practice set 2: 0/50 · missing · due 2026-09-15",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n339a8a74",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Lab 2",
+   "body": {
+    "score": 44,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-19",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Lab 2: 44/50 · graded · due 2026-09-19",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n8c712dbc",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Reading check 3",
+   "body": {
+    "score": 15,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Reading check 3: 15/20 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "neee2f025",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "HW 3",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-26",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "HW 3: 0/50 · missing · due 2026-09-26",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n05417d01",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Practice set 3",
+   "body": {
+    "score": 38,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-27",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Practice set 3: 38/50 · graded · due 2026-09-27",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n399cd27d",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Lab 3",
+   "body": {
+    "score": 44,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-10-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Lab 3: 44/50 · graded · due 2026-10-03",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "necee25f2",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "HW 4",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-18",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "HW 4: –/50 · not_submitted · due 2026-10-18",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n37a99b4a",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grade_item",
+   "title": "Lab 4",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-31",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s8a21ec4edc5d",
+   "quote": "Lab 4: –/50 · not_submitted · due 2026-10-31",
+   "locator": "Gradescope · row 14",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:10:35.153Z"
+  },
+  {
+   "id": "n3850b1f2",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "contact",
+   "title": "Dr. Marcus Bell",
+   "body": {
+    "email": "mbell@ncsu.edu",
+    "office_hours": "Tue 11–12, EB2 3024"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "ne35eb528",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "course_info",
+   "title": "Intro to Signals, Circuits and Systems",
+   "body": {
+    "code": "ECE 200",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n9f83da64",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grading",
+   "title": "Homework",
+   "body": {
+    "weight": 20,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "ncd13d62e",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grading",
+   "title": "Labs",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n28b8a08a",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grading",
+   "title": "Midterm",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "nfea74333",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "grading",
+   "title": "Final exam",
+   "body": {
+    "weight": 30,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "ne667432a",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "HW 1",
+   "body": {
+    "date": "2026-09-01",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "HW 1 assignment Tue Sep 1, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "ne16bb6a4",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Lab 1",
+   "body": {
+    "date": "2026-09-05",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Lab 1 assignment Sat Sep 5, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n1c8ec4b1",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "HW 2",
+   "body": {
+    "date": "2026-09-12",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "HW 2 assignment Sat Sep 12, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n17cdbe92",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Lab 2",
+   "body": {
+    "date": "2026-09-19",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Lab 2 assignment Sat Sep 19, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "nffc7757f",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "HW 3",
+   "body": {
+    "date": "2026-09-26",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "HW 3 assignment Sat Sep 26, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "nd41ad69e",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Lab 3",
+   "body": {
+    "date": "2026-10-03",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Lab 3 assignment Sat Oct 3, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "nb6fc8aaa",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Midterm",
+   "body": {
+    "date": "2026-10-09",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Midterm exam Fri Oct 9, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n25e23a93",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "HW 4",
+   "body": {
+    "date": "2026-10-18",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "HW 4 assignment Sun Oct 18, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n28b6cb20",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Lab 4",
+   "body": {
+    "date": "2026-10-31",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Lab 4 assignment Sat Oct 31, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n86b6cdc7",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-10",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s344974cffe1f",
+   "quote": "Final exam exam Thu Dec 10, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n47a04a1b",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "Late homework loses 25% per day."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "quote": "Late homework loses 25% per day.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n638a7891",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Lab attendance is mandatory."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "quote": "Lab attendance is mandatory.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "ncd9f65f6",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "Email the instructor before the deadline."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "quote": "Email the instructor before the deadline.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n50d34d80",
+   "profile": "jordan",
+   "course": "ECE 200",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s344974cffe1f",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:10.100Z"
+  },
+  {
+   "id": "n6879d658",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 1: 19/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na67e6539",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-30",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 1: 40/50 · graded · due 2026-08-30",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n6a809543",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-01",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 2: 19/20 · graded · due 2026-09-01",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "naf6be1fd",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Problem set 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-02",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Problem set 1: 40/50 · graded · due 2026-09-02",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na48233aa",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-03",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 2: 46/50 · graded · due 2026-09-03",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n6c7e59d2",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 3",
+   "body": {
+    "score": 0,
+    "max": 20,
+    "status": "missing",
+    "due": "2026-09-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 3: 0/20 · missing · due 2026-09-05",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na2846f1b",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 3",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-07",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 3: 46/50 · graded · due 2026-09-07",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n6e719105",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 4",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-09",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 4: 16/20 · graded · due 2026-09-09",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na07322d4",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 4",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-11",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 4: 46/50 · graded · due 2026-09-11",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n686f48fc",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 5",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-13",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 5: 16/20 · graded · due 2026-09-13",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na9e8dd57",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Exam 1",
+   "body": {
+    "score": 0,
+    "max": 10,
+    "status": "missing",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Exam 1: 0/10 · missing · due 2026-09-15",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na6756add",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 5",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-15",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 5: 40/50 · graded · due 2026-09-15",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n6a779ae7",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 6",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-17",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 6: 19/20 · graded · due 2026-09-17",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na477a64e",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 6",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-19",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 6: 40/50 · graded · due 2026-09-19",
+   "locator": "Gradescope · row 14",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "n6c755f76",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Reading check 7",
+   "body": {
+    "score": 19,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Reading check 7: 19/20 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 15",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "nad6e1d6e",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Problem set 2",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Problem set 2: 40/50 · graded · due 2026-09-23",
+   "locator": "Gradescope · row 16",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na279e1bf",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Practice set 7",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Practice set 7: 46/50 · graded · due 2026-09-23",
+   "locator": "Gradescope · row 17",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "nab7058df",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Problem set 3",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-07",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Problem set 3: –/50 · not_submitted · due 2026-10-07",
+   "locator": "Gradescope · row 18",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "na9742750",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grade_item",
+   "title": "Problem set 4",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s4944ff2f5719",
+   "quote": "Problem set 4: –/50 · not_submitted · due 2026-10-28",
+   "locator": "Gradescope · row 19",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:11:23.673Z"
+  },
+  {
+   "id": "nc6948718",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "contact",
+   "title": "Prof. Hannah Kim",
+   "body": {
+    "email": "hkim@ncsu.edu",
+    "office_hours": "Mon 3–4 PM, Nelson 4150"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n7f2fe8dd",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "course_info",
+   "title": "Principles of Microeconomics",
+   "body": {
+    "code": "EC 201",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "ne8fe6330",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grading",
+   "title": "Exams",
+   "body": {
+    "weight": 60,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n86de3028",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grading",
+   "title": "Problem sets",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "na898ec4b",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "grading",
+   "title": "Participation",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n454eac23",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Problem set 1",
+   "body": {
+    "date": "2026-09-02",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Wed Sep 2, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n53e61e5f",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Exam 1",
+   "body": {
+    "date": "2026-09-15",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Tue Sep 15, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n72d63ba5",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Problem set 2",
+   "body": {
+    "date": "2026-09-23",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Wed Sep 23, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n67802ce8",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Problem set 3",
+   "body": {
+    "date": "2026-10-07",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Wed Oct 7, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n00e401ea",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Exam 2",
+   "body": {
+    "date": "2026-10-15",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Thu Oct 15, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "na9f0a47c",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Problem set 4",
+   "body": {
+    "date": "2026-10-28",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Wed Oct 28, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "nb4a380d1",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Exam 3",
+   "body": {
+    "date": "2026-11-18",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Wed Nov 18, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n949bc42d",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-10",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "medium",
+   "review": "proposed",
+   "source": "s46b9317ebb69",
+   "quote": "Thu Dec 10, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n979d97a9",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "Problem sets are accepted 24 hours late at 50%."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "quote": "Problem sets are accepted 24 hours late at 50%.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n2ad9f217",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Participation is measured with in-class polls."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "quote": "Participation is measured with in-class polls.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n02fe4014",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "Documented emergencies only."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "quote": "Documented emergencies only.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "ncd853e16",
+   "profile": "jordan",
+   "course": "EC 201",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s46b9317ebb69",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:12:30.312Z"
+  },
+  {
+   "id": "n2e198967",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Reading check 1",
+   "body": {
+    "score": 18,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-08-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Reading check 1: 18/20 · graded · due 2026-08-28",
+   "locator": "Gradescope · row 1",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n9a065d99",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Homework 1",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-08-31",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Homework 1: 40/50 · graded · due 2026-08-31",
+   "locator": "Gradescope · row 2",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n542d5e42",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Lab 1",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-04",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Lab 1: 46/50 · graded · due 2026-09-04",
+   "locator": "Gradescope · row 3",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n36ebe930",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Practice set 1",
+   "body": {
+    "score": 0,
+    "max": 50,
+    "status": "missing",
+    "due": "2026-09-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Practice set 1: 0/50 · missing · due 2026-09-05",
+   "locator": "Gradescope · row 4",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n9808990a",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Homework 2",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-07",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Homework 2: 46/50 · graded · due 2026-09-07",
+   "locator": "Gradescope · row 5",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n2c11377c",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Reading check 2",
+   "body": {
+    "score": 16,
+    "max": 20,
+    "status": "graded",
+    "due": "2026-09-13",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Reading check 2: 16/20 · graded · due 2026-09-13",
+   "locator": "Gradescope · row 6",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n0873cbef",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Test 1",
+   "body": {
+    "score": 0,
+    "max": 10,
+    "status": "missing",
+    "due": "2026-09-16",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Test 1: 0/10 · missing · due 2026-09-16",
+   "locator": "Gradescope · row 7",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n38f43b1b",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Practice set 2",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-21",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Practice set 2: 40/50 · graded · due 2026-09-21",
+   "locator": "Gradescope · row 8",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n960c677b",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Homework 3",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Homework 3: 46/50 · graded · due 2026-09-23",
+   "locator": "Gradescope · row 9",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n56298fd1",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Lab 2",
+   "body": {
+    "score": 40,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-09-28",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Lab 2: 40/50 · graded · due 2026-09-28",
+   "locator": "Gradescope · row 10",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n93fb1b34",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Homework 4",
+   "body": {
+    "score": 46,
+    "max": 50,
+    "status": "graded",
+    "due": "2026-10-05",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Homework 4: 46/50 · graded · due 2026-10-05",
+   "locator": "Gradescope · row 11",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n99fd633d",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Homework 5",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-10-23",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Homework 5: –/50 · not_submitted · due 2026-10-23",
+   "locator": "Gradescope · row 12",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n0c6f550d",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grade_item",
+   "title": "Test 3",
+   "body": {
+    "score": null,
+    "max": 50,
+    "status": "not_submitted",
+    "due": "2026-11-16",
+    "from": "Gradescope"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s61498028dd41",
+   "quote": "Test 3: –/50 · not_submitted · due 2026-11-16",
+   "locator": "Gradescope · row 13",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:23.241Z"
+  },
+  {
+   "id": "n436671ab",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "contact",
+   "title": "Dr. Elena Vasquez",
+   "body": {
+    "email": "evasquez@ncsu.edu",
+    "office_hours": "Fri 1–2 PM, Riddick 415"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "ne439ff1f",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "course_info",
+   "title": "Physics for Engineers I",
+   "body": {
+    "code": "PY 205",
+    "term": "Fall 2026"
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n3164ffe2",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grading",
+   "title": "Tests",
+   "body": {
+    "weight": 45,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nc4206e42",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grading",
+   "title": "Final exam",
+   "body": {
+    "weight": 25,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n47cf9405",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grading",
+   "title": "Homework",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n976e1be3",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "grading",
+   "title": "Labs",
+   "body": {
+    "weight": 15,
+    "notes": ""
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "locator": "syllabus · grading",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n50c55d76",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Homework 1",
+   "body": {
+    "date": "2026-08-31",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Mon Aug 31, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n280080f2",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Lab 1",
+   "body": {
+    "date": "2026-09-04",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Fri Sep 4, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n935253c5",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Homework 2",
+   "body": {
+    "date": "2026-09-07",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Mon Sep 7, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nb2288342",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Test 1",
+   "body": {
+    "date": "2026-09-16",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Wed Sep 16, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "na81c40fe",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Homework 3",
+   "body": {
+    "date": "2026-09-23",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Wed Sep 23, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nb081907b",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Lab 2",
+   "body": {
+    "date": "2026-09-28",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Mon Sep 28, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n98fcaa93",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Homework 4",
+   "body": {
+    "date": "2026-10-05",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Mon Oct 5, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n6e622848",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Test 2",
+   "body": {
+    "date": "2026-10-13",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Tue Oct 13, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nded08146",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Homework 5",
+   "body": {
+    "date": "2026-10-23",
+    "time": "23:59",
+    "kind": "assignment",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Fri Oct 23, 2026 11:59 PM",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nf667dc6f",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Test 3",
+   "body": {
+    "date": "2026-11-16",
+    "time": "",
+    "kind": "exam",
+    "weight": null
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Mon Nov 16, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nb535342a",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "deadline",
+   "title": "Final exam",
+   "body": {
+    "date": "2026-12-09",
+    "time": "",
+    "kind": "exam",
+    "weight": 25
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Wed Dec 9, 2026",
+   "locator": "syllabus · schedule",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "nf816140e",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "policy",
+   "title": "late work",
+   "body": {
+    "text": "Homework closes at the deadline on WebAssign."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Homework closes at the deadline on WebAssign.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n1b746252",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "policy",
+   "title": "attendance",
+   "body": {
+    "text": "Lab attendance is required for credit."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "Lab attendance is required for credit.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n958d445d",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "policy",
+   "title": "extensions",
+   "body": {
+    "text": "None on tests; one homework deadline can be moved by emailing the TA."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "None on tests; one homework deadline can be moved by emailing the TA.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  },
+  {
+   "id": "n81ab28db",
+   "profile": "jordan",
+   "course": "PY 205",
+   "type": "policy",
+   "title": "academic integrity",
+   "body": {
+    "text": "All work must follow the NC State Code of Student Conduct."
+   },
+   "confidence": "high",
+   "review": "confirmed",
+   "source": "s6f155d99188c",
+   "quote": "All work must follow the NC State Code of Student Conduct.",
+   "locator": "syllabus · policies",
+   "createdBy": "extractor",
+   "createdAt": "2026-10-04T03:13:33.900Z"
+  }
+ ],
+ "edges": [
+  {
+   "from": "neae76707",
+   "to": "n9f83da64",
+   "rel": "counts_toward",
+   "why": "\"HW 1\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n35a1495f",
+   "to": "ncd13d62e",
+   "rel": "counts_toward",
+   "why": "\"Lab 1\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "ne8e0a81c",
+   "to": "n9f83da64",
+   "rel": "counts_toward",
+   "why": "\"HW 2\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n339a8a74",
+   "to": "ncd13d62e",
+   "rel": "counts_toward",
+   "why": "\"Lab 2\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "neee2f025",
+   "to": "n9f83da64",
+   "rel": "counts_toward",
+   "why": "\"HW 3\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n399cd27d",
+   "to": "ncd13d62e",
+   "rel": "counts_toward",
+   "why": "\"Lab 3\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "necee25f2",
+   "to": "n9f83da64",
+   "rel": "counts_toward",
+   "why": "\"HW 4\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n37a99b4a",
+   "to": "ncd13d62e",
+   "rel": "counts_toward",
+   "why": "\"Lab 4\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "naf6be1fd",
+   "to": "n86de3028",
+   "rel": "counts_toward",
+   "why": "\"Problem set 1\" looks like Problem sets",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na9e8dd57",
+   "to": "ne8fe6330",
+   "rel": "counts_toward",
+   "why": "\"Exam 1\" looks like Exams",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nad6e1d6e",
+   "to": "n86de3028",
+   "rel": "counts_toward",
+   "why": "\"Problem set 2\" looks like Problem sets",
+   "createdBy": "linker"
+  },
+  {
+   "from": "nab7058df",
+   "to": "n86de3028",
+   "rel": "counts_toward",
+   "why": "\"Problem set 3\" looks like Problem sets",
+   "createdBy": "linker"
+  },
+  {
+   "from": "na9742750",
+   "to": "n86de3028",
+   "rel": "counts_toward",
+   "why": "\"Problem set 4\" looks like Problem sets",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n454eac23",
+   "to": "n72d63ba5",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-02, syllabus · schedule says 2026-09-23",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n454eac23",
+   "to": "n67802ce8",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-02, syllabus · schedule says 2026-10-07",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n454eac23",
+   "to": "na9f0a47c",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-02, syllabus · schedule says 2026-10-28",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n72d63ba5",
+   "to": "na9f0a47c",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-09-23, syllabus · schedule says 2026-10-28",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n67802ce8",
+   "to": "n72d63ba5",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-10-07, syllabus · schedule says 2026-09-23",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n67802ce8",
+   "to": "na9f0a47c",
+   "rel": "conflicts_with",
+   "why": "syllabus · schedule says 2026-10-07, syllabus · schedule says 2026-10-28",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n9a065d99",
+   "to": "n47cf9405",
+   "rel": "counts_toward",
+   "why": "\"Homework 1\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n542d5e42",
+   "to": "n976e1be3",
+   "rel": "counts_toward",
+   "why": "\"Lab 1\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n9808990a",
+   "to": "n47cf9405",
+   "rel": "counts_toward",
+   "why": "\"Homework 2\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n0873cbef",
+   "to": "n3164ffe2",
+   "rel": "counts_toward",
+   "why": "\"Test 1\" looks like Tests",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n960c677b",
+   "to": "n47cf9405",
+   "rel": "counts_toward",
+   "why": "\"Homework 3\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n56298fd1",
+   "to": "n976e1be3",
+   "rel": "counts_toward",
+   "why": "\"Lab 2\" looks like Labs",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n93fb1b34",
+   "to": "n47cf9405",
+   "rel": "counts_toward",
+   "why": "\"Homework 4\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n99fd633d",
+   "to": "n47cf9405",
+   "rel": "counts_toward",
+   "why": "\"Homework 5\" looks like Homework",
+   "createdBy": "linker"
+  },
+  {
+   "from": "n0c6f550d",
+   "to": "n3164ffe2",
+   "rel": "counts_toward",
+   "why": "\"Test 3\" looks like Tests",
+   "createdBy": "linker"
+  }
+ ]
+}

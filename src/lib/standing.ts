@@ -18,7 +18,8 @@ export function cutoffs(tree?: Tree) {
 }
 
 const pct = (v: number) => `${Math.round(v * 100)}%`;
-const isMissing = (it: GradeItem) => it.status === "missing" || it.status === "not_submitted";
+// "Not submitted" only counts as missing once the due date has passed; before that it's just upcoming.
+const isMissing = (it: GradeItem, now?: Date) => it.status === "missing" || (it.status === "not_submitted" && (!it.due || !now || new Date(`${it.due}T23:59:00`) < now));
 const isGraded = (it: GradeItem) => it.score != null && it.max != null && it.max > 0;
 
 // Syllabus component names → the words that identify an assignment as belonging to it.
@@ -40,7 +41,7 @@ function matches(componentName: string, itemName: string) {
 }
 
 /** Group grade rows under the syllabus grading components (or sensible defaults when there's no syllabus). */
-export function categorize(items: GradeItem[], grading: { component: string; weight_percent: number | null }[]): Category[] {
+export function categorize(items: GradeItem[], grading: { component: string; weight_percent: number | null }[], now?: Date): Category[] {
   const comps = grading.length ? grading : [{ component: "Homework", weight_percent: null }, { component: "Quizzes", weight_percent: null }, { component: "Exams", weight_percent: null }, { component: "Projects", weight_percent: null }];
   const cats: Category[] = comps.map((g) => ({ name: g.component, weight: g.weight_percent, items: [], avg: null, missing: 0 }));
   const other: Category = { name: "Other", weight: null, items: [], avg: null, missing: 0 };
@@ -51,7 +52,7 @@ export function categorize(items: GradeItem[], grading: { component: string; wei
   for (const cat of [...cats, other]) {
     const graded = cat.items.filter(isGraded);
     cat.avg = graded.length ? graded.reduce((s, it) => s + (it.score! / it.max!) * 100, 0) / graded.length : null;
-    cat.missing = cat.items.filter(isMissing).length;
+    cat.missing = cat.items.filter((it) => isMissing(it, now)).length;
   }
   return [...cats, ...(other.items.length ? [other] : [])];
 }
@@ -70,7 +71,7 @@ export function standing(cats: Category[]): { pct: number | null; covered: numbe
 /** Unsubmitted work, most urgent first. */
 export function missingWork(items: GradeItem[], now: Date) {
   return items
-    .filter(isMissing)
+    .filter((it) => isMissing(it, now))
     .map((it) => ({ ...it, overdue: !!it.due && new Date(`${it.due}T23:59:00`) < now }))
     .sort((a, b) => (a.due || "9999").localeCompare(b.due || "9999"));
 }
@@ -88,9 +89,9 @@ export function sourcesFor(sources: Source[], code: string) {
 }
 
 /** The four tiles. `ok` is null when there is nothing to judge yet. */
-export function tiles(x: Features, tree: Tree | undefined, deltas: { quizzes: number; checkins: number }, items: GradeItem[], cats: Category[]): Tile[] {
+export function tiles(x: Features, tree: Tree | undefined, deltas: { quizzes: number; checkins: number }, items: GradeItem[], cats: Category[], now?: Date): Tile[] {
   const cut = cutoffs(tree);
-  const missing = items.filter(isMissing).length;
+  const missing = items.filter((it) => isMissing(it, now)).length;
   const st = standing(cats);
   const att = x.attendance_rate ?? 0;
   const onTime = x.on_time_submission_rate ?? 0;

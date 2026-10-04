@@ -96,10 +96,10 @@ function CourseInsight({ c }: { c: CourseView }) {
   const [showDetails, setShowDetails] = useState(false);
   const deltas = state.deltas[c.slug] ?? { quizzes: 0, checkins: 0, sessions: 0 };
   const src = useMemo(() => sourcesFor(state.sources, c.code), [state.sources, c.code]);
-  const cats = useMemo(() => categorize(src.gradeItems, src.grading), [src.gradeItems, src.grading]);
+  const cats = useMemo(() => categorize(src.gradeItems, src.grading, now), [src.gradeItems, src.grading, now]);
   const grade = standing(cats);
   const missing = missingWork(src.gradeItems, now);
-  const tileList = tiles(c.x, c.tree, deltas, src.gradeItems, cats);
+  const tileList = tiles(c.x, c.tree, deltas, src.gradeItems, cats, now);
   const watch = tileList.filter((t) => t.ok === false).length;
 
   return (

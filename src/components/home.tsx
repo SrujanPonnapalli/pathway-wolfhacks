@@ -11,7 +11,6 @@ import { ArrowUp, Check, ChevronRight, FileUp, Mail, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar } from "@/components/Viva";
 import { StatusMark } from "@/components/ui";
-import { analyzeFile, toSource, type AnalyzeResult } from "@/lib/api";
 import { googleCalendarUrl } from "@/lib/calendar";
 import { moveText, reasonFor } from "@/lib/features";
 import { inboxFor } from "@/lib/inbox";
@@ -296,51 +295,75 @@ export function InboxPanel() {
   );
 }
 
-// ---- 6. Files: drop a syllabus or a Gradescope page; Gemini reads it, you confirm ---------
+// ---- 6. Course materials: what Pathway already knows per course (seeded, no upload needed), plus
+// a drop zone for anything else. Every file goes through the ingestion agent, stage by stage.
 
 const ACCEPT = [".pdf", ".png", ".jpg", ".jpeg", ".txt", ".csv"];
-type Pending = { id: number; name: string; course: string; status: "reading" | "ready" | "error"; result?: AnalyzeResult; error?: string };
+type Pending = { id: number; name: string; stage: string; detail: string; status: "reading" | "error"; error?: string };
+
+const STAGE_TEXT: Record<string, string> = { received: "Reading", classified: "Classified", extracted: "Extracting facts", linked: "Linking", reviewed: "Reviewing", done: "Done" };
 
 export function Files() {
-  const { courses, state, addSource, removeSource } = usePathway();
+  const { courses, knowledge, ingestFile, reassignSource, removeKnowledgeSource } = usePathway();
   const [over, setOver] = useState(false);
   const [items, setItems] = useState<Pending[]>([]);
 
   const take = (list: FileList | null) => {
     if (!list) return;
     for (const f of Array.from(list)) {
+      const id = Date.now() + Math.random();
       if (!ACCEPT.some((ext) => f.name.toLowerCase().endsWith(ext))) {
-        setItems((xs) => [...xs, { id: Date.now() + Math.random(), name: f.name, course: "", status: "error", error: "Export slides or docs to PDF first." }]);
+        setItems((xs) => [...xs, { id, name: f.name, stage: "", detail: "", status: "error", error: "Export slides or docs to PDF first." }]);
         continue;
       }
-      const id = Date.now() + Math.random();
-      setItems((xs) => [...xs, { id, name: f.name, course: courses[0]?.slug ?? "", status: "reading" }]);
-      analyzeFile(f, { courses: courses.map((c) => c.code) })
-        .then((result) => {
-          const guess = courses.find((c) => result.classification.course_guess.toUpperCase().includes(c.code))?.slug;
-          setItems((xs) => xs.map((x) => (x.id === id ? { ...x, status: "ready", result, course: guess ?? x.course } : x)));
-        })
+      setItems((xs) => [...xs, { id, name: f.name, stage: "received", detail: "", status: "reading" }]);
+      ingestFile(f, (e) => {
+        const detail =
+          e.stage === "classified" ? `${e.kind} (${e.confidence}) · ${e.course}` : e.stage === "extracted" ? `${e.facts} facts` : e.stage === "linked" ? `${e.edges} links${e.conflicts ? ` · ${e.conflicts} clash` : ""}` : e.stage === "reviewed" ? `${e.confirmed} confirmed${e.needsYou ? ` · ${e.needsYou} need you` : ""}` : e.stage === "received" && e.cached ? "seen before" : "";
+        setItems((xs) => xs.map((x) => (x.id === id ? { ...x, stage: e.stage, detail: detail || x.detail } : x)));
+      })
+        .then(() => setItems((xs) => xs.filter((x) => x.id !== id)))
         .catch((e: Error) => setItems((xs) => xs.map((x) => (x.id === id ? { ...x, status: "error", error: e.message } : x))));
     }
   };
-  const confirm = (p: Pending) => {
-    const course = courses.find((c) => c.slug === p.course);
-    if (!p.result || !course) return;
-    const src = toSource(p.result, course.code);
-    if (src) addSource(src);
-    setItems((xs) => xs.filter((x) => x.id !== p.id));
-  };
-  const summary = (r: AnalyzeResult) => {
-    if (r.syllabus) return `Syllabus · ${r.syllabus.deadlines.length} dates, grading, policies`;
-    if (r.grades) return `Grades · ${r.grades.items.length} items${r.grades.average_percent != null ? `, avg ${Math.round(r.grades.average_percent)}%` : ""}`;
-    if (r.study) return `${r.classification.kind} · ${r.study.quiz.length} quiz questions ready`;
-    if (r.insights) return `Dataset · ${r.profile?.rows} rows`;
-    return r.classification.kind;
-  };
+  const facts = (sourceId: string) => knowledge.nodes.filter((n) => n.source === sourceId && n.review !== "rejected");
 
   return (
     <section aria-labelledby="files">
-      <h2 id="files" className="font-extrabold">Files</h2>
+      <h2 id="files" className="font-extrabold">Course materials</h2>
+      {knowledge.sources.length > 0 && (
+        <ul className="mt-2" aria-live="polite">
+          {knowledge.sources.map((src) => {
+            const mine = facts(src.id);
+            const waiting = mine.filter((n) => n.review === "proposed").length;
+            return (
+              <li key={src.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
+                <Check size={15} strokeWidth={3} className="shrink-0 text-teal" aria-hidden />
+                <span className="min-w-0 flex-1 truncate">
+                  <span className="font-bold">{src.filename}</span> <span className="text-muted">· {src.kind} · {mine.length} fact{mine.length === 1 ? "" : "s"}{waiting ? ` · ${waiting} need${waiting === 1 ? "s" : ""} you` : ""}</span>
+                </span>
+                <label className="sr-only" htmlFor={`src-${src.id}`}>Course</label>
+                <select id={`src-${src.id}`} value={src.course} onChange={(e) => reassignSource(src.id, e.target.value)} className="rounded-lg border-2 border-line bg-white px-2 py-1 text-xs font-bold">
+                  {!courses.some((c) => c.code === src.course) && <option value={src.course}>{src.course || "Course?"}</option>}
+                  {courses.map((c) => <option key={c.slug} value={c.code}>{c.code}</option>)}
+                </select>
+                <button onClick={() => removeKnowledgeSource(src.id)} aria-label={`Forget ${src.filename}`} className="text-muted hover:text-ink"><X size={16} /></button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      {items.map((p) => (
+        <p key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm" aria-live="polite">
+          <span className="min-w-0 flex-1 truncate font-bold">{p.name}</span>
+          {p.status === "reading" ? (
+            <span className="flex items-center gap-1.5 text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> {STAGE_TEXT[p.stage] ?? p.stage}…{p.detail ? ` ${p.detail}` : ""}</span>
+          ) : (
+            <span className="text-sun-ink">{p.error}</span>
+          )}
+          <button onClick={() => setItems((xs) => xs.filter((x) => x.id !== p.id))} aria-label={`Dismiss ${p.name}`} className="text-muted hover:text-ink"><X size={16} /></button>
+        </p>
+      ))}
       <label
         onDragOver={(e) => (e.preventDefault(), setOver(true))}
         onDragLeave={() => setOver(false)}
@@ -349,43 +372,11 @@ export function Files() {
       >
         <FileUp size={22} strokeWidth={2.4} className="shrink-0 text-teal" aria-hidden />
         <span className="min-w-0">
-          <span className="block font-bold">Drop a syllabus, slides, or your Gradescope page</span>
-          <span className="block text-sm text-muted">Gemini reads it; you confirm the course before it counts.</span>
+          <span className="block font-bold">{knowledge.sources.length ? "Anything else? Drop it here" : "Drop a syllabus, slides, or a grade page"}</span>
+          <span className="block text-sm text-muted">Pathway reads it stage by stage and keeps every fact with the sentence it came from.</span>
         </span>
         <input type="file" multiple accept={ACCEPT.join(",")} className="sr-only" onChange={(e) => take(e.target.files)} />
       </label>
-
-      {(items.length > 0 || state.sources.length > 0) && (
-        <ul className="mt-2" aria-live="polite">
-          {items.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center gap-2 py-2 text-sm">
-              <span className="min-w-0 flex-1 truncate font-bold">{p.name}</span>
-              {p.status === "reading" && (
-                <span className="flex items-center gap-1.5 text-muted"><ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Reading…</span>
-              )}
-              {p.status === "error" && <span className="text-sun-ink">{p.error}</span>}
-              {p.status === "ready" && p.result && (
-                <>
-                  <span className="text-muted">{summary(p.result)}</span>
-                  <label className="sr-only" htmlFor={`c${p.id}`}>Course</label>
-                  <select id={`c${p.id}`} value={p.course} onChange={(e) => setItems((xs) => xs.map((x) => (x.id === p.id ? { ...x, course: e.target.value } : x)))} className="rounded-lg border-2 border-line bg-white px-2 py-1 font-bold">
-                    {courses.map((c) => <option key={c.slug} value={c.slug}>{c.code}</option>)}
-                  </select>
-                  <button onClick={() => confirm(p)} className="font-extrabold text-teal">Confirm</button>
-                </>
-              )}
-              <button onClick={() => setItems((xs) => xs.filter((x) => x.id !== p.id))} aria-label={`Remove ${p.name}`} className="text-muted hover:text-ink"><X size={16} /></button>
-            </li>
-          ))}
-          {state.sources.map((s, i) => (
-            <li key={`${s.kind}-${s.course}-${s.title}`} className="flex items-center gap-2 py-2 text-sm">
-              <Check size={15} strokeWidth={3} className="shrink-0 text-teal" aria-hidden />
-              <span className="min-w-0 flex-1 truncate"><span className="font-bold">{s.title}</span> <span className="text-muted">· {s.kind} · {s.course}</span></span>
-              <button onClick={() => removeSource(i)} aria-label={`Remove ${s.title}`} className="text-muted hover:text-ink"><X size={16} /></button>
-            </li>
-          ))}
-        </ul>
-      )}
     </section>
   );
 }

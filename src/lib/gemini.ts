@@ -90,6 +90,7 @@ export async function generateJSON<T>(opts: {
   schema: Schema;
   system?: string;
   temperature?: number;
+  tier?: "fast" | "heavy";
 }): Promise<T> {
   const res = await generate({
     contents: [{ role: "user", parts: opts.parts }],
@@ -99,7 +100,7 @@ export async function generateJSON<T>(opts: {
       responseSchema: opts.schema,
       temperature: opts.temperature ?? 0.2,
     },
-  });
+  }, opts.tier ?? "heavy");
   const text = res.text ?? "";
   try {
     return JSON.parse(text) as T;

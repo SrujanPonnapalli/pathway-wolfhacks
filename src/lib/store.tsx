@@ -829,6 +829,35 @@ function useStore() {
     if (gid && gcal.isConnected()) gcal.rename(gid, title).catch(() => {});
     return true;
   };
+  /** Which of today's health calls are already on the week: the gym swapped, the wind-down or walk added. */
+  const healthDone: Record<HealthCall["id"], boolean> = {
+    rest: !!localEvents.find((e) => e.id === `demo-gym-${(demo.now.getDay() + 6) % 7}`)?.title.startsWith("Rest day"),
+    winddown: s.blocks.some((b) => b.id === "health-winddown"),
+    cardio: s.blocks.some((b) => b.id === "health-walk"),
+  };
+  /**
+   * One of today's health calls, onto the week: the gym block becomes a rest-day walk, or a wind-down (tonight)
+   * or a walk (tomorrow morning) lands as a health block. Returns the receipt, or null when nothing changed.
+   */
+  const healthCall = (id: HealthCall["id"]): string | null => {
+    if (!health) return null;
+    const dow = (demo.now.getDay() + 6) % 7;
+    const gnote = gcal.isConnected() ? ", here and in Google Calendar" : "";
+    if (id === "rest") {
+      const gymId = `demo-gym-${dow}`;
+      const gym = localEvents.find((e) => e.id === gymId);
+      if (!gym || healthDone.rest) return null;
+      renameEvent(gymId, "Rest day · 20-min walk");
+      return `"${gym.title}" is now a rest-day walk${gnote}.`;
+    }
+    const b: Block =
+      id === "winddown"
+        ? { id: "health-winddown", course: "", title: "Wind down · screens off, lights out 11:30", at: healthSlot(demo.now, 0, 23, 0), done: false, minutes: 30, kind: "health" }
+        : { id: "health-walk", course: "", title: "Walk · 20 min (cardio)", at: healthSlot(demo.now, 1, 8, 0), done: false, minutes: 20, kind: "health" };
+    if (s.blocks.some((x) => x.id === b.id)) return null;
+    update((st) => ({ ...st, blocks: [...st.blocks.filter((x) => x.id !== b.id), b] })); // extras carry it to other devices; the sync effect writes it to Google
+    return `"${b.title}" added ${id === "winddown" ? "tonight" : "tomorrow morning"}${gnote}.`;
+  };
   const base = {
     ready: !!trees && !!profile,
     /** Loaded, but no profile to show: not signed in and not in demo mode. The app shows its front door. */
@@ -1052,26 +1081,12 @@ function useStore() {
     renameEvent,
     /** Google Fit, for this profile: last night's numbers and the week's (null until an account is linked). */
     health,
-    /** Act on one of today's health calls: the gym block becomes a walk, or a wind-down or walk lands on the week. */
+    /** Which of today's calls are already on the week. */
+    healthDone,
+    /** Act on one of today's health calls (the panel's buttons; Viva uses the same path through health_call). */
     applyHealthCall: (id: HealthCall["id"]) => {
-      if (!health) return;
-      const dow = (demo.now.getDay() + 6) % 7;
-      if (id === "rest") {
-        const gymId = `demo-gym-${dow}`;
-        const gym = localEvents.find((e) => e.id === gymId);
-        if (!gym) return;
-        if (gym.title.startsWith("Rest day")) return;
-        renameEvent(gymId, "Rest day · 20-min walk");
-        say(`"${gym.title}" is now a rest-day walk${gcal.isConnected() ? ", here and in Google Calendar" : ""}.`);
-        return;
-      }
-      const b: Block =
-        id === "winddown"
-          ? { id: "health-winddown", course: "", title: "Wind down · screens off, lights out 11:30", at: healthSlot(demo.now, 0, 23, 0), done: false, minutes: 30, kind: "health" }
-          : { id: "health-walk", course: "", title: "Walk · 20 min (cardio)", at: healthSlot(demo.now, 1, 8, 0), done: false, minutes: 20, kind: "health" };
-      if (s.blocks.some((x) => x.id === b.id)) return;
-      update((st) => ({ ...st, blocks: [...st.blocks.filter((x) => x.id !== b.id), b] })); // extras carry it to other devices; the sync effect writes it to Google
-      say(`"${b.title}" added ${id === "winddown" ? "tonight" : "tomorrow morning"}${gcal.isConnected() ? ", here and in Google Calendar" : ""}.`);
+      const r = healthCall(id);
+      if (r) say(r);
     },
     /** Sync now: re-read the sample Moodle/Gradescope records, the database and Google Calendar. */
     syncNow: async () => {
@@ -1378,6 +1393,17 @@ function useStore() {
             receipts.push(`${made.length} ${c.code} study blocks added before ${fmtDay(c.exam.date)}${gnote()}`);
             break;
           }
+          case "health_call": {
+            const id = a.call === "rest" || a.call === "winddown" || a.call === "cardio" ? a.call : null;
+            if (!id) break;
+            if (!health) {
+              receipts.push("Google Fit isn't connected for this profile");
+              break;
+            }
+            const r = healthCall(id);
+            receipts.push(r ? r.replace(/\.$/, "") : id === "rest" ? "Today's gym block is already a rest-day walk" : "That's already on your week");
+            break;
+          }
           case "complete_block": {
             const b = (base.state.blocks as Block[]).find((x) => x.id === a.id);
             if (!b) break;
@@ -1436,7 +1462,7 @@ function useStore() {
   // that lists exactly what will happen, and runs only when the student approves it (the card's button in chat,
   // or "yes" typed or said). Study tools the student asked for run at once; ones Viva offers wait for a yes too.
   // Approving runs the held actions directly (no second model call) and, for calendar changes, opens the Week.
-  const CALENDAR = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
+  const CALENDAR = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all", "health_call"]);
   const TOOLS = new Set<AgentAction["type"]>(["start_timer", "start_quiz", "start_teach"]);
   // The student explicitly asking for a tool, in their own words: then it starts without a second question.
   const ASKED: Partial<Record<AgentAction["type"], RegExp>> = {
@@ -1478,6 +1504,16 @@ function useStore() {
           return [`Set aside: ${suggestions.find((x) => x.id === a.id)?.title ?? "the suggestion"}`];
         case "approve_all":
           return [`Approve all ${suggestions.length} suggested change${suggestions.length === 1 ? "" : "s"}`];
+        case "health_call": {
+          const gym = events.find((e) => e.id === `demo-gym-${(demo.now.getDay() + 6) % 7}`);
+          return [
+            a.call === "rest"
+              ? `Swap today's “${gym?.title ?? "gym"}”${gym ? ` (${fmtTime(gym.start)})` : ""} for a rest-day walk`
+              : a.call === "winddown"
+                ? `Add “Wind down · screens off, lights out 11:30” tonight at ${fmtTime(healthSlot(demo.now, 0, 23, 0))}`
+                : `Add “Walk · 20 min (cardio)” tomorrow at ${fmtTime(healthSlot(demo.now, 1, 8, 0))}`,
+          ];
+        }
         case "start_timer":
           return [`Start a 25-minute ${codeFor(a.course)} focus timer`];
         case "start_quiz":
@@ -1567,7 +1603,7 @@ function useStore() {
           suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
           files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
           recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),
-          health: health ? healthLine(health, demo.now) : undefined,
+          health: health ? healthLine(health, demo.now, healthDone) : undefined,
         },
         history.map((h) => ({ role: h.role, text: h.text })),
       );

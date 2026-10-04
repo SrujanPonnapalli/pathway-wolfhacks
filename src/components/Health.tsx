@@ -4,23 +4,17 @@
 // Numbers only (src/lib/health.ts); the buttons change the week the same way Viva would.
 import { Check } from "lucide-react";
 import { SectionHeading } from "@/components/ui";
-import { healthCalls, healthSignals, SHORT_NIGHT, SLEEP_GOAL, sleepImpact, type HealthCall } from "@/lib/health";
+import { healthCalls, healthSignals, SHORT_NIGHT, SLEEP_GOAL, sleepImpact } from "@/lib/health";
 import { fmtTime, usePathway } from "@/lib/store";
 
 const pct = (p: number) => Math.round(p * 100);
 const dayLetter = (ymd: string) => new Date(`${ymd}T12:00:00`).toLocaleDateString("en-US", { weekday: "narrow" });
 
 export function Health() {
-  const { health, now, courses, events, state, applyHealthCall } = usePathway();
+  const { health, now, courses, healthDone: done, applyHealthCall } = usePathway();
   if (!health) return null;
   const sig = healthSignals(health);
   const calls = healthCalls(health, now);
-  const dow = (now.getDay() + 6) % 7;
-  const done: Record<HealthCall["id"], boolean> = {
-    rest: !!events.find((e) => e.id === `demo-gym-${dow}`)?.title.startsWith("Rest day"),
-    winddown: state.healthBlocks.some((b) => b.id === "health-winddown"),
-    cardio: state.healthBlocks.some((b) => b.id === "health-walk"),
-  };
   // The course where sleep sits on the path: flagged ones first, then the nearest exam.
   const impact = [...courses]
     .sort((a, b) => Number(b.result.atRisk) - Number(a.result.atRisk) || a.daysToExam - b.daysToExam)

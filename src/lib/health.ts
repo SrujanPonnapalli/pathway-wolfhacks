@@ -166,16 +166,19 @@ export function healthCalls(h: FitSnapshot, now: Date): HealthCall[] {
   return out;
 }
 
-/** One line for Viva's context: the numbers and today's calls, so the agent plans around them. */
-export function healthLine(h: FitSnapshot, now: Date): string {
+/**
+ * One line for Viva's context: the numbers and today's calls with their health_call ids, so the agent
+ * answers from the same data the panel shows and can put a call on the week. `done` marks calls already there.
+ */
+export function healthLine(h: FitSnapshot, now: Date, done: Partial<Record<HealthCall["id"], boolean>> = {}): string {
   const s = healthSignals(h);
-  const calls = healthCalls(h, now).map((c) => c.title);
+  const calls = healthCalls(h, now).map((c) => `${c.id}=${c.title}${done[c.id] ? " (already on the week)" : ""}`);
   return (
     `Google Fit (${h.account}, synced ${h.syncedAt.slice(11, 16)}): last night ${h.sleep.hours} h (${h.sleep.quality}, bed ${h.sleep.bedtime}); ` +
     `7-night average ${s.avg} h (goal ${SLEEP_GOAL}); readiness ${h.readiness}/100; HRV ${h.hrv} ms; resting HR ${h.restingHr}${h.restingHrNote ? ` (${h.restingHrNote})` : ""}; ` +
     `steps ${h.steps}; cardio ${h.cardio.minutes}/${h.cardio.goal} min this week; exercise days ${h.exerciseDays.done}/${h.exerciseDays.goal}. ` +
     (s.restDay ? "Today is a rest day: no lifting. " : "") +
-    (calls.length ? `Calls: ${calls.join("; ")}.` : "")
+    (calls.length ? `Today's calls (health_call ids): ${calls.join("; ")}.` : "No calls today.")
   );
 }
 

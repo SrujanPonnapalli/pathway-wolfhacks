@@ -57,6 +57,7 @@ test("the gym plan lands on the week by weekday, health blocks are not study, an
   const line = healthLine(FIT_DEMO, now);
   assert.match(line, /last night 3 h \(Poor, bed 4:45 AM\); 7-night average 5\.6 h/);
   assert.match(line, /Today is a rest day/);
-  assert.match(line, /Calls: Rest today: swap Gym · lower body/);
+  assert.match(line, /health_call ids\): rest=Rest today: swap Gym · lower body .*; winddown=Protect tonight.*; cardio=Cardio: 1 of 455/);
+  assert.match(healthLine(FIT_DEMO, now, { rest: true }), /rest=Rest today[^;]*\(already on the week\); winddown=/);
   assert.match(line, /^Google Fit \(rehanyeet@gmail.com, synced 08:07\)/); // the agent's context carries this line verbatim (src/lib/intel/agent.ts)
 });

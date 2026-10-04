@@ -37,6 +37,7 @@ export type AgentAction = {
     | "start_timer" // course: starts the 25-minute focus timer (shared across the student's devices)
     | "start_teach" // course, title (the topic): opens Teach mode, where the student explains it and Viva checks
     | "draft_email" // email_to, email_subject, email_body (shown to the student; never sent)
+    | "health_call" // call: rest | winddown | cardio, one of today's Google Fit calls (src/lib/health.ts)
     | "navigate" // path
     | "link"; // label, path (a chip, no navigation)
   id?: string;
@@ -54,6 +55,7 @@ export type AgentAction = {
   email_to?: string;
   email_subject?: string;
   email_body?: string;
+  call?: string; // health_call: rest (today's gym block becomes a rest-day walk), winddown (tonight), cardio (a walk tomorrow morning)
   asked?: boolean; // the student explicitly asked for this exact action in this message (tools then run without asking)
 };
 
@@ -85,9 +87,9 @@ const schema: Schema = {
       items: {
         type: Type.OBJECT,
         required: ["type"],
-        propertyOrdering: ["type", "asked", "id", "title", "start", "end", "course", "kind", "repeat", "until", "tool", "score", "path", "label", "email_to", "email_subject", "email_body"],
+        propertyOrdering: ["type", "asked", "id", "title", "start", "end", "course", "kind", "repeat", "until", "tool", "score", "path", "label", "email_to", "email_subject", "email_body", "call"],
         properties: {
-          type: { type: Type.STRING, enum: ["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "approve_suggestion", "dismiss_suggestion", "approve_all", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "start_quiz", "start_timer", "start_teach", "draft_email", "navigate", "link"] },
+          type: { type: Type.STRING, enum: ["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "approve_suggestion", "dismiss_suggestion", "approve_all", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "start_quiz", "start_timer", "start_teach", "draft_email", "health_call", "navigate", "link"] },
           asked: { type: Type.BOOLEAN, description: "true only if the student explicitly asked for this exact action in this message; false when you are offering it" },
           id: { type: Type.STRING, description: "move_event/resize_event/rename_event/remove_event/complete_block: the calendar event id; approve/dismiss_suggestion: the suggestion id. Copy exactly from CONTEXT." },
           title: { type: Type.STRING, description: "add_event: short event title like 'BIO 181 review'; rename_event: the new title; start_quiz: the lecture file's title from CONTEXT; start_teach: the topic, e.g. 'glycolysis'" },
@@ -104,6 +106,7 @@ const schema: Schema = {
           email_to: { type: Type.STRING, description: "draft_email only: recipient's name" },
           email_subject: { type: Type.STRING, description: "draft_email only: subject line" },
           email_body: { type: Type.STRING, description: "draft_email only: the complete email body" },
+          call: { type: Type.STRING, enum: ["rest", "winddown", "cardio"], description: "health_call only: which of today's Google Fit calls from CONTEXT to put on the week" },
         },
       },
     },
@@ -145,11 +148,14 @@ Rules:
     presence and schedule relevance (welcome back after a PERSON_RETURNED, note a step-away during a study block,
     acknowledge materials are out). Never infer emotion, stress, focus, tiredness, health, or identity, and never
     change a status or act on a suggestion because of it.
-12. The "Google Fit" line, when present, is the student's own data from their watch, with the app's calls already worked
-    out (rest day, wind-down, a walk). Plan around it: on a rest day propose no lifting and treat the gym block as a walk;
-    with a wind-down call, put nothing after 11 PM; repeat its calls as its calls ("Fit says..."), never as diagnosis.
-    The 7-night sleep average is one of the model's inputs (avg_sleep_hours), so you may say a full night moves that
-    number, under rule 3. Rule 4 still applies to everything the Fit line does not say.`;
+12. The "Google Fit" line, when present, is the student's own data from their watch, with today's calls already worked
+    out and listed as health_call ids (rest = today's gym block becomes a rest-day walk, winddown = a wind-down block
+    tonight, cardio = a 20-minute walk tomorrow morning). Answer sleep, recovery, gym and cardio questions from that line
+    only. To put a call on the week, return health_call with its id (a calendar change, so a proposal); never rebuild it
+    with add_event or rename_event. Plan around it: on a rest day propose no lifting; with a wind-down call put nothing
+    after 11 PM. Repeat its calls as its calls ("Fit says..."), never as diagnosis. The 7-night sleep average is one of the
+    model's inputs (avg_sleep_hours), so you may say a full night moves that number, under rule 3. Rule 4 still applies to
+    everything the Fit line does not say.`;
 
 const CHANNEL = {
   chat: "Reply in at most three short sentences, plain words, no headers or lists. Then one question back at most.",
@@ -163,6 +169,8 @@ export function route(message: string): Specialist {
   const m = message.toLowerCase();
   if (/\b(email|e-mail|mail|write to|reply|respond|message (my|the|dr|prof)|note to|letter|extension|professor|advisor|ta\b)/.test(m))
     return { name: "writer", addendum: "WRITER: produce the email now as a draft_email action with a complete body. Keep the spoken reply to one sentence.", maxTokens: 900, temperature: 0.4 };
+  if (/\b(sleep|slept|tired|exhausted|rest day|readiness|recover|heart rate|hrv|cardio|wind[- ]?down|google fit|fit says|fitbit|health|how('?s| is) my body)\b/.test(m))
+    return { name: "health", addendum: "HEALTH: answer from the Google Fit line in CONTEXT only (last night, the 7-night average, readiness, HRV, resting HR, steps, cardio, exercise days, today's calls). To act on a call, return health_call with its id as a proposal; say what it changes on the week. If there is no Google Fit line, say Fit isn't connected for this profile and change nothing.", maxTokens: 450, temperature: 0.3 };
   if (/\b(add|move|reschedul|schedule|put|block|calendar|remove|delete|cancel|shift|free|clear|slot|plan my|approve|not now|dismiss|make it real|resize|longer|shorter|rename|repeat|every day|weekday|weekly)\b/.test(m))
     return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the calendar in CONTEXT, avoid overlaps, and return every calendar action needed (one per event). Say what you'd change and when, briefly, as a proposal the student approves. When you name an existing event's day or time, read it from that event in CONTEXT, never from earlier messages: the app may have moved it to a free slot.", maxTokens: 1200, temperature: 0.2 };
   if (/\b(quiz|explain|what is|what's|define|teach|study for|review|flashcard|slides|notes|chapter|concept)\b/.test(m))

@@ -260,6 +260,7 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
     if (a.type === "make_it_real" || a.type === "log_quiz" || a.type === "log_session" || a.type === "check_in" || a.type === "start_quiz" || a.type === "start_timer" || a.type === "start_teach") return !!a.course;
     if (a.type === "set_midterm") return !!a.course && typeof a.score === "number";
     if (a.type === "draft_email") return !!a.email_body;
+    if (a.type === "health_call") return a.call === "rest" || a.call === "winddown" || a.call === "cardio";
     if (a.type === "navigate") return !!a.path && a.path.startsWith("/");
     if (a.type === "link") return !!a.path && a.path.startsWith("/");
     return false;

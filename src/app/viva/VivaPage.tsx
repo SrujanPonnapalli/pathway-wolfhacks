@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowUp, Clock, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, FastForward, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
@@ -615,6 +615,7 @@ function Chat({
           const url = URL.createObjectURL(blob);
           audioBlobUrlRef.current = url;
           const audio = new Audio(url);
+          audio.playbackRate = 1.2;
           audioElRef.current = audio;
 
           audio.onended = () => {
@@ -637,7 +638,7 @@ function Chat({
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utteranceRef.current = utterance;
-            utterance.rate = 1.0;
+            utterance.rate = 1.2;
             utterance.pitch = 1.0;
             utterance.onend = () => {
               stopAudio();
@@ -854,9 +855,16 @@ function Voice() {
               </li>
             ))}
           </ul>
-          <button onClick={v.stop} className="btn btn-danger mt-6">
-            <PhoneOff size={18} aria-hidden /> End
-          </button>
+          <div className="mt-6 flex items-center gap-2">
+            {v.state === "speaking" && (
+              <button onClick={v.skip} className="btn btn-ghost" title="Skip to the end of Viva's reply">
+                <FastForward size={18} aria-hidden /> Skip
+              </button>
+            )}
+            <button onClick={v.stop} className="btn btn-danger">
+              <PhoneOff size={18} aria-hidden /> End
+            </button>
+          </div>
         </>
       ) : (
         <button onClick={v.start} className="btn btn-sky mt-6">

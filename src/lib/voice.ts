@@ -45,6 +45,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
   const audio = useRef<HTMLAudioElement | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const fakeOut = useRef(false); // simulated mouth movement when real audio isn't available
+  const skipTo = useRef(false); // fast-forward: finish the current reply right away
 
   useEffect(() => {
     optsRef.current = opts;
@@ -87,6 +88,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
   // Speak a line: real ElevenLabs audio with captions synced to playback, or simulated if that fails.
   const speak = async (text: string, id: number) => {
     go("speaking");
+    skipTo.current = false;
     const words = text.split(" ");
     let played = false;
     try {
@@ -95,6 +97,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
       const url = URL.createObjectURL(await r.blob());
       if (run.current !== id) return false;
       const el = new Audio(url);
+      el.playbackRate = 1.2; // on top of the ElevenLabs speed setting, Viva talks a bit faster
       audio.current = el;
       if (ctx.current) {
         const src = ctx.current.createMediaElementSource(el);
@@ -109,7 +112,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
       played = true;
       await new Promise<void>((done) => {
         const tick = () => {
-          if (run.current !== id || el.ended || el.paused) return done();
+          if (run.current !== id || el.ended || el.paused || skipTo.current) return done();
           const shown = Math.max(1, Math.ceil((el.currentTime / (el.duration || 1)) * words.length));
           setCaption({ who: "viva", text: words.slice(0, shown).join(" ") });
           requestAnimationFrame(tick);
@@ -125,8 +128,9 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
         fakeOut.current = true;
         for (let i = 1; i <= words.length; i++) {
           if (run.current !== id) return false;
+          if (skipTo.current) break;
           setCaption({ who: "viva", text: words.slice(0, i).join(" ") });
-          await sleep(170);
+          await sleep(100);
         }
       }
     }
@@ -232,6 +236,11 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
       }
       if (run.current !== id) return;
       if (await speak(optsRef.current.greeting(), id)) listen(id);
+    },
+    // Fast-forward: stop the audio (or the simulated word crawl); the full reply still lands in the transcript.
+    skip() {
+      skipTo.current = true;
+      audio.current?.pause();
     },
     // A tapped question stands in for speech (and is the fallback when there's no microphone).
     say(question: string) {

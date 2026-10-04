@@ -9,6 +9,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { BarChart3, BookOpen, Check, ChevronDown, Compass, Flag, Mic, Route as RouteIcon, TriangleAlert } from "lucide-react";
 import { Wordmark } from "@/components/Sidebar";
 import { VivaAvatar } from "@/components/Viva";
@@ -78,6 +79,43 @@ function Card({
       </p>
       {children}
     </section>
+  );
+}
+
+// TEMP debug: verify the Pi's Chromium can open the Logitech Brio. Requests the
+// camera on mount and shows a small live preview, bottom-right. Local display
+// only — nothing is recorded, stored, or uploaded. Remove once hardware is proven.
+export function CameraTest() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    Promise.resolve()
+      .then(() => {
+        if (!navigator.mediaDevices?.getUserMedia)
+          throw new Error("navigator.mediaDevices is undefined (page needs HTTPS or localhost)");
+        return navigator.mediaDevices.getUserMedia({ video: true });
+      })
+      .then((s) => {
+        stream = s;
+        if (videoRef.current) videoRef.current.srcObject = s;
+      })
+      .catch((e: unknown) => setErr(e instanceof Error ? `${e.name}: ${e.message}` : String(e)));
+    return () => stream?.getTracks().forEach((t) => t.stop());
+  }, []);
+
+  return (
+    <div className="fixed bottom-3 right-3 z-50 w-[220px] overflow-hidden rounded-xl border-2 border-line bg-black shadow-lg">
+      <p className="px-2 py-1 text-[0.62rem] font-extrabold uppercase tracking-widest text-white">Camera Test</p>
+      {err ? (
+        <p role="alert" className="h-[140px] w-[220px] break-words p-2 text-xs font-bold leading-snug text-red-400">
+          {err}
+        </p>
+      ) : (
+        <video ref={videoRef} autoPlay playsInline muted className="h-[140px] w-[220px] object-cover" />
+      )}
+    </div>
   );
 }
 

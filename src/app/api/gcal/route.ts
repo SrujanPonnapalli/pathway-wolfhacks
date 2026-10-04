@@ -6,6 +6,8 @@
 //   POST { op: "rename", id, title }
 import { NextResponse } from "next/server";
 import * as g from "@/lib/gcalServer";
+import { sessionProfile } from "@/lib/auth";
+import { demoProfileId } from "@/lib/demoAccount";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +18,10 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  if (!from || !to) return NextResponse.json({ connected: true, calendarId: g.calendarId(), events: [] });
+  // The shared calendar is the demo account's own, so when that account is signed in it is already
+  // connected for it, whatever form GOOGLE_CALENDAR_ID takes ("primary", an alias, other casing).
+  const mine = sessionProfile(req) === demoProfileId();
+  if (!from || !to) return NextResponse.json({ connected: true, calendarId: g.calendarId(), mine, events: [] });
   try {
     const items = await g.list(from, to);
     const events = items.map((e) => ({ id: e.id, title: e.summary ?? "(no title)", start: e.start!.dateTime!.slice(0, 19), end: e.end!.dateTime!.slice(0, 19), description: e.description ?? "", updated: e.updated ?? "" }));

@@ -15,8 +15,8 @@ let sharedId: string | null = null;
 export async function init(personalOnly = false, email?: string): Promise<boolean> {
   try {
     const r = await fetch("/api/gcal", { cache: "no-store" });
-    const j = (await r.json()) as { connected: boolean; calendarId: string | null };
-    const own = !!email && !!j.calendarId && j.calendarId.trim().toLowerCase() === email.trim().toLowerCase();
+    const j = (await r.json()) as { connected: boolean; calendarId: string | null; mine?: boolean };
+    const own = !!j.mine || (!!email && !!j.calendarId && j.calendarId.trim().toLowerCase() === email.trim().toLowerCase());
     if (j.connected && (!personalOnly || own)) {
       mode = "shared";
       sharedId = j.calendarId;

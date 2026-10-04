@@ -54,10 +54,29 @@ body {
   color: var(--color-teal-lip);
 }
 
-:focus-visible {
-  outline: 3px solid var(--color-ink);
-  outline-offset: 2px;
-  border-radius: 12px;
+/* In the base layer so a component can opt out with `outline-none` (unlayered CSS would beat every
+   utility). Chat boxes do: their border turns sky on focus-within instead of ringing the inner input. */
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-ink);
+    outline-offset: 2px;
+    border-radius: 12px;
+  }
+}
+
+/* Selects: the border itself lights up teal instead of a dark ring floating around it. Unlayered so it
+   beats the `border-line` utility each select carries. */
+select {
+  cursor: pointer;
+  transition: border-color 120ms, box-shadow 120ms;
+}
+select:hover {
+  border-color: var(--color-muted);
+}
+select:focus-visible {
+  outline: none;
+  border-color: var(--color-teal);
+  box-shadow: 0 0 0 3px var(--color-teal-soft);
 }
 
 * {

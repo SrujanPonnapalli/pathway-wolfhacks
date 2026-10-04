@@ -55,7 +55,7 @@ function NavItem({ href, label, icon: Icon, on, open, onPick }: NavLink & { on: 
       aria-current={on ? "page" : undefined}
       data-liquid-key={href}
       title={open ? undefined : label}
-      className={`flex items-center gap-4 rounded-xl px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:min-w-[2.75rem] max-md:flex-col max-md:gap-0.5 max-md:px-0.5 max-md:py-1.5 max-md:text-[10px] max-md:tracking-normal max-md:normal-case ${
+      className={`flex items-center gap-4 rounded-xl px-3 py-2.5 text-[0.9375rem] font-extrabold uppercase tracking-wider transition-colors max-md:min-w-[2.75rem] max-md:flex-col max-md:gap-0.5 max-md:px-0.5 max-md:py-1.5 max-md:text-[10px] max-md:tracking-normal max-md:normal-case ${open ? "" : "md:w-12"} ${
         on ? "text-teal-lip" : "text-muted hover:text-ink"
       }`}
     >

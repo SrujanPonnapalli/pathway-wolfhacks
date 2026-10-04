@@ -31,7 +31,7 @@ export function EvidenceSection() {
             Model Evidence &amp; Rigor
           </span>
           <span className="block text-sm text-muted mt-1">
-            Audited for the IAA track: held-out test split, price of interpretability, bootstrap stability, advisor capacity &amp; fairness.
+            How the model did on students it never saw, what it gives up to stay explainable, and where it falls short.
           </span>
         </div>
         <div className="flex items-center gap-2">

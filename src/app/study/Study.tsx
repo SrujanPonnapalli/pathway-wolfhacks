@@ -236,14 +236,61 @@ function Quiz({ material, course, onDone }: { material: StudyMaterial | null; co
 }
 
 function Flashcards({ material, course, onDone }: { material: StudyMaterial | null; course: string; onDone: () => void }) {
-  const [i, setI] = useState(0);
+  const cards = material?.flashcards ?? [];
+  // The round being worked through (indices into cards); "Review missed" starts a new round of just those.
+  const [round, setRound] = useState<number[]>(() => cards.map((_, k) => k));
+  const [pos, setPos] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [finished, setFinished] = useState(false);
-  if (!material) return <p className="text-muted">Drop a file above to get a deck.</p>;
-  const cards = material.flashcards;
-  const c = cards[i];
+  const [missed, setMissed] = useState<number[]>([]);
+  const logged = useRef(false);
+  const idx = round[pos];
+  const c = idx === undefined ? undefined : cards[idx];
+  const done = !c;
 
-  if (finished || !c) {
+  const restart = (next: number[]) => {
+    setRound(next);
+    setPos(0);
+    setFlipped(false);
+    setMissed([]);
+  };
+  const mark = (right: boolean) => {
+    if (!flipped || idx === undefined) return;
+    if (!right) setMissed((m) => [...m, idx]);
+    setFlipped(false);
+    setPos(pos + 1);
+    // The first deck finished logs one session; review rounds don't log again.
+    if (pos + 1 >= round.length && !logged.current) {
+      logged.current = true;
+      onDone();
+    }
+  };
+
+  // Space / Enter flips; once flipped, ← or 1 = missed, → or 2 = got it. Ignored while typing elsewhere.
+  const keys = useRef({ flip: () => setFlipped((f) => !f), mark });
+  useEffect(() => {
+    keys.current = { flip: () => setFlipped((f) => !f), mark };
+  });
+  useEffect(() => {
+    if (done) return;
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.metaKey || e.ctrlKey || e.altKey || t?.closest("input, textarea, select, [contenteditable=true]")) return;
+      const k = e.key;
+      if (k === " " || k === "Enter") keys.current.flip();
+      else if (k === "ArrowLeft" || k === "1") keys.current.mark(false);
+      else if (k === "ArrowRight" || k === "2") keys.current.mark(true);
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [done]);
+
+  if (!material) return <p className="text-muted">Drop a file above to get a deck.</p>;
+  if (!cards.length) return <p className="text-muted">No flashcards came out of that file. Try another one.</p>;
+
+  if (done) {
+    const right = round.length - missed.length;
     return (
       <div className="panel p-6 border-2 border-teal/40">
         <div className="flex items-center gap-3">
@@ -252,7 +299,7 @@ function Flashcards({ material, course, onDone }: { material: StudyMaterial | nu
           </span>
           <div>
             <p className="text-xl font-black text-ink">Deck Completed</p>
-            <p className="text-xs text-muted">Reviewed {cards.length} cards</p>
+            <p className="text-xs text-muted">Got {right} of {round.length} right{missed.length ? ` · ${missed.length} to review` : ""}</p>
           </div>
         </div>
 
@@ -266,31 +313,76 @@ function Flashcards({ material, course, onDone }: { material: StudyMaterial | nu
           </p>
         </div>
 
+        {missed.length > 0 && (
+          <ul className="mt-4 space-y-1.5">
+            {missed.map((k) => (
+              <li key={k} className="rounded-xl border-2 border-line px-3 py-2 text-sm">
+                <span className="font-extrabold">{cards[k].front}</span>
+                <span className="block font-semibold text-muted">{cards[k].back}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
         <div className="mt-5 flex flex-wrap gap-2.5">
-          <Link href={`/insights?course=${course}`} className="btn btn-primary text-xs">
+          {missed.length > 0 && (
+            <button onClick={() => restart(missed)} className="btn btn-primary text-xs">
+              Review {missed.length} missed
+            </button>
+          )}
+          <Link href={`/insights?course=${course}`} className={`btn text-xs ${missed.length ? "btn-ghost" : "btn-primary"}`}>
             See Updated Path in Insights &rarr;
           </Link>
-          <button
-            onClick={() => { setI(0); setFlipped(false); setFinished(false); }}
-            className="btn btn-ghost text-xs"
-          >
-            <RotateCcw size={14} aria-hidden /> Review Again
+          <button onClick={() => restart(cards.map((_, k) => k))} className="btn btn-ghost text-xs">
+            <RotateCcw size={14} aria-hidden /> Whole deck again
           </button>
         </div>
       </div>
     );
   }
 
-  const last = i + 1 >= cards.length;
+  const face = "col-start-1 row-start-1 flex min-h-48 items-center justify-center rounded-2xl border-2 p-6 text-center text-lg leading-snug [backface-visibility:hidden]";
   return (
     <div className="panel p-5">
-      <p className="text-sm font-bold text-muted">Card {i + 1} of {cards.length} · {c.topic}</p>
-      <button onClick={() => setFlipped((f) => !f)} className="mt-2 flex min-h-40 w-full items-center justify-center rounded-2xl border-2 border-line bg-polar p-6 text-center text-lg font-extrabold leading-snug hover:bg-white" aria-live="polite">
-        {flipped ? <span className="font-bold">{c.back}</span> : c.front}
-      </button>
-      <div className="mt-3 flex gap-2">
-        <button onClick={() => setFlipped((f) => !f)} className="btn btn-ghost min-h-10 px-4 text-xs">Flip</button>
-        <button onClick={() => { if (last) { onDone(); setFinished(true); } else setI(i + 1); setFlipped(false); }} className="btn btn-primary min-h-10 px-4 text-xs">{last ? "Finish deck" : "Next"}</button>
+      <div className="flex items-center justify-between gap-3 text-sm font-bold text-muted">
+        <p>Card {pos + 1} of {round.length} · {c.topic}</p>
+        {missed.length > 0 && <p className="text-flame-ink">{missed.length} missed</p>}
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden>
+        <div className="h-full rounded-full bg-teal-face transition-[width] duration-300" style={{ width: `${(pos / round.length) * 100}%` }} />
+      </div>
+
+      <div className="mt-3 [perspective:1200px]">
+        {/* key: a new card starts face-up without animating back from the previous card's answer. */}
+        <button
+          key={`${pos}-${idx}`}
+          onClick={() => setFlipped((f) => !f)}
+          aria-label={flipped ? `Answer: ${c.back}. Press to see the question.` : `Question: ${c.front}. Press to flip.`}
+          className="grid w-full transition-transform duration-500 ease-[cubic-bezier(0.3,0.7,0.2,1)] [transform-style:preserve-3d] motion-reduce:transition-none"
+          style={{ transform: flipped ? "rotateY(180deg)" : "none" }}
+        >
+          <span className={`${face} border-line bg-polar font-extrabold hover:bg-white`}>{c.front}</span>
+          <span className={`${face} border-teal/40 bg-teal-soft font-bold text-teal-lip [transform:rotateY(180deg)]`}>{c.back}</span>
+        </button>
+      </div>
+      <p className="sr-only" aria-live="polite">{flipped ? c.back : ""}</p>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {flipped ? (
+          <>
+            <button onClick={() => mark(false)} className="btn btn-ghost min-h-10 px-4 text-xs">
+              Missed it <kbd className="ml-1 font-sans text-[10px] text-muted">←</kbd>
+            </button>
+            <button onClick={() => mark(true)} className="btn btn-primary min-h-10 px-4 text-xs">
+              <Check size={14} strokeWidth={3} aria-hidden /> Got it <kbd className="ml-1 font-sans text-[10px] opacity-70">→</kbd>
+            </button>
+          </>
+        ) : (
+          <button onClick={() => setFlipped(true)} className="btn btn-primary min-h-10 px-4 text-xs">
+            Flip <kbd className="ml-1 font-sans text-[10px] opacity-70">Space</kbd>
+          </button>
+        )}
+        <p className="ml-auto text-xs font-bold text-muted max-sm:hidden">Space flips · ← missed · → got it</p>
       </div>
     </div>
   );

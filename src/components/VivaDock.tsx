@@ -204,7 +204,7 @@ export function VivaDock() {
             )}
             <div ref={end} />
           </div>
-          <form onSubmit={submit} className="flex items-center gap-2 border-t-2 border-line p-2 pl-3">
+          <form onSubmit={submit} className="flex items-center gap-2 border-t-2 border-line p-2 pl-3 focus-within:border-sky">
             <label htmlFor="dock-q" className="sr-only">Message Viva</label>
             <input id="dock-q" name="q" autoComplete="off" placeholder="Ask Viva to do anything…" className="min-w-0 flex-1 bg-transparent py-1.5 text-sm font-bold outline-none placeholder:text-muted" />
             <button type="button" onClick={startNewChat} className="text-xs font-extrabold text-muted hover:text-ink" title="Start a new conversation">New</button>

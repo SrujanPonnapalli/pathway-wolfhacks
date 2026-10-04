@@ -103,7 +103,7 @@ export function VivaPage() {
       {/* Pinned persistent top-right controls */}
       <aside
         aria-label="Viva chat controls"
-        className={`fixed right-3 sm:right-6 md:right-8 z-40 flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white/95 p-1 shadow-md backdrop-blur-md transition-all hover:bg-white ${demoBanner ? "top-[4.25rem] sm:top-[4.5rem] md:top-24" : "top-3 sm:top-4 md:top-6"}`}
+        className={`viva-page-tools fixed right-3 sm:right-6 md:right-8 z-40 flex items-center gap-1.5 rounded-2xl border-2 border-line bg-white/95 p-1 shadow-md backdrop-blur-md transition-all hover:bg-white ${demoBanner ? "top-[4.25rem] sm:top-[4.5rem] md:top-24" : "top-3 sm:top-4 md:top-6"}`}
       >
         <button
           onClick={handleStartNew}
@@ -130,7 +130,7 @@ export function VivaPage() {
 
       {/* Right padding keeps the title clear of the pinned chat controls above. */}
       <PageHeader
-        className="mb-6! pr-36 sm:pr-48 md:pr-56"
+        className="mb-6! md:pr-56"
         icon={<VivaGlyph size={52} className="shrink-0 text-sky" />}
         title={VIVA.name}
         lead={mode === "teach" ? "Explain a topic from your course files. If you can teach it, you know it." : "Your study coach. Answers come only from your numbers and the model."}
@@ -143,7 +143,7 @@ export function VivaPage() {
               onClick={() => handleSetMode(m)}
               aria-pressed={mode === m}
               data-liquid-key={m}
-              className={`relative flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold uppercase tracking-wider transition-colors duration-300 ${mode === m ? "text-white" : "text-muted hover:text-ink"}`}
+              className={`relative flex min-h-11 items-center gap-1 rounded-xl px-2 py-2.5 text-xs font-extrabold uppercase tracking-wide transition-colors duration-300 sm:gap-2 sm:px-4 sm:text-sm ${mode === m ? "text-white" : "text-muted hover:text-ink"}`}
             >
               <Icon size={18} aria-hidden />
               {m}
@@ -758,7 +758,7 @@ function Chat({
           ))}
         </ul>
       )}
-      <div className="sticky bottom-24 mt-6 z-30 md:bottom-6">
+      <div className="mobile-chat-composer sticky mt-6 z-30 md:bottom-6">
         {/* Simple down arrow go to bottom button right above chat interface */}
         <div className="pointer-events-none relative flex justify-center">
           <button

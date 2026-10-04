@@ -3,6 +3,7 @@
 import { AskLine, Files, Greeting, InboxPanel, Onboarding, Route, WeekPanel } from "@/components/home";
 import { useState } from "react";
 import { PotLine } from "@/components/PotLine";
+import { VivaCheckIn } from "@/components/VivaCheckIn";
 import { SemesterSetup, setupKey } from "@/components/SemesterSetup";
 import { Gate } from "@/components/ui";
 import { usePathway } from "@/lib/store";
@@ -58,6 +59,8 @@ function HomeBody() {
       <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-x-12">
         <div className="min-w-0">
           <Greeting />
+          {/* Viva asks for what's outstanding first (check-ins, approvals, requests), one tap each. */}
+          <VivaCheckIn />
           <div className="mt-8"><Route /></div>
           <PotLine offer />
           <div className="mt-5"><AskLine /></div>

@@ -91,13 +91,13 @@ export function Study() {
         </label>
       </PageHeader>
 
-      <nav aria-label="Tools" className="mb-6 flex gap-2">
+      <nav aria-label="Tools" className="mb-6 grid grid-cols-3 gap-2 sm:flex">
         {[
           { id: "quiz", label: "Quiz", icon: Brain },
           { id: "flashcards", label: "Flashcards", icon: Layers },
           { id: "timer", label: "Timer", icon: Timer },
         ].map(({ id, label, icon: Icon }) => (
-          <Link key={id} href={`/study?tool=${id}&course=${course}`} aria-current={focus === id ? "page" : undefined} className={`flex items-center gap-2 rounded-xl border-2 px-3 py-2 font-bold ${focus === id ? "border-teal-face bg-teal-soft text-teal-lip" : "border-line bg-white text-muted hover:text-ink"}`}>
+          <Link key={id} href={`/study?tool=${id}&course=${course}`} aria-current={focus === id ? "page" : undefined} className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border-2 px-1 py-2 text-sm font-bold sm:min-h-11 sm:flex-row sm:gap-2 sm:px-3 sm:text-base ${focus === id ? "border-teal-face bg-teal-soft text-teal-lip" : "border-line bg-white text-muted hover:text-ink"}`}>
             <Icon size={18} aria-hidden /> {label}
           </Link>
         ))}

@@ -15,6 +15,12 @@ Open [localhost:3000/demo](http://localhost:3000/demo) for Maya's sample semeste
 
 Outside demo mode, Pathway asks visitors to sign in with Google. Account sign-in requires a database, a Google OAuth web client ID, and a session secret; see [Configuration](#configuration).
 
+### iPhone demo
+
+Open the deployed site's `/demo` URL in Safari, then choose **Share → Add to Home Screen**. The installed app launches into the demo with the Pathway icon. It uses five bottom tabs: Home, Study, Week, Viva, and More. More contains Courses, Insights, Inbox, and Buddies; Beacon is available in desktop navigation. The app needs an internet connection.
+
+Phone layouts account for the home indicator and landscape safe areas. Text fields keep Safari from zooming on focus, and Viva adjusts to the visible viewport when the keyboard opens. Before presenting, check the installed app on the target iPhone, especially Viva voice permissions and the keyboard.
+
 ## What Pathway does
 
 - **Shows the reason.** An on-device decision tree checks course signals and displays the path behind its result. Insights also shows what could change the result and the evidence behind the prototype model.

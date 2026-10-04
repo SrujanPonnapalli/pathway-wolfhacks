@@ -142,7 +142,7 @@ export function Toast() {
   }, [toast, dismissToast]);
 
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-24 z-30 flex justify-center md:inset-x-auto md:right-6 md:bottom-6">
+    <div aria-live="polite" className="mobile-toast pointer-events-none fixed inset-x-4 z-30 flex justify-center md:inset-x-auto md:right-6 md:bottom-6">
       {toast && (
         <p key={toast.id} className="pointer-events-auto flex max-w-md animate-[rise_220ms_ease-out] items-start gap-3 rounded-2xl bg-ink px-4 py-3 text-white shadow-[0_8px_24px_rgb(0_0_0/0.18)]">
           <span className="flex-1">{toast.text}</span>

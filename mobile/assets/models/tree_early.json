@@ -1,0 +1,235 @@
+{
+ "feature_names": [
+  "attendance_rate",
+  "avg_days_started_before_exam",
+  "practice_quizzes_taken",
+  "on_time_submission_rate",
+  "missed_deadlines",
+  "late_night_study_pct",
+  "avg_weekly_study_hours",
+  "study_sessions_logged",
+  "credit_hours",
+  "work_hours_per_week",
+  "work_hours_missing",
+  "class_year_ord",
+  "avg_practice_quiz_score",
+  "materials_uploaded",
+  "flashcards_reviewed",
+  "avg_sleep_hours",
+  "sleep_missing",
+  "course_BIO_181",
+  "course_CH_101",
+  "course_CSC_216",
+  "course_EC_201",
+  "course_ECE_200",
+  "course_MA_241",
+  "course_PY_205",
+  "course_ST_311",
+  "warning_signs"
+ ],
+ "class_names": [
+  "on_track",
+  "at_risk"
+ ],
+ "children_left": [
+  1,
+  2,
+  3,
+  4,
+  -1,
+  -1,
+  7,
+  -1,
+  -1,
+  10,
+  11,
+  -1,
+  -1,
+  -1,
+  15,
+  -1,
+  17,
+  -1,
+  19,
+  -1,
+  -1
+ ],
+ "children_right": [
+  14,
+  9,
+  6,
+  5,
+  -1,
+  -1,
+  8,
+  -1,
+  -1,
+  13,
+  12,
+  -1,
+  -1,
+  -1,
+  16,
+  -1,
+  18,
+  -1,
+  20,
+  -1,
+  -1
+ ],
+ "feature": [
+  25,
+  25,
+  5,
+  22,
+  -2,
+  -2,
+  15,
+  -2,
+  -2,
+  9,
+  3,
+  -2,
+  -2,
+  -2,
+  5,
+  -2,
+  15,
+  -2,
+  9,
+  -2,
+  -2
+ ],
+ "threshold": [
+  2.5,
+  1.5,
+  0.335,
+  0.5,
+  -2.0,
+  -2.0,
+  5.85,
+  -2.0,
+  -2.0,
+  17.5,
+  0.785,
+  -2.0,
+  -2.0,
+  -2.0,
+  0.245,
+  -2.0,
+  5.55,
+  -2.0,
+  9.5,
+  -2.0,
+  -2.0
+ ],
+ "value": [
+  [
+   462,
+   178
+  ],
+  [
+   434,
+   70
+  ],
+  [
+   349,
+   23
+  ],
+  [
+   295,
+   9
+  ],
+  [
+   271,
+   4
+  ],
+  [
+   26,
+   3
+  ],
+  [
+   54,
+   14
+  ],
+  [
+   29,
+   8
+  ],
+  [
+   27,
+   4
+  ],
+  [
+   85,
+   47
+  ],
+  [
+   76,
+   32
+  ],
+  [
+   25,
+   18
+  ],
+  [
+   51,
+   14
+  ],
+  [
+   13,
+   11
+  ],
+  [
+   28,
+   108
+  ],
+  [
+   12,
+   20
+  ],
+  [
+   16,
+   88
+  ],
+  [
+   1,
+   25
+  ],
+  [
+   15,
+   63
+  ],
+  [
+   8,
+   49
+  ],
+  [
+   6,
+   15
+  ]
+ ],
+ "risk_threshold": 0.2479,
+ "depth": 4,
+ "n_leaves": 11,
+ "features_used": [
+  "avg_sleep_hours",
+  "course_MA_241",
+  "late_night_study_pct",
+  "on_time_submission_rate",
+  "warning_signs",
+  "work_hours_per_week"
+ ],
+ "derived": {
+  "warning_signs": {
+   "cutoffs": {
+    "on_time_submission_rate": 0.79,
+    "avg_days_started_before_exam": 1.9,
+    "attendance_rate": 0.82,
+    "avg_practice_quiz_score": 69.187
+   },
+   "high_is_bad": []
+  }
+ },
+ "_note": "Early tree v2 from notebooks/pathway_model.py (seed 42, refit on train+validation). warning_signs is derived on-device from the cutoffs above."
+}

@@ -16,7 +16,7 @@ const now = () => performance.now(); // module-level so the React compiler doesn
 
 // End-of-speech detection, tuned for a quiet-ish room.
 const SPEECH_LEVEL = 0.06; // input level that counts as talking (0..1)
-const SILENCE_MS = 1100; // this much quiet after speech ends a turn
+const SILENCE_MS = 900; // this much quiet after speech ends a turn
 const MAX_TURN_MS = 15000;
 
 function level(an: AnalyserNode | null, buf: Float32Array<ArrayBuffer> | null) {
@@ -27,7 +27,13 @@ function level(an: AnalyserNode | null, buf: Float32Array<ArrayBuffer> | null) {
   return Math.min(1, Math.sqrt(sum / buf.length) * 5); // RMS, scaled so speech sits mid-range
 }
 
-export function useVoiceSession(opts: { greeting: () => string; reply: (q: string) => string | Promise<string>; onTurn: (who: Who, text: string) => void }) {
+export function useVoiceSession(opts: {
+  greeting: () => string;
+  reply: (q: string) => string | Promise<string>;
+  onTurn: (who: Who, text: string) => void;
+  /** Playback speed for Viva's voice, 0.8 to 1.6; read at speak time so a slider applies to the next line. */
+  speed?: () => number;
+}) {
   const [state, setState] = useState<OrbState>("idle");
   const [caption, setCaption] = useState<Caption>(null);
   const [levels, setLevels] = useState({ input: 0, output: 0 });
@@ -45,6 +51,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
   const audio = useRef<HTMLAudioElement | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const fakeOut = useRef(false); // simulated mouth movement when real audio isn't available
+  const skips = useRef(0); // bumped by skip(): the current line stops and Viva listens
 
   useEffect(() => {
     optsRef.current = opts;
@@ -95,6 +102,7 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
       const url = URL.createObjectURL(await r.blob());
       if (run.current !== id) return false;
       const el = new Audio(url);
+      el.playbackRate = Math.min(1.6, Math.max(0.8, optsRef.current.speed?.() ?? 1.15));
       audio.current = el;
       if (ctx.current) {
         const src = ctx.current.createMediaElementSource(el);
@@ -123,10 +131,13 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
         // Voice service unavailable: keep the conversation going with captions only.
         setNotice("Viva's voice isn't available right now, so replies show as captions.");
         fakeOut.current = true;
+        const skipAt = skips.current;
+        const pace = Math.round(170 / (optsRef.current.speed?.() ?? 1.15));
         for (let i = 1; i <= words.length; i++) {
           if (run.current !== id) return false;
+          if (skips.current !== skipAt) break;
           setCaption({ who: "viva", text: words.slice(0, i).join(" ") });
-          await sleep(170);
+          await sleep(pace);
         }
       }
     }
@@ -232,6 +243,11 @@ export function useVoiceSession(opts: { greeting: () => string; reply: (q: strin
       }
       if (run.current !== id) return;
       if (await speak(optsRef.current.greeting(), id)) listen(id);
+    },
+    /** Fast-forward: stop the line Viva is saying and go straight to listening. */
+    skip() {
+      skips.current++;
+      audio.current?.pause();
     },
     // A tapped question stands in for speech (and is the fallback when there's no microphone).
     say(question: string) {

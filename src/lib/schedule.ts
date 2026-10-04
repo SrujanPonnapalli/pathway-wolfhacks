@@ -119,7 +119,7 @@ export function sourceEvents(
 }
 
 export function blocksAsEvents(blocks: Block[], minutes = 50): CalEvent[] {
-  return blocks.map((b) => ({ id: b.id, title: b.title, start: iso(new Date(b.at)), end: iso(new Date(new Date(b.at).getTime() + minutes * 60_000)), kind: "study", course: b.course, source: "pathway" }));
+  return blocks.map((b) => ({ id: b.id, title: b.title, start: iso(new Date(b.at)), end: iso(new Date(new Date(b.at).getTime() + (b.minutes ?? minutes) * 60_000)), kind: "study", course: b.course, source: "pathway" }));
 }
 
 // ---- rules -----------------------------------------------------------------------------------

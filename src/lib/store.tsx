@@ -9,8 +9,10 @@ import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from
 import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { sampleChatSessions, soften, vivaReply, type Action, type ChatSession, type Reply } from "./viva";
-import { askCoach, coachContext } from "./api";
+import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type EmailDraft, type Reply } from "./viva";
+import { askAgent, askCoach, coachContext } from "./api";
+import type { AgentAction } from "./intel/agent";
+import { planBlocks } from "./plan";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
@@ -18,9 +20,9 @@ import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Su
 import type { Proposal } from "./intel/planner";
 import ROWS from "./rows.json";
 
-export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
+export type ChatMsg = ChatMessage;
 export type { ChatSession };
-export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string };
+export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string; minutes?: number };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
   added: CourseSeed[];
@@ -38,6 +40,7 @@ type PState = {
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
   removed: string[]; // feed events the student deleted in Google Calendar; we stop showing and re-adding them
+  notes: string[]; // durable facts the student told Viva ("works Tue/Thu evenings"); sent with every turn instead of long history
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
@@ -69,6 +72,7 @@ const empty = (profileId: string = "maya"): PState => {
     dismissed: [],
     gids: {},
     removed: [],
+    notes: [],
   };
 };
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
@@ -516,34 +520,6 @@ function useStore() {
     say(`${label}.${moved}${flip}`);
   };
 
-  // One Gemini-backed coaching turn, shared by chat and voice so they can't diverge: same
-  // context (courses, to-dos, blocks, sources, inbox, week, suggestions), same history, same
-  // answer. The local mock replies only when /api/coach can't be reached, and the console
-  // says which brain answered.
-  const coachTurn = async (text: string): Promise<Reply & { via: "gemini" | "local" }> => {
-    try {
-      const ctx = coachContext({
-        now: demo.now,
-        studentName: profile?.sample ? profile.name ?? "" : "",
-        courses,
-        todos: profile?.todos ?? [],
-        blocks: s.blocks,
-        sources: s.sources,
-        inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
-        week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
-        suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
-      });
-      // Voice appends the student's turn before calling this; don't send it twice.
-      const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
-      const r = await askCoach(text, ctx, history);
-      if (!r.text.trim()) throw new Error("empty reply");
-      console.info(`[viva] Gemini answered in ${r.ms}ms${r.filtered ? " (filtered)" : ""}`);
-      return { text: soften(r.text), actions: [], via: "gemini" };
-    } catch (e) {
-      console.warn("[viva] /api/coach unavailable, using the local fallback brain:", (e as Error).message);
-      return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
-    }
-  };
 
   // Advisor note (one Gemini call): status + reason + the change set, in the student's voice. Nothing is
   // sent; the student copies it or opens their mail app with it.
@@ -563,7 +539,7 @@ function useStore() {
     return r.text;
   };
 
-  return {
+  const base = {
     ready: !!trees && !!profile,
     draftAdvisorNote,
     error,
@@ -713,7 +689,6 @@ function useStore() {
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,
-    coachTurn,
     chatSessions: s.chatSessions,
     activeChatId: s.activeChatId,
     activeChat: s.chatSessions.find((x) => x.id === s.activeChatId) ?? s.chatSessions[0],
@@ -808,58 +783,177 @@ function useStore() {
           chat: nextMessages,
         };
       }),
-    // Chat mode: show the question, run the shared Gemini coach, then append Viva's turn.
-    // If the coach route is down the local fallback answers so the page never goes silent.
-    ask: async (text: string) => {
-      const local = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
-      const userMsg: ChatMsg = { role: "you", text };
-
-      update((st) => {
-        const sessions = st.chatSessions ?? [];
-        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
-        const active = sessions.find((s) => s.id === activeId) ?? {
-          id: activeId,
-          title: "New conversation",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          messages: [],
-        };
-        const nextMessages = [...active.messages, userMsg];
-        const nextTitle =
-          active.title === "New conversation"
-            ? (text.slice(0, 36) + (text.length > 36 ? "…" : ""))
-            : active.title;
-        const updatedSession: ChatSession = { ...active, title: nextTitle, updatedAt: new Date().toISOString(), messages: nextMessages };
-        const nextSessions = sessions.some((s) => s.id === activeId)
-          ? sessions.map((s) => (s.id === activeId ? updatedSession : s))
-          : [updatedSession, ...sessions];
-        return {
-          ...st,
-          chatSessions: nextSessions,
-          activeChatId: activeId,
-          chat: nextMessages,
-        };
-      });
-
-      setVivaThinking(true);
-      const r = await coachTurn(text);
-      setVivaThinking(false);
-      const vivaMsg: ChatMsg = { role: "viva", text: r.text, actions: local.actions };
-      update((st) => {
-        const sessions = st.chatSessions ?? [];
-        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
-        const active = sessions.find((s) => s.id === activeId);
-        if (!active) return { ...st, chat: [...st.chat, vivaMsg] };
-        const nextMessages = [...active.messages, vivaMsg];
-        const updatedSession: ChatSession = { ...active, updatedAt: new Date().toISOString(), messages: nextMessages };
-        return {
-          ...st,
-          chatSessions: sessions.map((s) => (s.id === activeId ? updatedSession : s)),
-          chat: nextMessages,
-        };
-      });
-    },
   };
+
+  // ---- Viva as an agent --------------------------------------------------------------------
+  // One structured Gemini call per turn (src/lib/intel/agent.ts) returns what to say and what to do.
+  // The actions run here, against the student's own state, and each one leaves a receipt the
+  // transcript shows. Chat and voice share this, so they can't diverge. If the route is down the
+  // local mock answers so the page never goes silent (and does nothing).
+  const [usage, setUsage] = useState({ input: 0, output: 0, turns: 0 });
+  const slugOf = (x?: string) => (x ? courses.find((c) => c.slug === x || c.code === x || c.code.replace(" ", "-").toLowerCase() === x.toLowerCase())?.slug : undefined);
+  const when = (iso: string) => new Date(iso).toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const gnote = () => (gcal.isConnected() ? ", also in Google Calendar" : "");
+
+  const execute = async (actions: AgentAction[]) => {
+    const receipts: string[] = [];
+    const links: Action[] = [];
+    let email: EmailDraft | undefined;
+    let navigate: string | undefined;
+    for (const a of actions) {
+      try {
+        switch (a.type) {
+          case "add_event": {
+            const minutes = Math.max(15, Math.min(240, Math.round((new Date(a.end!).getTime() - new Date(a.start!).getTime()) / 60_000) || 50));
+            const course = slugOf(a.course) ?? courses.find((c) => a.title!.toUpperCase().includes(c.code))?.slug ?? "";
+            const b: Block = { id: `viva-${Date.now()}-${receipts.length}`, course, title: a.title!, at: a.start!, done: false, minutes };
+            update((st) => ({ ...st, blocks: [...st.blocks, b] })); // the sync effect writes it to Google
+            sync.blocks(profile.id, [b]);
+            receipts.push(`Added “${a.title}” ${when(a.start!)}${gnote()}`);
+            break;
+          }
+          case "move_event": {
+            const ev = events.find((e) => e.id === a.id);
+            await base.moveEvent(a.id!, a.start!, a.end!);
+            receipts.push(`Moved “${ev?.title ?? a.id}” to ${when(a.start!)}${gnote()}`);
+            break;
+          }
+          case "remove_event": {
+            const ev = events.find((e) => e.id === a.id);
+            await base.removeEvent(a.id!);
+            receipts.push(`Removed “${ev?.title ?? a.id}”${gnote()}`);
+            break;
+          }
+          case "approve_suggestion": {
+            const sg = suggestions.find((x) => x.id === a.id);
+            if (!sg) break;
+            await base.approveSuggestion(sg);
+            receipts.push(`Approved: ${sg.title}`);
+            break;
+          }
+          case "dismiss_suggestion": {
+            const sg = suggestions.find((x) => x.id === a.id);
+            if (!sg) break;
+            base.dismissSuggestion(sg.id);
+            receipts.push(`Set aside: ${sg.title}`);
+            break;
+          }
+          case "make_it_real": {
+            const c = courses.find((x) => x.slug === slugOf(a.course));
+            if (!c?.rec) break;
+            const made = planBlocks(c, c.rec.moves, demo.now);
+            base.makeReal(made);
+            receipts.push(`${made.length} ${c.code} study blocks added before ${fmtDay(c.exam.date)}${gnote()}`);
+            break;
+          }
+          case "complete_block": {
+            const b = (base.state.blocks as Block[]).find((x) => x.id === a.id);
+            if (!b) break;
+            base.completeBlock(b);
+            receipts.push(`Marked “${b.title}” done`);
+            break;
+          }
+          case "log_quiz": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            base.logQuiz(slug);
+            receipts.push(`Logged a practice quiz for ${courses.find((c) => c.slug === slug)?.code}`);
+            break;
+          }
+          case "log_session": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            base.logSession(slug);
+            receipts.push(`Logged a study session for ${courses.find((c) => c.slug === slug)?.code}`);
+            break;
+          }
+          case "check_in": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            const cls = events.find((e) => e.course === slug && e.kind === "class" && new Date(e.start) >= new Date(demo.now.getTime() - 3 * 3600_000));
+            base.checkIn(slug, cls?.start ?? demo.now.toISOString());
+            receipts.push(`Checked in to ${courses.find((c) => c.slug === slug)?.code}`);
+            break;
+          }
+          case "set_midterm": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            base.setMidterm(slug, a.score!);
+            receipts.push(`Using your ${courses.find((c) => c.slug === slug)?.code} midterm (${a.score}) with the mid-semester model`);
+            break;
+          }
+          case "draft_email":
+            email = { to: a.email_to ?? "", subject: a.email_subject ?? "", body: a.email_body ?? "" };
+            receipts.push("Drafted an email (you send it)");
+            break;
+          case "navigate":
+            navigate = a.path;
+            break;
+          case "link":
+            links.push({ label: a.label ?? a.path!, href: a.path! });
+            break;
+        }
+      } catch (e) {
+        receipts.push(`Couldn't ${a.type.replace("_", " ")}: ${(e as Error).message}`);
+      }
+    }
+    return { receipts, links, email, navigate };
+  };
+
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat"): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string }> => {
+    try {
+      const ctx = coachContext({
+        now: demo.now,
+        studentName: profile?.sample ? profile.name ?? "" : "",
+        courses,
+        todos: profile?.todos ?? [],
+        blocks: s.blocks,
+        sources: s.sources,
+        inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
+        week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
+        suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
+      });
+      const page = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
+      // Voice appends the student's turn before calling this; don't send it twice.
+      const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
+      const r = await askAgent(
+        text,
+        {
+          ...ctx,
+          page,
+          channel,
+          notes: s.notes,
+          weekIds: events.map((e) => ({ id: e.id, title: e.title, start: e.start })),
+          suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
+          files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
+          recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),
+        },
+        history.map((h) => ({ role: h.role, text: h.text })),
+      );
+      setUsage((u) => ({ input: u.input + r.usage.input, output: u.output + r.usage.output, turns: u.turns + 1 }));
+      console.info(`[viva] ${r.specialist} answered in ${r.ms}ms, ${r.usage.input}+${r.usage.output} tokens, ${r.actions.length} action(s)`);
+      const done = await execute(r.actions);
+      if (r.remember.length) update((st) => ({ ...st, notes: [...new Set([...(st.notes ?? []), ...r.remember])].slice(-12) }));
+      const say = r.say.trim() || (done.receipts.length ? "Done." : "I don't have that.");
+      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate };
+    } catch (e) {
+      console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);
+      return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
+    }
+  };
+
+  // Chat: show the question, run the agent, append Viva's turn with its receipts. Returns the
+  // reply so the caller can navigate if Viva asked to.
+  const ask = async (text: string) => {
+    base.addTurn({ role: "you", text });
+    setVivaThinking(true);
+    const r = await coachTurn(text, "chat");
+    setVivaThinking(false);
+    base.addTurn({ role: "viva", text: r.text, actions: r.actions, receipts: r.receipts, email: r.email });
+    return r;
+  };
+
+  return { ...base, coachTurn, ask, usage };
 }
 
 const Ctx = createContext<ReturnType<typeof useStore> | null>(null);

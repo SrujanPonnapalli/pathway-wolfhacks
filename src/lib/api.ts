@@ -4,6 +4,7 @@
 import { meta } from "./features";
 import { usedFeatures } from "./tree";
 import type { CoachContext, CoachMode, CoachReply } from "./intel/coach";
+import type { AgentContext, AgentReply } from "./intel/agent";
 import type { Syllabus } from "./intel/syllabus";
 import type { StudyMaterial, VivaFeedback, VivaQuestion } from "./intel/study";
 import type { DatasetInsights, DatasetProfile } from "./intel/dataset";
@@ -100,3 +101,7 @@ export function toSource(r: AnalyzeResult, course: string): Source | null {
 
 export const askCoach = (message: string, context: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: CoachMode = "chat") =>
   fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, context, history, mode }) }).then(json<CoachReply>);
+
+/** Viva's agent turn: one call that returns what to say and what to do. The caller executes the actions. */
+export const askAgent = (message: string, context: AgentContext, history: { role: "you" | "viva" | "coach"; text: string }[] = []) =>
+  fetch("/api/agent", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, context, history }) }).then(json<AgentReply>);

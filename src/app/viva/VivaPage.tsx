@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { ArrowDown, ArrowUp, Clock, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Clock, FastForward, History, Loader2, MessageCircle, Mic, PhoneOff, Plus, Search, Square, Trash2, Volume2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VoiceBeam } from "voice-glow";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
+import { EmailCard, Receipts } from "@/components/VivaBits";
+import { useViva } from "@/components/VivaDock";
 import { usePathway, type ChatMsg, type ChatSession } from "@/lib/store";
-import { VIVA, type Action, type Reply } from "@/lib/viva";
-import { useVoiceSession } from "@/lib/voice";
+import { VIVA, type Action } from "@/lib/viva";
 
 function fmtSessionDate(iso: string) {
   try {
@@ -186,6 +187,8 @@ function Message({
       <VivaGlyph size={36} className="mt-1 shrink-0 text-sky" />
       <div className="group relative rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-4 py-3">
         <p className="whitespace-pre-wrap">{m.text}</p>
+        <Receipts items={m.receipts} />
+        <EmailCard email={m.email} />
         {m.actions && m.actions.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {m.actions.map((a) => (
@@ -484,6 +487,10 @@ function Chat({
   switchedFromVoiceRef: React.RefObject<boolean>;
 }) {
   const { state, ask, vivaThinking, profile, activeChat } = usePathway();
+  const { speed } = useViva();
+  const router = useRouter();
+  // Viva can move the student around the app ("show me my week"): follow her.
+  const send = (q: string) => ask(q).then((r) => r?.navigate && router.push(r.navigate));
   const end = useRef<HTMLLIElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -617,6 +624,7 @@ function Chat({
           const url = URL.createObjectURL(blob);
           audioBlobUrlRef.current = url;
           const audio = new Audio(url);
+          audio.playbackRate = speed;
           audioElRef.current = audio;
 
           audio.onended = () => {
@@ -639,7 +647,7 @@ function Chat({
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             utteranceRef.current = utterance;
-            utterance.rate = 1.0;
+            utterance.rate = speed;
             utterance.pitch = 1.0;
             utterance.onend = () => {
               stopAudio();
@@ -657,14 +665,14 @@ function Chat({
         }
       }
     },
-    [activeAudioId, loadingAudioId, stopAudio],
+    [activeAudioId, loadingAudioId, stopAudio, speed],
   );
 
   const submit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
     if (q) {
-      ask(q);
+      send(q);
       scrollToBottom("smooth");
     }
     e.currentTarget.reset();
@@ -732,7 +740,7 @@ function Chat({
         <ul className="mt-4 flex flex-wrap gap-2">
           {VIVA.suggestions.map((s) => (
             <li key={s}>
-              <button onClick={() => ask(s)} className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-sm font-bold text-sky hover:border-sky/40">{s}</button>
+              <button onClick={() => send(s)} className="rounded-full border-2 border-line bg-white px-3 py-1.5 text-sm font-bold text-sky hover:border-sky/40">{s}</button>
             </li>
           ))}
         </ul>
@@ -784,26 +792,10 @@ const STATE_LABEL: Record<string, string> = {
 };
 
 function Voice() {
-  const { profile, coachTurn, addTurn } = usePathway();
-  const last = useRef<Reply | null>(null);
-  const [actions, setActions] = useState<Action[]>([]);
-  const v = useVoiceSession({
-    greeting: () => VIVA.greeting(profile.sample ? profile.name : undefined),
-    reply: async (q) => {
-      const r = await coachTurn(q); // same Gemini brain as chat; local mock only if it's down
-      last.current = r;
-      setActions([]);
-      return r.text;
-    },
-    onTurn: (who, text) => {
-      const acts = who === "viva" ? (last.current?.actions ?? []) : undefined;
-      addTurn({ role: who, text, actions: acts });
-      if (acts) setActions(acts);
-      last.current = null;
-    },
-  });
-  useEffect(() => () => v.stop(), []); // eslint-disable-line react-hooks/exhaustive-deps
-
+  // The session lives in the app shell (VivaProvider), so leaving this page doesn't hang up:
+  // the mini Viva in the sidebar picks the call up.
+  const { voice: v, speed } = useViva();
+  const actions: Action[] = [];
   return (
     <section aria-label="Voice conversation with Viva" className="panel flex flex-col items-center px-5 py-8 text-center">
       <VivaAvatar size={260} state={v.state} input={v.input} output={v.output} />
@@ -856,9 +848,15 @@ function Voice() {
               </li>
             ))}
           </ul>
-          <button onClick={v.stop} className="btn btn-danger mt-6">
-            <PhoneOff size={18} aria-hidden /> End
-          </button>
+          <div className="mt-6 flex flex-wrap justify-center gap-2">
+            <button onClick={v.skip} disabled={v.state !== "speaking"} className="btn btn-ghost disabled:opacity-50" title="Skip what Viva is saying">
+              <FastForward size={18} aria-hidden /> Skip
+            </button>
+            <button onClick={v.stop} className="btn btn-danger">
+              <PhoneOff size={18} aria-hidden /> End
+            </button>
+          </div>
+          <p className="mt-2 text-xs font-bold text-muted">Speed {speed.toFixed(2)}× · change it in the mini Viva settings</p>
         </>
       ) : (
         <button onClick={v.start} className="btn btn-sky mt-6">

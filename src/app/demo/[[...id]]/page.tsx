@@ -1,7 +1,7 @@
 "use client";
 
-// The demo door, not linked anywhere in the app: /demo (Maya), /demo/jordan, /demo/priya, /demo/judge.
-// Turns on demo mode for this browser, opens that sample student, then goes to ?next= (default Home).
+// The demo door, not linked anywhere in the app: /demo opens the demo student (Rehan, id "maya").
+// Turns on demo mode for this browser, opens that profile, then goes to ?next= (default Home).
 // The Pi kiosk uses /demo/maya?next=/device.
 import { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -12,7 +12,7 @@ export default function DemoEntry() {
   const { reloadProfiles } = usePathway();
   const router = useRouter();
   const { id } = useParams<{ id?: string[] }>();
-  const who = DEMO_IDS.includes(id?.[0] ?? "") ? id![0] : "maya";
+  const who = DEMO_IDS.includes(id?.[0] ?? "") ? id![0] : DEMO_IDS[0];
 
   useEffect(() => {
     setDemo(true);

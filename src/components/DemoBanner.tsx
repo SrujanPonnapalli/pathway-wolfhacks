@@ -24,16 +24,23 @@ export function DemoBanner() {
   return (
     <div role="region" aria-label="Demo mode" className="flex min-h-14 flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-line bg-polar px-4 py-2 text-sm font-bold md:min-h-20 md:px-10">
       <span className="rounded-lg bg-ink px-2 py-0.5 text-xs font-black uppercase tracking-wider text-white">Demo</span>
-      <label className="flex items-center gap-2">
-        <span className="text-muted">Viewing</span>
-        <select value={profile.id} onChange={(e) => setProfile(e.target.value)} className="rounded-xl border-2 border-b-4 border-line bg-white px-2.5 py-1 font-extrabold">
-          {samples.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.sample ? `${p.name} (sample student)` : "Blank student (judge)"}
-            </option>
-          ))}
-        </select>
-      </label>
+      {samples.length > 1 ? (
+        <label className="flex items-center gap-2">
+          <span className="text-muted">Viewing</span>
+          <select value={profile.id} onChange={(e) => setProfile(e.target.value)} className="rounded-xl border-2 border-b-4 border-line bg-white px-2.5 py-1 font-extrabold">
+            {samples.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.sample ? `${p.name} (sample student)` : "Blank student (judge)"}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : (
+        <span>
+          <span className="text-muted">Viewing </span>
+          {profile.name}
+        </span>
+      )}
       <span className="text-muted max-md:hidden">Synthetic data, for trying Pathway out.</span>
       <span className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-1">
         <button onClick={reset} className="flex items-center gap-1.5 text-muted hover:text-ink">

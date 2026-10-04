@@ -50,7 +50,7 @@ export async function adoptDemoProfile(tx: postgres.TransactionSql, sub: string,
 /** Give `profileId` the sample semester (Maya's). Safe to run on every sign-in. */
 export async function seedDemoAccount(tx: postgres.TransactionSql, profileId: string) {
   const p = PROFILES.find((x) => x.id === demoProfileId()) ?? PROFILES[0];
-  await tx`UPDATE profiles SET class_year = COALESCE(class_year, ${p.classYear}) WHERE id = ${profileId}`;
+  await tx`UPDATE profiles SET name = ${p.name}, class_year = COALESCE(class_year, ${p.classYear}) WHERE id = ${profileId}`;
   for (const c of p.courses) {
     await tx`INSERT INTO courses (profile_id, slug, code, name, dataset_row, baseline)
              VALUES (${profileId}, ${c.slug}, ${c.code}, ${c.name}, ${c.row}, ${tx.json(c.x)}) ON CONFLICT (profile_id, slug) DO NOTHING`;

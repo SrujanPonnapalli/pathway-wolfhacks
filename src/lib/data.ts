@@ -4,7 +4,7 @@
 import { NOW, PROFILES, JUDGE_COURSE, JUDGE_CLASS, BUDDIES, type Profile } from "./mock";
 import { toLocal, toUtc } from "./time";
 import type { Tree } from "./tree";
-import { isDemo } from "./demo";
+import { DEMO_PROFILE, isDemo } from "./demo";
 
 export type Horizon = "early" | "mid";
 export type RemoteState = {
@@ -39,7 +39,7 @@ export async function getProfiles(): Promise<Profile[]> {
     return p.map(localize);
   } catch {}
   live = false;
-  return (isDemo() ? PROFILES : []).map(localize); // offline: the local sample students, still only in demo mode
+  return (isDemo() ? PROFILES.filter((p) => p.id === DEMO_PROFILE) : []).map(localize); // offline: the demo student, still only in demo mode
 }
 
 export async function getState(profileId: string): Promise<RemoteState | null> {
@@ -47,6 +47,17 @@ export async function getState(profileId: string): Promise<RemoteState | null> {
   try {
     const r = await api<RemoteState>(`/api/state?profile_id=${encodeURIComponent(profileId)}`);
     return { ...r, blocks: r.blocks.map((b) => ({ ...b, at: toLocal(b.at) })), checkedIn: Object.fromEntries(Object.entries(r.checkedIn ?? {}).map(([k, v]) => [toLocal(k), v])) };
+  } catch {
+    return null;
+  }
+}
+
+/** The profile's browser-side state kept on the server (chats, set-aside suggestions, moved demo events…). null: not reachable. */
+export type Extras = Record<string, unknown>;
+export async function getExtras(profileId: string): Promise<{ data: Extras | null } | null> {
+  if (!live) return null;
+  try {
+    return await api<{ data: Extras | null }>(`/api/extras?profile_id=${encodeURIComponent(profileId)}`);
   } catch {
     return null;
   }
@@ -86,6 +97,7 @@ export const sync = {
   blockEdit: (profile_id: string, id: string, patch: { at?: string; title?: string }) =>
     send("/api/blocks", "PATCH", { profile_id, id, ...(patch.at ? { at: toUtc(patch.at) } : {}), ...(patch.title ? { title: patch.title } : {}) }),
   blockRemove: (profile_id: string, id: string) => send("/api/blocks", "DELETE", { profile_id, id }),
+  extras: (profile_id: string, data: Extras) => send("/api/extras", "PUT", { profile_id, data }),
   todo: (profile_id: string, id: string, done: boolean) => send("/api/todos", "PATCH", { profile_id, id, done }),
   addJudgeCourse: (profile_id: string) => send("/api/courses", "POST", { profile_id }),
   reset: (profile_id: string) => (live ? fetch(`/api/state?profile_id=${encodeURIComponent(profile_id)}`, { method: "DELETE" }).catch(() => undefined) : Promise.resolve(undefined)),

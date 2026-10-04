@@ -40,7 +40,7 @@ export function disconnect() {
   personal.disconnect();
 }
 export async function whoAmI(): Promise<{ email: string; name: string }> {
-  if (mode === "shared") return { email: sharedId ?? "shared calendar", name: "Maya (demo)" };
+  if (mode === "shared") return { email: sharedId ?? "shared calendar", name: "Demo calendar" };
   return personal.whoAmI();
 }
 

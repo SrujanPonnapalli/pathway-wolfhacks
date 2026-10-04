@@ -67,6 +67,14 @@ CREATE TABLE IF NOT EXISTS deadlines (
 );
 CREATE INDEX IF NOT EXISTS deadlines_due ON deadlines (profile_id, due_at);
 
+-- The rest of a profile's app state (Viva chats, suggestions set aside, demo events moved or
+-- removed, notes, study material): one JSON document per profile, so every device sees the same.
+CREATE TABLE IF NOT EXISTS profile_extras (
+  profile_id  TEXT PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  data        JSONB NOT NULL DEFAULT '{}',
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 -- Make It Real output: dated study blocks.
 CREATE TABLE IF NOT EXISTS study_blocks (
   id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

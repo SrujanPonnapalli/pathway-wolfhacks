@@ -54,8 +54,10 @@ const course = (code: string, rowId: string, exam: [string, string], x: Features
 
 export const PROFILES: Profile[] = [
   {
+    // The demo student. The id stays "maya": it keys the database rows, the seeded facts and the
+    // Google Calendar tags, and nothing shows it. The name is what people see.
     id: "maya",
-    name: "Maya",
+    name: "Rehan",
     classYear: "Sophomore",
     streakDays: 4,
     sample: true,

@@ -5,7 +5,7 @@
 // Viva's spoken words, which can mention it, are voiced by ElevenLabs).
 // TODO: also POST each action to /api/events so Tiger has the timeline (inputs only, never the status).
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from "./data";
+import { demo, getExtras, getProfiles, getState, getTree, isLive, sync, type Extras, type Horizon } from "./data";
 import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
@@ -92,6 +92,43 @@ const empty = (profileId: string = "maya"): PState => {
     seeded: "",
   };
 };
+/** The fields the server keeps as the profile's "extras" document. */
+const pickExtras = (st: PState): Extras => ({
+  chatSessions: st.chatSessions ?? [],
+  activeChatId: st.activeChatId ?? "",
+  dismissed: st.dismissed ?? [],
+  moved: st.moved ?? {},
+  removed: st.removed ?? [],
+  notes: st.notes ?? [],
+  toReview: st.toReview ?? [],
+  materials: st.materials ?? {},
+});
+
+/** Server copy into local state: unions and newest-wins, so two devices add to each other. */
+function mergeExtras(st: PState, x: Extras): PState {
+  const sessions = new Map<string, ChatSession>();
+  for (const c of (x.chatSessions as ChatSession[] | undefined) ?? []) if (c && typeof c.id === "string") sessions.set(c.id, c);
+  for (const c of st.chatSessions ?? []) {
+    const o = sessions.get(c.id);
+    if (!o || (o.updatedAt ?? "") <= (c.updatedAt ?? "")) sessions.set(c.id, c);
+  }
+  const chatSessions = [...sessions.values()].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
+  const union = (a: string[] | undefined, b: unknown) => [...new Set([...(a ?? []), ...((Array.isArray(b) ? b : []) as string[])])];
+  const reviewIds = new Set((st.toReview ?? []).map((r) => r.id));
+  const toReview = [...(st.toReview ?? []), ...(((Array.isArray(x.toReview) ? x.toReview : []) as PState["toReview"]) ?? []).filter((r) => r && !reviewIds.has(r.id))];
+  return {
+    ...st,
+    chatSessions,
+    activeChatId: st.activeChatId && chatSessions.some((c) => c.id === st.activeChatId) ? st.activeChatId : (chatSessions[0]?.id ?? st.activeChatId),
+    dismissed: union(st.dismissed, x.dismissed),
+    removed: union(st.removed, x.removed),
+    notes: union(st.notes, x.notes),
+    moved: { ...((x.moved as PState["moved"] | undefined) ?? {}), ...(st.moved ?? {}) },
+    toReview,
+    materials: { ...((x.materials as PState["materials"] | undefined) ?? {}), ...(st.materials ?? {}) },
+  };
+}
+
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
 const COURSE_FLAGS = ["BIO 181", "CH 101", "CSC 216", "EC 201", "ECE 200", "MA 241", "PY 205", "ST 311"];
@@ -222,13 +259,32 @@ function useStore() {
       })
       .catch(() => {});
   }, []);
+  // The rest of the state (Viva chats, suggestions set aside, demo events moved or removed, notes,
+  // study material) lives on the server too, one document per profile, so the demo door and the
+  // signed-in account, or the laptop and the Pi, show the same thing. On load the server copy is
+  // merged in (unions, never a wipe); after that this device writes its merged view, debounced.
+  const extrasLoaded = useRef(new Set<string>());
+  const hydrateExtras = useCallback((id: string) => {
+    getExtras(id).then((r) => {
+      if (!r) return; // not reachable: stay local, and don't write over the server copy either
+      if (r.data) setSaved((v) => ({ ...v, by: { ...v.by, [id]: mergeExtras({ ...empty(id), ...(v.by[id] ?? {}) }, r.data!) } }));
+      extrasLoaded.current.add(id);
+    });
+  }, []);
   const activeId = profiles.length ? (profiles.find((p) => p.id === saved.profile) ?? profiles[0]).id : null;
   useEffect(() => {
     if (activeId) {
       hydrate(activeId);
       hydrateKnowledge(activeId);
+      hydrateExtras(activeId);
     }
-  }, [activeId, hydrate, hydrateKnowledge]);
+  }, [activeId, hydrate, hydrateKnowledge, hydrateExtras]);
+  const extrasKey = activeId ? JSON.stringify(pickExtras({ ...empty(activeId), ...(saved.by[activeId] ?? {}) })) : "";
+  useEffect(() => {
+    if (!activeId || !extrasKey || !extrasLoaded.current.has(activeId)) return;
+    const t = setTimeout(() => void sync.extras(activeId, JSON.parse(extrasKey) as Extras), 1500);
+    return () => clearTimeout(t);
+  }, [activeId, extrasKey]);
 
   // Every profile arrives already knowing its courses: syllabus, gradebook and lecture files as
   // graph facts, built in code from src/lib/coursework-data.ts (src/lib/knowledge/sample.ts). No
@@ -911,6 +967,7 @@ function useStore() {
       if (profile) {
         hydrate(profile.id);
         hydrateKnowledge(profile.id);
+        hydrateExtras(profile.id);
       }
       if (gcal.isConnected()) await refreshGoogle().catch(() => {});
     },

@@ -36,6 +36,16 @@ export type CoachContext = {
   inbox?: { from: string; subject: string; course: string; snippet: string }[];
   week?: { title: string; start: string; end: string; kind: string }[]; // this week's calendar
   suggestions?: { title: string; why: string }[]; // pending schedule changes awaiting approval
+  // Structured scene facts from the kiosk camera, when it has seen anything. Observed
+  // facts only — the vision layer never infers anything about the person.
+  deviceContext?: {
+    personPresent: boolean;
+    studyMaterialsVisible: boolean;
+    phoneVisible: boolean;
+    activity: string;
+    lastEvent: string | null;
+    lastUpdated: string;
+  } | null;
 };
 
 export type CoachReply = { text: string; filtered: boolean; ms: number };
@@ -49,7 +59,12 @@ Rules:
 4. Only suggest changing features marked role=suggest. Never suggest changing work hours, sleep, credit hours, class year, or uploading more files.
 5. When you suggest something, put a day on it.
 6. Asked about the week, schedule, or time: answer from "calendar this week" and "pending schedule suggestions". If a
-   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.`;
+   suggestion is pending, name it and say they can approve it on the Week page. Do not invent other changes.
+7. The "desk camera" line, when present, reports plainly observed scene facts (presence, visible objects) from the
+   kiosk camera. You may use it only for presence and schedule relevance: welcoming the student back, noting they
+   stepped away during a study block, acknowledging materials are out. Never infer or claim emotion, stress, focus,
+   tiredness, health, identity, or anything about the person beyond presence and visible objects. Never change or
+   comment on a status because of it.`;
 
 const DRAFT_SYSTEM = `You write short emails for a college student, in their voice, ready to send.
 Rules: reply body only, no subject line, no greeting placeholders like [Name]; 3 to 5 sentences; polite and specific;
@@ -97,6 +112,12 @@ export function renderContext(ctx: CoachContext): string {
   if (ctx.inbox?.length) L.push(`inbox: ${ctx.inbox.map((m) => `${m.course} from ${m.from}: "${m.subject}" ${m.snippet}`).join(" | ")}`);
   if (ctx.week?.length) L.push(`calendar this week: ${ctx.week.map((e) => `${e.title} ${e.start.slice(5, 16).replace("T", " ")}-${e.end.slice(11, 16)} [${e.kind}]`).join("; ")}`);
   if (ctx.suggestions?.length) L.push(`pending schedule suggestions (student must approve on the Week page): ${ctx.suggestions.map((x) => `${x.title} (${x.why})`).join("; ")}`);
+  if (ctx.deviceContext) {
+    const d = ctx.deviceContext;
+    L.push(
+      `desk camera (observed scene facts only): person ${d.personPresent ? "present" : "away"}; study materials ${d.studyMaterialsVisible ? "visible" : "not visible"}; phone ${d.phoneVisible ? "visible" : "not visible"}; activity ${d.activity}${d.lastEvent ? `; last event ${d.lastEvent}` : ""}; observed ${d.lastUpdated.slice(11, 16)}`,
+    );
+  }
   return L.join("\n");
 }
 

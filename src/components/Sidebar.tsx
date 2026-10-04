@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType } from "react";
-import { BarChart3, BookOpen, CalendarDays, House, Mail, RotateCcw, Users } from "lucide-react";
+import { BarChart3, BookOpen, CalendarDays, House, Mail, MonitorSmartphone, RotateCcw, Users } from "lucide-react";
 import { AccountMenu } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
@@ -20,6 +20,7 @@ const nav: NavLink[] = [
   { href: "/insights", label: "Insights", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Mail },
   { href: "/viva", label: "Viva", icon: VivaIcon },
+  { href: "/device", label: "Device", icon: MonitorSmartphone },
 ];
 const extra: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
 

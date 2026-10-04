@@ -1,6 +1,7 @@
 // Browser-side helpers for the intelligence routes. UI code calls these; nothing else
 // needs to know the request shapes. All of them throw an Error with a readable message.
 
+import { deviceContext } from "./awareness";
 import { meta } from "./features";
 import { usedFeatures } from "./tree";
 import type { CoachContext, CoachMode, CoachReply } from "./intel/coach";
@@ -62,6 +63,10 @@ export function coachContext(input: {
   week?: { title: string; start: string; end: string; kind: string }[];
   suggestions?: { title: string; why: string }[];
 }): CoachContext {
+  // Kiosk camera's latest structured observation, when one exists. Read at send time so
+  // /device and /viva share the same facts; null when no camera has run in this tab.
+  const dc = deviceContext();
+  if (dc) console.debug("[device] context → coach:", JSON.stringify(dc)); // TEMP debug
   return {
     now: input.now.toISOString(),
     studentName: input.studentName,
@@ -84,6 +89,7 @@ export function coachContext(input: {
     inbox: input.inbox ?? [],
     week: input.week ?? [],
     suggestions: input.suggestions ?? [],
+    deviceContext: dc,
   };
 }
 

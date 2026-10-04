@@ -64,7 +64,8 @@ Rules:
 - Only propose things grounded in the input: an event mentioned in an email (review session, office hours, makeup),
   a due item with no work scheduled, an exam with no review block, a late-work policy that makes a date matter.
 - Never overlap an existing event. Daytime slots (9:00 to 21:00). 50-minute study blocks unless the input says otherwise.
-- Do not repeat anything in existingSuggestions.
+- Do not repeat anything in existingSuggestions (already proposed, or the student said "not now").
+- Skip anything already on the calendar (same title, or the same course at the same time).
 - Never suggest working fewer hours, sleeping differently, or anything the student cannot change.
 - Statuses are "on track" or "worth a check-in"; patterns not causes.
 - If nothing is worth changing, return an empty list.`;

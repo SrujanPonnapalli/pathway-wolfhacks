@@ -16,6 +16,7 @@ import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Suggestion } from "./schedule";
 import type { Proposal } from "./intel/planner";
+import ROWS from "./rows.json";
 
 export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
 export type { ChatSession };
@@ -72,9 +73,20 @@ const empty = (profileId: string = "maya"): PState => {
 };
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
-export function featuresFor(c: CourseSeed, s: PState): Features {
+const COURSE_FLAGS = ["BIO 181", "CH 101", "CSC 216", "EC 201", "ECE 200", "MA 241", "PY 205", "ST 311"];
+const YEAR_ORD: Record<string, number> = { Freshman: 1, Sophomore: 2, Junior: 3, Senior: 4 };
+
+// The full feature vector the notebook's trees expect: the dataset row behind this course fills in
+// what the profile doesn't set (sleep, quiz average, class year...), the profile's own numbers win,
+// then everything the student did in the app moves the numbers.
+export function featuresFor(c: CourseSeed, s: PState, classYear = ""): Features {
   const d = s.deltas[c.slug] ?? { quizzes: 0, checkins: 0, sessions: 0 };
-  const x: Features = { ...c.x };
+  const rows = ROWS as Record<string, Features>;
+  const x: Features = { ...rows._median, ...(rows[c.row] ?? {}), ...c.x };
+  for (const code of COURSE_FLAGS) x[`course_${code.replace(" ", "_")}`] = code === c.code ? 1 : 0;
+  if (YEAR_ORD[classYear]) x.class_year_ord = YEAR_ORD[classYear];
+  x.work_hours_missing = 0;
+  x.sleep_missing = 0;
   // A dropped Gradescope/Moodle grade page is the real record: it overrides the seeded
   // deadline features for that course, so the tree re-scores on evidence.
   const grades = (s.sources ?? []).find((src) => src.kind === "grades" && src.course === c.code);
@@ -87,6 +99,7 @@ export function featuresFor(c: CourseSeed, s: PState): Features {
     }
   }
   x.practice_quizzes_taken = (x.practice_quizzes_taken ?? 0) + d.quizzes;
+  x.study_sessions_logged = (x.study_sessions_logged ?? 0) + d.sessions;
   x.attendance_rate = +(((x.attendance_rate ?? 0) * SCHEDULED_CLASSES + d.checkins) / (SCHEDULED_CLASSES + d.checkins)).toFixed(4);
   if (s.midterm[c.slug] != null) x.midterm_score = s.midterm[c.slug];
   return x;
@@ -197,10 +210,10 @@ function useStore() {
     (c: CourseSeed, st: PState): CourseView | null => {
       if (!trees) return null;
       const horizon: Horizon = st.midterm[c.slug] != null ? "mid" : "early";
-      const x = featuresFor(c, st);
+      const x = featuresFor(c, st, profile?.classYear);
       return { ...c, x, horizon, tree: trees[horizon], daysToExam: daysBetween(demo.now, new Date(c.exam.date)), ...score(trees[horizon], x) };
     },
-    [trees],
+    [trees, profile],
   );
 
   const courses = useMemo(
@@ -281,11 +294,11 @@ function useStore() {
     for (const ch of parts.join("#")) h = (h * 31 + ch.charCodeAt(0)) | 0;
     return `${profile.id}:${h}`;
   }, [profile, courses, s.sources, inbox, events, ruleSuggestions]);
-  const planRef = useRef<{ key: string; busy: boolean }>({ key: "", busy: false });
+  const planSeq = useRef(0);
   useEffect(() => {
-    if (!planKey || planRef.current.key === planKey || planRef.current.busy) return;
+    if (!planKey) return;
+    const seq = ++planSeq.current; // a newer context cancels this one; a stale answer is dropped
     const t = setTimeout(async () => {
-      planRef.current = { key: planKey, busy: true };
       try {
         const cached = localStorage.getItem(`pathway:plan:${planKey}`);
         if (cached) {
@@ -302,19 +315,18 @@ function useStore() {
             dueSoon: events.filter((e) => e.title.startsWith("Due:")).map((e) => ({ title: e.title.slice(5), date: e.start, course: e.course ?? "", status: "not_submitted" })),
             inbox: inbox.slice(0, 6).map((m) => ({ from: m.from, subject: m.subject, snippet: m.snippet, course: m.course })),
             policies: s.sources.filter((x) => x.kind === "syllabus").map((x) => ({ course: x.course, late_work: x.kind === "syllabus" ? x.policies.late_work ?? "" : "" })),
-            existingSuggestions: ruleSuggestions.map((x) => x.title),
+            existingSuggestions: [...ruleSuggestions.map((x) => x.title), ...aiProposals.filter((x) => s.dismissed.includes(x.id)).map((x) => x.title)],
           }),
         });
         const j = await r.json();
+        if (seq !== planSeq.current) return;
         const proposals: Proposal[] = r.ok ? j.proposals ?? [] : [];
         try {
           localStorage.setItem(`pathway:plan:${planKey}`, JSON.stringify(proposals));
         } catch {}
         setAiProposals(proposals);
       } catch {
-        /* planner is optional; rules still run */
-      } finally {
-        planRef.current.busy = false;
+        /* planner is optional; the rules still run */
       }
     }, 1500);
     return () => clearTimeout(t);
@@ -331,11 +343,11 @@ function useStore() {
         ops: p.ops.map((o) =>
           o.op === "move"
             ? { op: "move" as const, id: o.id, start: o.start, end: o.end }
-            : { op: "add" as const, event: { id: `add-${p.id}-${o.start}`, title: o.title, start: o.start, end: o.end, kind: o.kind === "study" ? ("study" as const) : ("other" as const), course: o.course || undefined, source: "pathway" as const } },
+            : { op: "add" as const, event: { id: `add-${p.id}-${o.start}`, title: o.title, start: o.start, end: o.end, kind: o.kind === "study" ? ("study" as const) : ("other" as const), course: courses.find((c) => c.slug === o.course || c.code === o.course)?.slug, source: "pathway" as const } },
         ),
       }));
     return [...ruleSuggestions, ...fromAi];
-  }, [ruleSuggestions, aiProposals, s.dismissed]);
+  }, [ruleSuggestions, aiProposals, s.dismissed, courses]);
 
   const say = (text: string) => setToast({ id: Date.now(), text });
   const update = (fn: (st: PState) => PState) =>
@@ -533,8 +545,27 @@ function useStore() {
     }
   };
 
+  // Advisor note (one Gemini call): status + reason + the change set, in the student's voice. Nothing is
+  // sent; the student copies it or opens their mail app with it.
+  const draftAdvisorNote = async (slug: string, moves: { feature: string; from: number; to: number }[]) => {
+    const c = courses.find((x) => x.slug === slug);
+    if (!c) throw new Error("course not found");
+    const ctx = coachContext({
+      now: demo.now,
+      studentName: profile?.sample ? profile.name ?? "" : "",
+      courses: [c],
+      todos: [],
+      blocks: s.blocks.filter((b) => b.course === slug),
+      sources: s.sources.filter((x) => x.course === c.code),
+    });
+    const changes = moves.length ? moves.map(moveText).join("; ") : "none chosen yet";
+    const r = await askCoach(`Draft a note to my advisor about ${c.code}. Changes I'm making: ${changes}.`, ctx, [], "advisor");
+    return r.text;
+  };
+
   return {
     ready: !!trees && !!profile,
+    draftAdvisorNote,
     error,
     now: demo.now,
     profiles,
@@ -670,9 +701,15 @@ function useStore() {
       void refreshRef.current().catch(() => {});
     },
     addSource: (src: Source) => {
-      update((st) => ({ ...st, sources: [...st.sources.filter((x) => !(x.kind === src.kind && x.course === src.course && x.title === src.title)), src] }));
+      const nextSources = [...s.sources.filter((x) => !(x.kind === src.kind && x.course === src.course && x.title === src.title)), src];
+      update((st) => ({ ...st, sources: nextSources }));
       const dated = src.kind === "syllabus" ? src.deadlines.filter((d) => d.date).length : 0;
-      say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}. Viva can use it now.`);
+      // A grade page changes the numbers the tree reads, so re-score that course right away and say what moved.
+      const seed = src.kind === "grades" ? courses.find((c) => c.code === src.course) : undefined;
+      const after = seed ? view(seed, { ...s, sources: nextSources }) : null;
+      const label = (atRisk: boolean) => (atRisk ? "worth a check-in" : "on track");
+      const rescored = seed && after ? (after.result.atRisk === seed.result.atRisk ? ` The model re-read it: still ${label(after.result.atRisk)}.` : ` The model re-read it: ${label(seed.result.atRisk)} → ${label(after.result.atRisk)}.`) : "";
+      say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}.${rescored || " Viva can use it now."}`);
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,

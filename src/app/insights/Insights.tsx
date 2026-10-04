@@ -3,12 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { BorderBeam } from "border-beam";
-import { Check, Lock, RotateCcw } from "lucide-react";
+import { Check, Copy, Lock, Mail, RotateCcw } from "lucide-react";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { PathView } from "@/components/PathView";
 import { Burst, PageHeader, StatusMark } from "@/components/ui";
 import { FEATURES, meta, moveText, reasonFor } from "@/lib/features";
 import { planBlocks } from "@/lib/plan";
+import { usedFeatures } from "@/lib/tree";
 import { fmtDay, score, usePathway, type CourseView } from "@/lib/store";
 import { EvidenceSection } from "./EvidenceSection";
 
@@ -64,9 +65,11 @@ function CourseInsight({ c }: { c: CourseView }) {
   const tried = Object.keys(what).length > 0;
   const x = { ...c.x, ...what };
   const shown = tried ? score(c.tree, x) : c;
-  const inTree = [...new Set(c.tree.feature_names)];
+  // Only features that can change this tree's answer get a slider or a chip (the warning-sign
+  // count the early tree splits on expands to the four habits behind it).
+  const inTree = usedFeatures(c.tree);
   const levers = inTree.filter((f) => meta(f).role === "suggest");
-  const context = inTree.filter((f) => meta(f).role !== "suggest" && f in c.x);
+  const context = inTree.filter((f) => meta(f).role !== "suggest" && f in c.x && !f.startsWith("course_"));
   const moves = tried
     ? Object.entries(what).filter(([f, v]) => v !== c.x[f]).map(([f, v]) => ({ feature: f, from: c.x[f], to: v }))
     : c.rec?.moves ?? [];
@@ -187,9 +190,50 @@ function CourseInsight({ c }: { c: CourseView }) {
           </div>
 
           <Midterm c={c} has={state.midterm[c.slug]} set={(v) => setMidterm(c.slug, v)} />
+          <AdvisorNote c={c} moves={moves} />
         </div>
       </div>
     </section>
+  );
+}
+
+// Spec "nice to have": one Gemini call drafts a short "here's what I'm working on" note from the
+// status and the chosen change set. The student decides whether to send it; Pathway never does.
+function AdvisorNote({ c, moves }: { c: CourseView; moves: { feature: string; from: number; to: number }[] }) {
+  const { draftAdvisorNote } = usePathway();
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const draft = async () => {
+    setBusy(true);
+    setErr("");
+    try {
+      setText(await draftAdvisorNote(c.slug, moves));
+    } catch (e) {
+      setErr((e as Error).message || "Viva couldn't draft that right now.");
+    }
+    setBusy(false);
+  };
+  const subject = `Checking in about ${c.code}`;
+  return (
+    <div className="panel p-5">
+      <h3 className="font-black">Tell your advisor</h3>
+      <p className="mt-1 text-sm text-muted">A short note about what you&apos;re working on, in your words. Nothing is sent unless you send it.</p>
+      {text ? (
+        <>
+          <label htmlFor="advisor-note" className="sr-only">Advisor note</label>
+          <textarea id="advisor-note" value={text} onChange={(e) => setText(e.target.value)} rows={7} className="mt-3 w-full rounded-2xl border-2 border-line bg-white p-3 text-sm font-semibold leading-relaxed outline-none focus:border-sky" />
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button onClick={() => navigator.clipboard?.writeText(text)} className="btn btn-ghost min-h-10 px-4 text-xs"><Copy size={15} aria-hidden /> Copy</button>
+            <a href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`} className="btn btn-ghost min-h-10 px-4 text-xs"><Mail size={15} aria-hidden /> Open in email</a>
+            <button onClick={draft} disabled={busy} className="btn btn-ghost min-h-10 px-4 text-xs">{busy ? "Drafting…" : "Redraft"}</button>
+          </div>
+        </>
+      ) : (
+        <button onClick={draft} disabled={busy} className="btn btn-ghost mt-3 min-h-10 text-xs">{busy ? "Drafting…" : "Draft a note"}</button>
+      )}
+      {err && <p className="mt-2 text-sm text-muted" role="alert">{err}</p>}
+    </div>
   );
 }
 

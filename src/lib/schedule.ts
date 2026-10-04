@@ -65,7 +65,8 @@ export function demoWeek(now: Date, courses: { slug: string; code: string; exam:
     if (!t.due) continue;
     const d = new Date(t.due);
     if (d < mon || d >= at(mon, 14, 0)) continue;
-    out.push({ id: `demo-due-${t.id}`, title: `Due: ${t.title.replace(/^Submit /, "")}`, start: iso(d), end: iso(new Date(d.getTime() + 30 * 60_000)), kind: "other", source: "demo" });
+    const course = courses.find((c) => t.title.includes(c.code))?.slug;
+    out.push({ id: `demo-due-${t.id}`, title: `Due: ${t.title.replace(/^Submit /, "")}`, start: iso(d), end: iso(new Date(d.getTime() + 30 * 60_000)), kind: "other", course, source: "demo" });
   }
   // the rest of a life
   for (const d of [1, 3]) out.push({ id: `demo-work-${d}`, title: "Work shift", start: iso(at(mon, d, 17)), end: iso(at(mon, d, 21)), kind: "work", source: "demo" });

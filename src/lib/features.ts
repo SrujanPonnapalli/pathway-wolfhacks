@@ -83,8 +83,37 @@ export const FEATURES: Record<string, Meta> = {
   },
 };
 
-export const meta = (f: string): Meta =>
-  FEATURES[f] ?? { label: f, role: "context", min: 0, max: 1, step: 0.01, fmt: String, ask: (t) => `${f} above ${t}?`, fact: (v) => `${f} is ${v}` };
+// Columns the notebook adds on top of the dataset: the warning-sign count the early tree splits on,
+// one-hot course flags, class year as a number, and "was this blank" flags. Context only, never suggested.
+const DERIVED: Record<string, Meta> = {
+  warning_signs: {
+    label: "Warning signs", role: "context", min: 0, max: 4, step: 1, fmt: (v) => `${v} of 4`,
+    ask: (t) => `More than ${Math.floor(t)} warning sign${Math.floor(t) === 1 ? "" : "s"}?`,
+    fact: (v) => (v === 0 ? "none of the 4 warning signs show" : `${v} of the 4 warning signs show (late work, last-minute exam prep, missed classes, low quiz scores)`),
+  },
+  avg_practice_quiz_score: {
+    label: "Practice quiz average", role: "context", min: 0, max: 100, step: 1, fmt: (v) => `${Math.round(v)}%`,
+    ask: (t) => `Practice quiz average above ${Math.round(t)}%?`, fact: (v) => (v > 0 ? `your practice quizzes average ${Math.round(v)}%` : `you haven't taken a practice quiz yet`),
+  },
+  class_year_ord: {
+    label: "Class year", role: "never", min: 1, max: 4, step: 1, fmt: (v) => ["", "freshman", "sophomore", "junior", "senior"][Math.round(v)] ?? String(v),
+    ask: (t) => `Past ${["", "freshman", "sophomore", "junior", "senior"][Math.floor(t)] ?? t} year?`, fact: (v) => `you're a ${["", "freshman", "sophomore", "junior", "senior"][Math.round(v)] ?? v}`,
+  },
+};
+
+export const meta = (f: string): Meta => {
+  if (FEATURES[f]) return FEATURES[f];
+  if (DERIVED[f]) return DERIVED[f];
+  if (f.startsWith("course_")) {
+    const code = f.slice(7).replace("_", " ");
+    return { label: code, role: "context", min: 0, max: 1, step: 1, fmt: (v) => (v > 0.5 ? "yes" : "no"), ask: () => `Is this ${code}?`, fact: (v) => (v > 0.5 ? `this is ${code}` : `this isn't ${code}`) };
+  }
+  if (f.endsWith("_missing")) {
+    const base = f.slice(0, -8).replace(/_/g, " ");
+    return { label: `${base} unknown`, role: "context", min: 0, max: 1, step: 1, fmt: (v) => (v > 0.5 ? "yes" : "no"), ask: () => `Is ${base} unknown?`, fact: (v) => (v > 0.5 ? `your ${base} is unknown` : `your ${base} is known`) };
+  }
+  return { label: f, role: "context", min: 0, max: 1, step: 0.01, fmt: String, ask: (t) => `${f} above ${t}?`, fact: (v) => `${f} is ${v}` };
+};
 
 export const ACTIONABLE = Object.fromEntries(
   Object.entries(FEATURES).filter(([, m]) => m.role === "suggest").map(([f, m]) => [f, { min: m.min, max: m.max, step: m.step }]),
@@ -96,8 +125,13 @@ export function sentence(parts: string[]) {
   return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
 }
 
-export const reasonFor = (steps: { feature: string; value: number }[]) =>
-  `Because ${sentence(steps.map((s) => meta(s.feature).fact(s.value)))}.`;
+// One fact per feature (a tree can split on the same feature twice), and course flags are left out:
+// "this is MA 241" is not a reason a student can act on.
+export const reasonFor = (steps: { feature: string; value: number }[]) => {
+  const seen = new Set<string>();
+  const facts = steps.filter((s) => !seen.has(s.feature) && seen.add(s.feature) && !s.feature.startsWith("course_")).map((s) => meta(s.feature).fact(s.value));
+  return `Because ${sentence(facts.length ? facts : steps.slice(0, 1).map((s) => meta(s.feature).fact(s.value)))}.`;
+};
 
 export const moveText = (m: { feature: string; from: number; to: number }) =>
   `${meta(m.feature).label}: ${meta(m.feature).fmt(m.from)} → ${meta(m.feature).fmt(m.to)}`;

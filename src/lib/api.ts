@@ -1,7 +1,9 @@
 // Browser-side helpers for the intelligence routes. UI code calls these; nothing else
 // needs to know the request shapes. All of them throw an Error with a readable message.
 
-import type { CoachContext, CoachReply } from "./intel/coach";
+import { meta } from "./features";
+import { usedFeatures } from "./tree";
+import type { CoachContext, CoachMode, CoachReply } from "./intel/coach";
 import type { Syllabus } from "./intel/syllabus";
 import type { StudyMaterial, VivaFeedback, VivaQuestion } from "./intel/study";
 import type { DatasetInsights, DatasetProfile } from "./intel/dataset";
@@ -69,7 +71,8 @@ export function coachContext(input: {
       exam: c.exam,
       daysToExam: c.daysToExam,
       status: c.result.atRisk ? "check_in" : "on_track",
-      x: c.x,
+      // Only numbers that matter to this tree or that the student can move; keeps the prompt small.
+      x: Object.fromEntries(Object.entries(c.x).filter(([f]) => !f.startsWith("course_") && !f.endsWith("_missing") && (meta(f).role === "suggest" || usedFeatures(c.tree).includes(f)))),
       steps: c.steps.map(({ feature, threshold, value, above }) => ({ feature, threshold, value, above })),
       recourse: c.rec?.moves ?? null,
       similarStudentsStruggledPct: Math.round(c.result.pRisk * 100),
@@ -95,5 +98,5 @@ export function toSource(r: AnalyzeResult, course: string): Source | null {
   return null;
 }
 
-export const askCoach = (message: string, context: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: "chat" | "draft" = "chat") =>
+export const askCoach = (message: string, context: CoachContext, history: { role: "you" | "viva" | "coach"; text: string }[] = [], mode: CoachMode = "chat") =>
   fetch("/api/coach", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message, context, history, mode }) }).then(json<CoachReply>);

@@ -80,7 +80,7 @@ Sign off with the student's first name if it is in CONTEXT, otherwise no signatu
 
 export type CoachMode = "chat" | "draft" | "advisor";
 
-const CAUSAL = /\b(will (raise|improve|fix|guarantee|boost|make you pass)|guarantees?|causes?|this will|you will pass|you'll pass)\b/i;
+export const CAUSAL = /\b(will (raise|improve|fix|guarantee|boost|make you pass)|guarantees?|causes?|this will|you will pass|you'll pass)\b/i;
 
 /** Render the context as compact lines the model reads once. Smaller prompt = faster answer. */
 export function renderContext(ctx: CoachContext): string {

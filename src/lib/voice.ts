@@ -30,7 +30,8 @@ function level(an: AnalyserNode | null, buf: Float32Array<ArrayBuffer> | null) {
 }
 
 export function useVoiceSession(opts: {
-  greeting: () => string;
+  /** Viva's opening line, or null to skip it and go straight to listening. */
+  greeting: () => string | null;
   reply: (q: string) => string | Promise<string>;
   onTurn: (who: Who, text: string) => void;
   /** Playback speed for Viva's voice, 0.8 to 1.6; read at speak time so a slider applies to the next line. */
@@ -250,7 +251,8 @@ export function useVoiceSession(opts: {
         setNotice("Microphone is off, so tap a question below to talk with Viva.");
       }
       if (run.current !== id) return;
-      if (await speak(optsRef.current.greeting(), id)) listen(id);
+      const hello = optsRef.current.greeting();
+      if (hello === null || (await speak(hello, id))) listen(id);
     },
     /** Wake-word start: the same session and mic setup, but no greeting — straight to listening. */
     async startQuiet() {

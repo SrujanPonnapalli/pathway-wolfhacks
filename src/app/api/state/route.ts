@@ -39,19 +39,24 @@ export async function DELETE(req: Request) {
   if (!sql) return noDb();
   const id = new URL(req.url).searchParams.get("profile_id");
   if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
+  const resetAt = new Date().toISOString();
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id} AND source <> 'seed'`;
     await tx`DELETE FROM study_blocks WHERE profile_id = ${id} AND (client_id IS NULL OR client_id NOT LIKE 'pot-%')`; // Study Pot blocks are seeded (scripts/solana.ts)
     await tx`UPDATE todos SET done_at = NULL WHERE profile_id = ${id}`;
     // Uploaded files and their facts, and the browser-side state kept here: created lazily, so check first.
-    for (const t of ["kb_nodes", "kb_sources", "profile_extras", "viva_turns"]) {
+    for (const t of ["kb_nodes", "kb_sources", "profile_extras", "viva_turns", "inbox_briefs"]) {
       const [exists] = await tx`SELECT to_regclass(${t}) AS r`;
       if (exists.r) await tx`DELETE FROM ${tx(t)} WHERE profile_id = ${id}`; // nodes cascade edges; sources cascade their nodes
     }
+    // Stamp the reset in the extras document: a device whose copy predates it drops that copy instead of
+    // merging it back (chats, "Viva has introduced herself"), and /api/extras refuses its stale writes.
+    const [extras] = await tx`SELECT to_regclass('profile_extras') AS r`;
+    if (extras.r) await tx`INSERT INTO profile_extras (profile_id, data) VALUES (${id}, ${tx.json({ resetAt })})`;
     // The live judge profile starts empty again.
     await tx`DELETE FROM courses WHERE profile_id = ${id} AND ${id} = 'judge'`;
     // The demo student: everything else back to its default state too (courses, to-dos, buddies, Srujan's request).
     if (id === demoProfileId()) await resetDemoProfile(tx, id);
   });
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, resetAt });
 }

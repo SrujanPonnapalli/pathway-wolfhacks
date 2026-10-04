@@ -4,6 +4,7 @@ import { bad, db, noDb, profileExists } from "@/lib/db";
 // aside, demo events moved or removed, notes, study material), kept per profile so every device
 // and the demo door see the same thing. One JSON document per profile, last write wins; the
 // browser merges before it writes, so two devices add to each other rather than overwrite.
+// Reset stamps the document with `resetAt`; a write carrying an older stamp is refused (409).
 
 let ensured = false;
 async function ensure(sql: NonNullable<ReturnType<typeof db>>) {
@@ -31,6 +32,9 @@ export async function PUT(req: Request) {
   if (!b.data || typeof b.data !== "object" || Array.isArray(b.data)) return bad("data must be an object");
   if (JSON.stringify(b.data).length > 2_000_000) return bad("data too large");
   await ensure(sql);
+  // After a Reset, only a device that has seen it may write: an older copy would bring back what Reset cleared.
+  const [cur] = await sql`SELECT data->>'resetAt' AS reset_at FROM profile_extras WHERE profile_id = ${b.profile_id}`;
+  if (cur?.reset_at && b.data.resetAt !== cur.reset_at) return Response.json({ error: "reset", resetAt: cur.reset_at }, { status: 409 });
   await sql`INSERT INTO profile_extras (profile_id, data) VALUES (${b.profile_id}, ${sql.json(b.data)})
             ON CONFLICT (profile_id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`;
   return Response.json({ ok: true });

@@ -12,6 +12,7 @@ import { explain, predict, recourse, type Features, type Tree } from "./tree";
 import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type Citation, type EmailDraft, type Reply } from "./viva";
 import { askAgent, askCoach, coachContext } from "./api";
 import type { AgentAction } from "./intel/agent";
+import { forgetBrief } from "./inboxBrief";
 import { compileContext, scopeFor } from "./knowledge/compile";
 import { dropSource, ingestFile, legacySources, merge, reassign, setReview as reviewLocal, summary as ingestSummary, type DoneEvent } from "./knowledge/client";
 import { emptyKnowledge, type IngestEvent, type KbNode, type Knowledge, type Review } from "./knowledge/types";
@@ -23,7 +24,7 @@ import type { StudyMaterial } from "./intel/study";
 import type { ReviewItem } from "./teach";
 import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
-import { blocksAsEvents, demoWeek, freeSlot, localIso, sourceEvents, suggest, toLocal, type CalEvent, type Suggestion } from "./schedule";
+import { blocksAsEvents, demoWeek, freeSlot, localIso, slotsFor, sourceEvents, suggest, toLocal, type CalEvent, type Suggestion } from "./schedule";
 import { pickExcerpts } from "./knowledge/excerpts";
 import { docsFor } from "./knowledge/sample";
 import type { Proposal } from "./intel/planner";
@@ -54,6 +55,8 @@ type PState = {
   notes: string[]; // (older) facts the student told Viva; now stored as preference nodes in `knowledge`
   knowledge: Knowledge; // the course knowledge graph: files, facts with provenance, links. Local-first; Tiger when configured
   seeded: string; // which seed file filled `knowledge` (so the demo profile starts full without uploads)
+  greeted?: boolean; // Viva has introduced herself in voice since the last Reset (shared via extras)
+  resetAt?: string; // the latest Reset this device has caught up with (see /api/extras)
 };
 type Saved = { profile: string; by: Record<string, PState> };
 
@@ -102,10 +105,30 @@ const pickExtras = (st: PState): Extras => ({
   notes: st.notes ?? [],
   toReview: st.toReview ?? [],
   materials: st.materials ?? {},
+  greeted: !!st.greeted,
+  ...(st.resetAt ? { resetAt: st.resetAt } : {}),
 });
 
-/** Server copy into local state: unions and newest-wins, so two devices add to each other. */
-function mergeExtras(st: PState, x: Extras): PState {
+/** Server copy into local state: unions and newest-wins, so two devices add to each other. After a Reset this
+ *  device hasn't seen, the server copy replaces this device's instead, so nothing Reset cleared comes back. */
+function mergeExtras(id: string, st: PState, x: Extras): PState {
+  if (typeof x.resetAt === "string" && x.resetAt !== st.resetAt) {
+    const fresh = empty(id);
+    return {
+      ...st,
+      chatSessions: (x.chatSessions as ChatSession[] | undefined)?.length ? (x.chatSessions as ChatSession[]) : fresh.chatSessions,
+      activeChatId: typeof x.activeChatId === "string" && x.activeChatId ? x.activeChatId : fresh.activeChatId,
+      chat: [],
+      dismissed: (x.dismissed as string[] | undefined) ?? [],
+      removed: (x.removed as string[] | undefined) ?? [],
+      notes: (x.notes as string[] | undefined) ?? [],
+      moved: (x.moved as PState["moved"] | undefined) ?? {},
+      toReview: (x.toReview as PState["toReview"] | undefined) ?? [],
+      materials: (x.materials as PState["materials"] | undefined) ?? {},
+      greeted: !!x.greeted,
+      resetAt: x.resetAt,
+    };
+  }
   const sessions = new Map<string, ChatSession>();
   for (const c of (x.chatSessions as ChatSession[] | undefined) ?? []) if (c && typeof c.id === "string") sessions.set(c.id, c);
   for (const c of st.chatSessions ?? []) {
@@ -126,6 +149,8 @@ function mergeExtras(st: PState, x: Extras): PState {
     moved: { ...((x.moved as PState["moved"] | undefined) ?? {}), ...(st.moved ?? {}) },
     toReview,
     materials: { ...((x.materials as PState["materials"] | undefined) ?? {}), ...(st.materials ?? {}) },
+    greeted: !!(st.greeted || x.greeted),
+    resetAt: st.resetAt ?? (typeof x.resetAt === "string" ? x.resetAt : undefined),
   };
 }
 
@@ -267,7 +292,7 @@ function useStore() {
   const hydrateExtras = useCallback((id: string) => {
     getExtras(id).then((r) => {
       if (!r) return; // not reachable: stay local, and don't write over the server copy either
-      if (r.data) setSaved((v) => ({ ...v, by: { ...v.by, [id]: mergeExtras({ ...empty(id), ...(v.by[id] ?? {}) }, r.data!) } }));
+      if (r.data) setSaved((v) => ({ ...v, by: { ...v.by, [id]: mergeExtras(id, { ...empty(id), ...(v.by[id] ?? {}) }, r.data!) } }));
       extrasLoaded.current.add(id);
     });
   }, []);
@@ -282,9 +307,10 @@ function useStore() {
   const extrasKey = activeId ? JSON.stringify(pickExtras({ ...empty(activeId), ...(saved.by[activeId] ?? {}) })) : "";
   useEffect(() => {
     if (!activeId || !extrasKey || !extrasLoaded.current.has(activeId)) return;
-    const t = setTimeout(() => void sync.extras(activeId, JSON.parse(extrasKey) as Extras), 1500);
+    // A Reset elsewhere refuses this write: load the reset state instead of pushing the old one back.
+    const t = setTimeout(() => void sync.extras(activeId, JSON.parse(extrasKey) as Extras).then((r) => r === "stale" && hydrateExtras(activeId)), 1500);
     return () => clearTimeout(t);
-  }, [activeId, extrasKey]);
+  }, [activeId, extrasKey, hydrateExtras]);
 
   // Every profile arrives already knowing its courses: syllabus, gradebook and lecture files as
   // graph facts, built in code from src/lib/coursework-data.ts (src/lib/knowledge/sample.ts). No
@@ -774,7 +800,10 @@ function useStore() {
     // Google too), uploads and their facts, chats, check-ins and quizzes.
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
-      await sync.reset(profile.id);
+      forgetBrief(profile.id); // the inbox brief rebuilds on the next visit, here and (server row gone) everywhere
+      const resetAt = await sync.reset(profile.id);
+      // This device has seen the reset, so its next extras write is accepted (Viva greets again: greeted is false).
+      if (resetAt) setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: { ...(v.by[profile.id] ?? empty(profile.id)), resetAt } } }));
       if (isLive()) {
         setProfiles(await getProfiles());
         hydrate(profile.id);
@@ -796,6 +825,8 @@ function useStore() {
     // so hydrating keeps it); meta marks where it came from and the score rides along.
     logTeach: (slug: string, topic: string, clear: number, total: number) =>
       bump(slug, "quizzes", `You taught Viva ${topic}`, {}, { kind: "quiz", minutes: 5, score: Math.round((clear / total) * 100), meta: { via: "teach", topic, clear, total } }),
+    /** Viva introduced herself in voice; she won't again until the next Reset (on any device). */
+    markGreeted: () => update((st) => (st.greeted ? st : { ...st, greeted: true })),
     saveMaterial: (slug: string, m: StudyMaterial) => update((st) => ({ ...st, materials: { ...st.materials, [slug]: m } })),
     // One review item per course + concept: a newer Teach session replaces it, and an all-clear one removes it.
     saveReview: (item: Omit<ReviewItem, "id" | "at">): string => {
@@ -1316,7 +1347,7 @@ function useStore() {
 
   // act=false is for proactive turns (device events): Viva may speak but never executes
   // actions unprompted — nothing changes without the student asking.
-  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[] }> => {
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[]; proposed?: AgentAction[] }> => {
     try {
       const ctx = coachContext({
         now: demo.now,
@@ -1406,7 +1437,7 @@ function useStore() {
       const byId = new Map(s.knowledge.nodes.map((n) => [n.id, n]));
       const citations = (r.used ?? []).map((id) => byId.get(id)).filter((n): n is KbNode => !!n).map((n) => ({ id: n.id, title: n.title, quote: n.quote, locator: n.locator, course: n.course }));
       const say = spoken.trim() || (done.receipts.length ? "Done." : "I don't have that.");
-      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations };
+      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations, proposed: act ? undefined : actions };
     } catch (e) {
       console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);
       return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
@@ -1424,7 +1455,31 @@ function useStore() {
     return r;
   };
 
-  return { ...base, coachTurn, ask, usage };
+  // Viva about one calendar event (the Week page's details sheet): the agent's usual context and one
+  // call, nothing executed. What it proposes comes back for the student to approve with applyProposal.
+  const askAboutEvent = async (ev: { id: string; title: string; start: string; end: string; kind: string }, question: string, wantsMove: boolean) => {
+    const movable = wantsMove && ev.kind !== "class" && ev.kind !== "exam";
+    // The free slots are worked out here, so Viva chooses among times that are really open and spends
+    // its call on which one fits the course (exam distance, the tree's facts), not on clock arithmetic.
+    const slots = movable ? slotsFor(events, ev as CalEvent, demo.now) : [];
+    const r = await coachTurn(
+      `About my calendar event id=${ev.id} "${ev.title}" (${ev.kind}) ${ev.start.slice(0, 16)} to ${ev.end.slice(11, 16)}: ${question}\n` +
+        (movable && slots.length
+          ? `If moving it would help, return exactly one move_event for id ${ev.id}, with start and end copied exactly from one of these free slots: ${slots.map((x) => `${x.start}–${x.end}`).join(", ")}. ` +
+            `This is only a proposal the student approves: say "I'd move it to..." (never "I moved"), and in one or two sentences why that time fits: name the course's exam timing or one of its "why" facts or its smallest change to on track. Change nothing else.`
+          : movable
+            ? `There is no free slot of the same length in the next 7 days; say so, suggest a shorter block, and change nothing.`
+            : ev.kind === "class" || ev.kind === "exam"
+              ? `This is a class or exam and can't be moved; answer about it, and change nothing.`
+              : `Answer in two or three sentences using my course facts (exam timing, the "why" facts, the smallest change to on track). Don't propose moving it, and change nothing.`),
+      "chat",
+      false,
+    );
+    return { text: r.text, proposed: (r.proposed ?? []).filter((a) => movable && a.type === "move_event" && a.id === ev.id && a.start && a.end) };
+  };
+  const applyProposal = (actions: AgentAction[]) => execute(actions);
+
+  return { ...base, coachTurn, ask, usage, askAboutEvent, applyProposal };
 }
 
 const Ctx = createContext<ReturnType<typeof useStore> | null>(null);

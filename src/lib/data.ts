@@ -97,10 +97,20 @@ export const sync = {
   blockEdit: (profile_id: string, id: string, patch: { at?: string; title?: string }) =>
     send("/api/blocks", "PATCH", { profile_id, id, ...(patch.at ? { at: toUtc(patch.at) } : {}), ...(patch.title ? { title: patch.title } : {}) }),
   blockRemove: (profile_id: string, id: string) => send("/api/blocks", "DELETE", { profile_id, id }),
-  extras: (profile_id: string, data: Extras) => send("/api/extras", "PUT", { profile_id, data }),
+  /** Save the extras document. "stale" means a Reset happened elsewhere since this device loaded: reload, don't write. */
+  extras: async (profile_id: string, data: Extras): Promise<"ok" | "stale" | undefined> => {
+    if (!live) return undefined;
+    const r = await fetch("/api/extras", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ profile_id, data }), signal: AbortSignal.timeout(4000) }).catch(() => null);
+    return r?.status === 409 ? "stale" : r?.ok ? "ok" : undefined;
+  },
   todo: (profile_id: string, id: string, done: boolean) => send("/api/todos", "PATCH", { profile_id, id, done }),
   addJudgeCourse: (profile_id: string) => send("/api/courses", "POST", { profile_id }),
-  reset: (profile_id: string) => (live ? fetch(`/api/state?profile_id=${encodeURIComponent(profile_id)}`, { method: "DELETE" }).catch(() => undefined) : Promise.resolve(undefined)),
+  /** Reset the profile to its start state; resolves to the reset's stamp (see /api/extras). */
+  reset: async (profile_id: string): Promise<string | undefined> => {
+    if (!live) return undefined;
+    const r = await fetch(`/api/state?profile_id=${encodeURIComponent(profile_id)}`, { method: "DELETE" }).catch(() => null);
+    return r?.ok ? ((await r.json().catch(() => ({}))) as { resetAt?: string }).resetAt : undefined;
+  },
 };
 
 export const demo = { now: NOW, judgeCourse: JUDGE_COURSE, judgeClass: JUDGE_CLASS };

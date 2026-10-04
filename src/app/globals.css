@@ -81,11 +81,18 @@ body {
   height: 100% !important;
 }
 
-/* Selects: the border itself lights up teal instead of a dark ring floating around it. Unlayered so it
-   beats the `border-line` utility each select carries. */
+/* Selects: our own chevron with room to breathe instead of the native arrow jammed at the edge, and on focus
+   the border itself turns teal (no second ring around it). Unlayered so it beats each select's utilities
+   (border-line, px-*), which is what lets the chevron padding win. */
 select {
+  appearance: none;
   cursor: pointer;
-  transition: border-color 120ms, box-shadow 120ms;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235e646b' stroke-width='2.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.7rem center;
+  background-size: 1rem;
+  transition: border-color 120ms;
 }
 select:hover {
   border-color: var(--color-muted);
@@ -93,7 +100,6 @@ select:hover {
 select:focus-visible {
   outline: none;
   border-color: var(--color-teal);
-  box-shadow: 0 0 0 3px var(--color-teal-soft);
 }
 
 * {

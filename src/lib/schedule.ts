@@ -163,6 +163,27 @@ export function freeSlot(events: CalEvent[], day: Date, minutes = 50, fromHour =
   return null;
 }
 
+/**
+ * Where an event could go instead: the earliest free slot of the same length in the morning, afternoon
+ * and evening of each of the next `days` days, starting after `now`, ignoring the event itself.
+ */
+export function slotsFor(events: CalEvent[], ev: CalEvent, now: Date, days = 7): { start: string; end: string }[] {
+  const minutes = Math.max(15, Math.round((new Date(ev.end).getTime() - new Date(ev.start).getTime()) / 60_000));
+  const others = events.filter((e) => e.id !== ev.id);
+  const out: { start: string; end: string }[] = [];
+  for (let d = 0; d < days; d++) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + d);
+    for (const [from, to] of [[9, 12], [12, 17], [17, 21]]) {
+      // On today, only what's still ahead (from the next whole hour).
+      const start = d === 0 ? Math.max(from, now.getHours() + 1) : from;
+      if (start >= to) continue;
+      const slot = freeSlot(others, day, minutes, start, to);
+      if (slot && slot.start !== ev.start.slice(0, slot.start.length)) out.push(slot);
+    }
+  }
+  return out;
+}
+
 export function suggest(allEvents: CalEvent[], now: Date, courses: { slug: string; code: string; exam: { title: string; date: string }; atRisk: boolean }[]): Suggestion[] {
   const out: Suggestion[] = [];
   // slots already proposed count as taken for the next proposal

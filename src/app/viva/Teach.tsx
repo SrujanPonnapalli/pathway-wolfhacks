@@ -15,6 +15,7 @@ import { VoiceBeam } from "voice-glow";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
 import { useViva } from "@/components/VivaDock";
 import { teachConcepts, teachFeedback, teachStart } from "@/lib/api";
+import { prebuiltConcepts } from "@/lib/knowledge/teachConcepts";
 import type { Concept } from "@/lib/intel/study";
 import { docsFor } from "@/lib/knowledge/sample";
 import { usePathway, type ChatMsg } from "@/lib/store";
@@ -159,7 +160,8 @@ function Start({ onStart }: { onStart: (p: Picked) => void }) {
     for (const c of courses) {
       const m = state.materials[c.slug];
       const fromStudy: TeachFile[] = m?.concepts?.length ? [{ id: `study:${c.slug}`, course: c.code, title: m.title, summary: m.topics.join(", "), body: "", concepts: m.concepts }] : [];
-      out[c.code] = [...fromStudy, ...docsFor(c.code, knowledge).map((d) => ({ id: d.id, course: c.code, title: d.title, summary: d.summary, body: d.body, sample: d.sample }))];
+      // Built-in lecture files come with their concepts made ahead of time (npm run kb:teach): no Gemini call.
+      out[c.code] = [...fromStudy, ...docsFor(c.code, knowledge).map((d) => ({ id: d.id, course: c.code, title: d.title, summary: d.summary, body: d.body, sample: d.sample, concepts: d.sample ? prebuiltConcepts(d.id, d.body) : undefined }))];
     }
     return out;
   }, [courses, knowledge, state.materials]);
@@ -264,7 +266,8 @@ function Start({ onStart }: { onStart: (p: Picked) => void }) {
     setPick(0);
     setNote("");
     try {
-      const { list } = await conceptsFor(f);
+      // Pre-built concepts are instant; a short "Picking concepts…" beat still shows Viva reading the file.
+      const [{ list }] = await Promise.all([conceptsFor(f), f.concepts ? new Promise((r) => setTimeout(r, 900)) : null]);
       setLoaded({ id: f.id, list });
     } catch (e) {
       setOpen("");

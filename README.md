@@ -21,7 +21,7 @@ Outside demo mode, Pathway asks visitors to sign in with Google. Account sign-in
 - **Makes a plan.** The Week page puts classes, due dates, and study blocks together. Suggestions wait for approval before changing the calendar.
 - **Helps you study.** Course materials can become quizzes, flashcards, and explanations. Viva supports chat and voice, can use relevant course context, and can propose actions such as adding or moving a study block.
 - **Keeps the source visible.** Uploaded syllabi, notes, and grade pages become reviewable facts with source references. Uncertain facts wait for the student to check them.
-- **Connects the rest of the semester.** Pathway includes a course-focused inbox, study buddies, a Raspberry Pi kiosk view, and optional Study Pots on Solana devnet.
+- **Connects the rest of the semester.** Pathway includes a course-focused inbox, study buddies, Pathway Beacon (a Raspberry Pi desk companion), and optional Study Pots on Solana devnet.
 
 ### What connects today
 
@@ -90,6 +90,6 @@ npm run db:check  # check database setup
 | Viva and voice | `src/lib/intel/`, `src/components/Viva.tsx`, `src/components/VivaDock.tsx`, `src/lib/voice.ts` |
 | Calendar | `src/lib/schedule.ts`, `src/lib/gcal.ts`, `src/app/calendar/` |
 | Database and API | `db/schema.sql`, `scripts/db.ts`, `src/app/api/` |
-| Pi kiosk | `src/app/device/`, `scripts/kiosk.sh`, [hardware setup](docs/hardware/README.md) |
+| Pathway Beacon | `src/app/device/`, `scripts/kiosk.sh`, [hardware setup](docs/hardware/README.md) |
 
 The [planning notes](docs/planning/README.md) document earlier ideas and decisions; the code and this README describe the current prototype.

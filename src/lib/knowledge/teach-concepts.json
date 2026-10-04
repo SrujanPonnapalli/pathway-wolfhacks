@@ -1,0 +1,1281 @@
+{
+ "bio-l12": {
+  "hash": "1fflqiv",
+  "concepts": [
+   {
+    "topic": "Glycolysis",
+    "key_points": [
+     "Occurs in the cytosol and does not require oxygen.",
+     "Splits one 6-carbon glucose into two 3-carbon pyruvates.",
+     "Yields a net of 2 ATP and 2 NADH.",
+     "Regulated by the enzyme phosphofructokinase, which is inhibited by ATP and activated by AMP."
+    ],
+    "source_ref": "Lecture 12: Cellular respiration · Stage 1: Glycolysis"
+   },
+   {
+    "topic": "Pyruvate Oxidation and the Citric Acid Cycle",
+    "key_points": [
+     "Occurs in the mitochondrial matrix.",
+     "Pyruvate is converted to acetyl-CoA, releasing CO2 and making NADH.",
+     "Each turn of the cycle produces 3 NADH, 1 FADH2, and 1 ATP (or GTP).",
+     "The cycle turns twice for every glucose molecule."
+    ],
+    "source_ref": "Lecture 12: Cellular respiration · Stage 2: Pyruvate oxidation and the citric acid cycle"
+   },
+   {
+    "topic": "Oxidative Phosphorylation",
+    "key_points": [
+     "Occurs in the inner mitochondrial membrane.",
+     "The electron transport chain pumps protons into the intermembrane space to build a gradient.",
+     "Oxygen acts as the final electron acceptor to form water.",
+     "ATP synthase uses the flow of protons back into the matrix to make ATP through chemiosmosis."
+    ],
+    "source_ref": "Lecture 12: Cellular respiration · Stage 3: Oxidative phosphorylation"
+   },
+   {
+    "topic": "Fermentation",
+    "key_points": [
+     "Occurs when oxygen is absent to regenerate NAD+ so glycolysis can continue.",
+     "Lactic acid fermentation reduces pyruvate to lactate.",
+     "Alcohol fermentation converts pyruvate to ethanol and CO2.",
+     "Yields only the 2 ATP produced during glycolysis."
+    ],
+    "source_ref": "Lecture 12: Cellular respiration · Without oxygen: fermentation"
+   }
+  ]
+ },
+ "bio-l15": {
+  "hash": "1lqwgnd",
+  "concepts": [
+   {
+    "topic": "Light Reactions",
+    "key_points": [
+     "Occur in the thylakoid membranes where chlorophyll absorbs blue and red light while reflecting green.",
+     "Photosystem II splits water to produce oxygen and sends excited electrons down an electron transport chain.",
+     "ATP is generated via a proton gradient and ATP synthase, while Photosystem I re-energizes electrons to produce NADPH."
+    ],
+    "source_ref": "Lecture 15: Photosynthesis · Light reactions"
+   },
+   {
+    "topic": "Calvin Cycle",
+    "key_points": [
+     "Occurs in the stroma and consists of three phases: carbon fixation, reduction, and regeneration of RuBP.",
+     "The enzyme rubisco fixes CO2 by attaching it to RuBP, a 5-carbon sugar.",
+     "Uses ATP and NADPH from the light reactions to produce G3P, requiring 3 turns of the cycle per G3P and 2 G3P to make one glucose."
+    ],
+    "source_ref": "Lecture 15: Photosynthesis · Calvin cycle"
+   },
+   {
+    "topic": "Photorespiration",
+    "key_points": [
+     "Happens when the enzyme rubisco binds O2 instead of CO2, which wastes energy and releases CO2.",
+     "Increases on hot, dry days when plants close their stomata to conserve water, causing internal CO2 levels to drop."
+    ],
+    "source_ref": "Lecture 15: Photosynthesis · Photorespiration"
+   },
+   {
+    "topic": "C4 and CAM Adaptations",
+    "key_points": [
+     "C4 plants use PEP carboxylase to fix CO2 into a 4-carbon compound in mesophyll cells, then release it near rubisco in bundle-sheath cells.",
+     "CAM plants open their stomata at night to store CO2 as an acid, then run the Calvin cycle during the day with closed stomata.",
+     "Both pathways serve as adaptations to minimize photorespiration and conserve water in hot climates."
+    ],
+    "source_ref": "Lecture 15: Photosynthesis · Adaptations"
+   }
+  ]
+ },
+ "bio-l18": {
+  "hash": "og9u5f",
+  "concepts": [
+   {
+    "topic": "The Cell Cycle Phases",
+    "key_points": [
+     "Interphase takes up about 90% of the cell cycle and consists of G1, S, and G2 phases.",
+     "During the S phase, DNA synthesis occurs, copying each chromosome into two sister chromatids joined at the centromere.",
+     "The M phase consists of mitosis and cytokinesis, while cells that stop dividing enter G0."
+    ],
+    "source_ref": "Lecture 18: The cell cycle and mitosis · The cell cycle has two main parts"
+   },
+   {
+    "topic": "Phases of Mitosis",
+    "key_points": [
+     "Mitosis progresses through prophase, prometaphase, metaphase, anaphase, and telophase (PMAT).",
+     "During anaphase, sister chromatids are separated and pulled to opposite poles as full chromosomes.",
+     "Cytokinesis divides the cytoplasm, forming a cleavage furrow in animal cells and a cell plate in plant cells.",
+     "The final product of mitosis is two genetically identical diploid cells."
+    ],
+    "source_ref": "Lecture 18: The cell cycle and mitosis · Mitosis in order"
+   },
+   {
+    "topic": "Cell Cycle Control System",
+    "key_points": [
+     "Checkpoints (G1, G2, and M) decide whether the cell cycle proceeds based on size, DNA damage, and spindle attachment.",
+     "Cyclins are regulatory proteins whose levels fluctuate to activate cyclin-dependent kinases (CDKs).",
+     "MPF (maturation-promoting factor) is a specific cyclin-CDK complex that triggers entry into mitosis."
+    ],
+    "source_ref": "Lecture 18: The cell cycle and mitosis · Control system"
+   },
+   {
+    "topic": "Cancer and Cell Cycle Regulation",
+    "key_points": [
+     "Cancer cells ignore checkpoint signals, lack density-dependent inhibition, and divide indefinitely.",
+     "p53 is a tumor suppressor gene that halts the cycle when DNA is damaged, and is mutated in about half of human cancers.",
+     "Proto-oncogenes normally promote division, but mutate into oncogenes that drive uncontrolled cell division."
+    ],
+    "source_ref": "Lecture 18: The cell cycle and mitosis · Cancer"
+   }
+  ]
+ },
+ "bio-lab4": {
+  "hash": "1duounz",
+  "concepts": [
+   {
+    "topic": "Catalase Reaction and Measurement",
+    "key_points": [
+     "Catalase from potato extract breaks hydrogen peroxide into water and oxygen.",
+     "The chemical reaction is represented as 2 H2O2 -> 2 H2O + O2.",
+     "The reaction rate is measured by the height of the oxygen foam in a graduated tube after 60 seconds."
+    ],
+    "source_ref": "Lab 4 handout: Enzyme kinetics · Purpose"
+   },
+   {
+    "topic": "Substrate Concentration and Saturation",
+    "key_points": [
+     "Part A of the lab tests five different concentrations of hydrogen peroxide from 0.5% to 8%.",
+     "The reaction rate rises with substrate concentration and then levels off.",
+     "At high concentrations, every enzyme molecule is busy, leading to saturation (Vmax) where adding more substrate does not speed up the reaction."
+    ],
+    "source_ref": "Lab 4 handout: Enzyme kinetics · What you should see"
+   },
+   {
+    "topic": "Temperature and Enzyme Denaturation",
+    "key_points": [
+     "Part B tests the reaction rate at 4 C, 22 C, 37 C, and 70 C using boiled extract.",
+     "The reaction rate rises with temperature up to an optimum near 37 C and collapses at 70 C.",
+     "At 70 C, heat breaks the weak bonds holding the active-site shape, causing the enzyme to denature.",
+     "Boiled extract still contains the enzyme, but the enzyme is denatured rather than absent."
+    ],
+    "source_ref": "Lab 4 handout: Enzyme kinetics · What you should see / Common deductions"
+   }
+  ]
+ },
+ "bio-mid": {
+  "hash": "1kz93nw",
+  "concepts": [
+   {
+    "topic": "Properties of Water",
+    "key_points": [
+     "Water exhibits key properties including cohesion, high specific heat, and acting as a solvent.",
+     "These unique properties are explained by hydrogen bonds.",
+     "This topic is studied alongside pH, buffers, and the four classes of macromolecules."
+    ],
+    "source_ref": "Midterm study guide (chapters 1–7) · Chapter 1-2"
+   },
+   {
+    "topic": "Cell Transport and Solutions",
+    "key_points": [
+     "Passive transport includes diffusion, osmosis, and facilitated diffusion.",
+     "Active transport is distinguished from passive transport.",
+     "Cells behave differently depending on whether they are in hypotonic, isotonic, or hypertonic solutions."
+    ],
+    "source_ref": "Midterm study guide (chapters 1–7) · Chapter 3-4"
+   },
+   {
+    "topic": "Cellular Respiration",
+    "key_points": [
+     "It is divided into glycolysis, the citric acid cycle, and oxidative phosphorylation.",
+     "Each stage must be understood by its location, inputs, outputs, and ATP yield.",
+     "It involves the roles of NADH and FADH2, chemiosmosis, and fermentation."
+    ],
+    "source_ref": "Midterm study guide (chapters 1–7) · Chapter 6"
+   },
+   {
+    "topic": "Photosynthesis",
+    "key_points": [
+     "It involves comparing light reactions and the Calvin cycle by location, inputs, and outputs.",
+     "Key components include photosystems II and I, and the enzyme rubisco.",
+     "Plants can use C4 and CAM adaptations to deal with photorespiration."
+    ],
+    "source_ref": "Midterm study guide (chapters 1–7) · Chapter 7"
+   }
+  ]
+ },
+ "ch-c5": {
+  "hash": "16lmass",
+  "concepts": [
+   {
+    "topic": "Simple Gas Laws",
+    "key_points": [
+     "Boyle's law states that pressure times volume is constant at fixed temperature and moles.",
+     "Charles's law states that volume divided by temperature is constant when temperature is in kelvin.",
+     "Avogadro's law states that volume divided by moles is constant.",
+     "Always convert Celsius to kelvin by adding 273.15."
+    ],
+    "source_ref": "Chapter 5: Gases · Simple gas laws"
+   },
+   {
+    "topic": "Ideal Gas Law",
+    "key_points": [
+     "The law is written as P V = n R T using the gas constant R = 0.08206 L atm / (mol K).",
+     "Standard temperature and pressure (STP) is 0 C and 1 atm, where one mole occupies 22.4 L.",
+     "It can be rearranged to calculate density as P M / (R T).",
+     "It can be rearranged to find molar mass as d R T / P."
+    ],
+    "source_ref": "Chapter 5: Gases · Ideal gas law"
+   },
+   {
+    "topic": "Partial Pressures",
+    "key_points": [
+     "Dalton's law states that the total pressure is the sum of the partial pressures.",
+     "The partial pressure of a gas equals its mole fraction multiplied by the total pressure.",
+     "For a gas collected over water, subtract the vapor pressure of water to determine the dry gas pressure."
+    ],
+    "source_ref": "Chapter 5: Gases · Partial pressures"
+   },
+   {
+    "topic": "Kinetic Molecular Theory",
+    "key_points": [
+     "Gas particles move randomly, undergo elastic collisions, and have negligible volume compared to empty space.",
+     "Average kinetic energy of gas particles is proportional to kelvin temperature.",
+     "Lighter gases move faster than heavier gases at the same temperature.",
+     "Real gases deviate from ideal behavior under conditions of high pressure and low temperature."
+    ],
+    "source_ref": "Chapter 5: Gases · Kinetic molecular theory"
+   }
+  ]
+ },
+ "csc-exam1": {
+  "hash": "kzaiu5",
+  "concepts": [
+   {
+    "topic": "Inheritance and polymorphism",
+    "key_points": [
+     "Use super to access superclass members.",
+     "Override methods from parent classes.",
+     "Understand dynamic dispatch.",
+     "Work with abstract classes, equals, and hashCode."
+    ],
+    "source_ref": "Exam 1 topics list · Topics"
+   },
+   {
+    "topic": "JUnit 5",
+    "key_points": [
+     "Write tests and use assertions.",
+     "Use assertThrows for exception testing.",
+     "Understand test coverage."
+    ],
+    "source_ref": "Exam 1 topics list · Topics"
+   },
+   {
+    "topic": "Exceptions",
+    "key_points": [
+     "Distinguish between checked and unchecked exceptions.",
+     "Use try, catch, and finally blocks.",
+     "Create custom exceptions."
+    ],
+    "source_ref": "Exam 1 topics list · Topics"
+   },
+   {
+    "topic": "Finite state machines and the State pattern",
+    "key_points": [
+     "Understand finite state machines.",
+     "Implement the State pattern.",
+     "Write state transitions from memory."
+    ],
+    "source_ref": "Exam 1 topics list · Topics"
+   }
+  ]
+ },
+ "csc-l14": {
+  "hash": "almgjs",
+  "concepts": [
+   {
+    "topic": "Dynamic Dispatch",
+    "key_points": [
+     "The object's actual class decides which method runs, not the variable's declared type.",
+     "The declared type decides which methods you are allowed to call.",
+     "This is polymorphism, meaning one call results in many behaviors."
+    ],
+    "source_ref": "Lecture 14: Inheritance and polymorphism in Java · Dynamic dispatch."
+   },
+   {
+    "topic": "Inheritance",
+    "key_points": [
+     "Inheritance lets a subclass reuse and specialize a superclass using extends.",
+     "The subclass inherits public and protected members.",
+     "Constructors are not inherited and the subclass constructor must call super(...) first."
+    ],
+    "source_ref": "Lecture 14: Inheritance and polymorphism in Java · Lecture 14: Inheritance and polymorphism"
+   },
+   {
+    "topic": "Overriding vs. Overloading",
+    "key_points": [
+     "Overriding involves the same name and parameters in a subclass, resolved at run time.",
+     "Overloading involves the same name with different parameter lists in the same class, resolved at compile time.",
+     "Use @Override so the compiler checks your overriding methods."
+    ],
+    "source_ref": "Lecture 14: Inheritance and polymorphism in Java · Overriding vs. overloading."
+   },
+   {
+    "topic": "Abstract Classes",
+    "key_points": [
+     "Abstract classes cannot be instantiated and subclasses must implement their abstract methods.",
+     "Use an abstract class when subclasses share state or code.",
+     "Use an interface when you only need a contract."
+    ],
+    "source_ref": "Lecture 14: Inheritance and polymorphism in Java · Abstract classes."
+   },
+   {
+    "topic": "Composition vs Inheritance",
+    "key_points": [
+     "Prefer composition when the relationship is not truly an is-a relationship.",
+     "Inheriting from a class like ArrayList can expose unwanted methods.",
+     "A course has a list of students rather than being a kind of ArrayList."
+    ],
+    "source_ref": "Lecture 14: Inheritance and polymorphism in Java · When not to inherit."
+   }
+  ]
+ },
+ "csc-l16": {
+  "hash": "1vel5su",
+  "concepts": [
+   {
+    "topic": "Test-driven development",
+    "key_points": [
+     "Write a failing test first, write the minimum code to pass, and then refactor.",
+     "Follow the cycle known as Red, green, refactor.",
+     "Forces you to decide what the code should do before deciding how to implement it."
+    ],
+    "source_ref": "Lecture 16: JUnit and test-driven development · Test-driven development"
+   },
+   {
+    "topic": "Anatomy of a Unit Test",
+    "key_points": [
+     "Follow the three steps: arrange (build objects), act (call the method), and assert (check the result).",
+     "Test only one behavior per test.",
+     "Use a descriptive name that clearly states what the test checks, such as testConstructorRejectsNullName."
+    ],
+    "source_ref": "Lecture 16: JUnit and test-driven development · Anatomy of a test"
+   },
+   {
+    "topic": "Testing Exceptions",
+    "key_points": [
+     "Use assertThrows to verify that a specific exception is thrown.",
+     "Check both the exception type and the specific error message returned.",
+     "Avoid catching exceptions and failing silently, which is a common mistake."
+    ],
+    "source_ref": "Lecture 16: JUnit and test-driven development · Testing exceptions"
+   },
+   {
+    "topic": "Test Independence",
+    "key_points": [
+     "Tests must not depend on execution order or on each other.",
+     "Use @BeforeEach to rebuild fixtures for every test.",
+     "Avoid sharing mutable state between tests to ensure independence."
+    ],
+    "source_ref": "Lecture 16: JUnit and test-driven development · Test independence"
+   }
+  ]
+ },
+ "csc-l18": {
+  "hash": "13rjxkj",
+  "concepts": [
+   {
+    "topic": "Exceptions",
+    "key_points": [
+     "Throwable splits into Error and Exception.",
+     "Checked exceptions must be declared with throws or handled.",
+     "Unchecked exceptions extend RuntimeException and signal programmer errors."
+    ],
+    "source_ref": "Lecture 18: Exceptions and finite state machines · Exceptions"
+   },
+   {
+    "topic": "try, catch, finally",
+    "key_points": [
+     "The finally block always runs, even after a return or an uncaught exception.",
+     "Catch specific exceptions before general ones.",
+     "Never leave a catch block empty."
+    ],
+    "source_ref": "Lecture 18: Exceptions and finite state machines · try, catch, finally"
+   },
+   {
+    "topic": "Custom exceptions",
+    "key_points": [
+     "Public class ConflictException extends Exception.",
+     "Includes two constructors: one with a message and one with a default message.",
+     "Throw it when adding an activity that overlaps an existing one."
+    ],
+    "source_ref": "Lecture 18: Exceptions and finite state machines · Custom exceptions"
+   },
+   {
+    "topic": "Finite state machines",
+    "key_points": [
+     "A state machine has a finite set of states, an initial state, and transitions triggered by inputs.",
+     "Draw it as a diagram before coding where each arrow is one transition.",
+     "Testing requires one test per transition plus tests for invalid inputs."
+    ],
+    "source_ref": "Lecture 18: Exceptions and finite state machines · Finite state machines"
+   },
+   {
+    "topic": "The State pattern",
+    "key_points": [
+     "The context class holds a reference to its current State object and delegates actions.",
+     "Concrete states implement the transitions that make sense for them.",
+     "Benefits include avoiding giant switch statements and easily adding new states."
+    ],
+    "source_ref": "Lecture 18: Exceptions and finite state machines · The State pattern"
+   }
+  ]
+ },
+ "csc-p1": {
+  "hash": "wtg3bg",
+  "concepts": [
+   {
+    "topic": "Required Classes",
+    "key_points": [
+     "Activity is an abstract class containing title, meeting days, start time, and end time.",
+     "Course extends Activity and adds name, section, credits, and instructor id.",
+     "WolfScheduler manages the course catalog and the student schedule."
+    ],
+    "source_ref": "Project 1 requirements: WolfScheduler · Required classes."
+   },
+   {
+    "topic": "Rules to Enforce",
+    "key_points": [
+     "Course names must match a department code of 1 to 4 letters, a space, and 3 digits.",
+     "Credits must be a value between 1 and 5.",
+     "Any invalid value must throw an IllegalArgumentException with the exact message from requirements."
+    ],
+    "source_ref": "Project 1 requirements: WolfScheduler · Rules to enforce."
+   },
+   {
+    "topic": "Conflicts",
+    "key_points": [
+     "Two activities conflict if they share at least one meeting day and their times overlap.",
+     "Sharing a single minute constitutes a time overlap.",
+     "Adding a conflicting activity to the schedule throws a ConflictException."
+    ],
+    "source_ref": "Project 1 requirements: WolfScheduler · Conflicts."
+   }
+  ]
+ },
+ "ec-l11": {
+  "hash": "1n15240",
+  "concepts": [
+   {
+    "topic": "Tax Wedge and Incidence",
+    "key_points": [
+     "A tax drives a wedge between the price buyers pay and the price sellers receive.",
+     "The outcome is identical whether the tax is collected from buyers or sellers.",
+     "The burden of the tax falls more heavily on the side of the market that is less elastic."
+    ],
+    "source_ref": "Lecture 11: Taxes and deadweight loss · Lecture 11: Taxes and deadweight loss"
+   },
+   {
+    "topic": "Tax Revenue",
+    "key_points": [
+     "Tax revenue equals the tax per unit multiplied by the quantity sold with the tax.",
+     "On a graph, tax revenue is represented as a rectangle."
+    ],
+    "source_ref": "Lecture 11: Taxes and deadweight loss · Lecture 11: Taxes and deadweight loss"
+   },
+   {
+    "topic": "Deadweight Loss",
+    "key_points": [
+     "Deadweight loss occurs because beneficial trades between the old and new quantities no longer happen.",
+     "It is represented graphically as the triangle between the demand and supply curves over the lost range.",
+     "Deadweight loss is calculated as one-half times the tax times the fall in quantity."
+    ],
+    "source_ref": "Lecture 11: Taxes and deadweight loss · Lecture 11: Taxes and deadweight loss"
+   },
+   {
+    "topic": "Elasticity and Distortion",
+    "key_points": [
+     "The more elastic demand or supply is, the larger the fall in quantity and the bigger the deadweight loss.",
+     "Doubling a tax roughly quadruples the deadweight loss because the triangle scales with the square of the tax.",
+     "Tax revenue initially rises with higher taxes, but eventually falls at very high taxes, forming the Laffer curve."
+    ],
+    "source_ref": "Lecture 11: Taxes and deadweight loss · Lecture 11: Taxes and deadweight loss"
+   }
+  ]
+ },
+ "ec-l6": {
+  "hash": "1kscero",
+  "concepts": [
+   {
+    "topic": "Price Elasticity of Demand",
+    "key_points": [
+     "Measures how much quantity demanded responds to a price change.",
+     "Calculated as the percentage change in quantity divided by the percentage change in price and reported as a positive number.",
+     "Classified as elastic if greater than 1, inelastic if less than 1, and unit elastic if exactly 1."
+    ],
+    "source_ref": "Lecture 6: Elasticity · Lecture 6: Elasticity (chapter 5)"
+   },
+   {
+    "topic": "Midpoint Method",
+    "key_points": [
+     "Uses the average of the two prices and the two quantities as the base.",
+     "Ensures the calculated elasticity is the same regardless of the direction of movement.",
+     "Formula divides percentage change in quantity by percentage change in price using these averages."
+    ],
+    "source_ref": "Lecture 6: Elasticity · Midpoint method."
+   },
+   {
+    "topic": "Determinants of Demand Elasticity",
+    "key_points": [
+     "Demand is more elastic when close substitutes are available.",
+     "Luxuries have more elastic demand than necessities, and narrowly defined markets are more elastic than broadly defined ones.",
+     "A longer time horizon makes demand more elastic because people find alternatives eventually."
+    ],
+    "source_ref": "Lecture 6: Elasticity · What makes demand more elastic:"
+   },
+   {
+    "topic": "Total Revenue Test",
+    "key_points": [
+     "Total revenue is calculated as price times quantity.",
+     "If demand is inelastic, a price rise increases total revenue because quantity falls proportionally less.",
+     "If demand is elastic, a price rise lowers total revenue."
+    ],
+    "source_ref": "Lecture 6: Elasticity · Total revenue test."
+   },
+   {
+    "topic": "Other Elasticities",
+    "key_points": [
+     "Income elasticity is positive for normal goods and negative for inferior goods.",
+     "Cross-price elasticity is positive for substitutes and negative for complements.",
+     "Price elasticity of supply measures how quantity supplied responds to price and is higher when producers can adjust easily."
+    ],
+    "source_ref": "Lecture 6: Elasticity · Other elasticities."
+   }
+  ]
+ },
+ "ec-l9": {
+  "hash": "1l1bw96",
+  "concepts": [
+   {
+    "topic": "Consumer surplus",
+    "key_points": [
+     "Willingness to pay is the maximum amount a buyer would pay.",
+     "Consumer surplus is willingness to pay minus the price actually paid, summed over all buyers.",
+     "It is represented graphically as the area below the demand curve and above the price.",
+     "When the price falls, existing buyers gain and new buyers enter to add to consumer surplus."
+    ],
+    "source_ref": "Lecture 9: Consumer and producer surplus · Lecture 9"
+   },
+   {
+    "topic": "Producer surplus",
+    "key_points": [
+     "Cost is the minimum a seller would accept, representing the opportunity cost of producing.",
+     "Producer surplus is the price received minus the cost, summed over all sellers.",
+     "It is represented graphically as the area above the supply curve and below the price."
+    ],
+    "source_ref": "Lecture 9: Consumer and producer surplus · Lecture 9"
+   },
+   {
+    "topic": "Total surplus and market efficiency",
+    "key_points": [
+     "Total surplus is the sum of consumer surplus and producer surplus, equal to value to buyers minus cost to sellers.",
+     "The free-market equilibrium maximizes total surplus.",
+     "Goods go to buyers who value them most and are produced by sellers with the lowest cost.",
+     "Producing less than equilibrium leaves valuable trades unmade, while producing more means units cost more than they are worth."
+    ],
+    "source_ref": "Lecture 9: Consumer and producer surplus · Lecture 9"
+   },
+   {
+    "topic": "Caveats to market efficiency",
+    "key_points": [
+     "Efficiency is not equity, meaning the market says nothing about whether the income distribution is fair.",
+     "The efficiency result assumes perfectly competitive markets with no externalities.",
+     "When these assumptions fail, the market no longer maximizes surplus."
+    ],
+    "source_ref": "Lecture 9: Consumer and producer surplus · Lecture 9"
+   }
+  ]
+ },
+ "ece-l10": {
+  "hash": "1ldi1s1",
+  "concepts": [
+   {
+    "topic": "Thevenin and Norton equivalents",
+    "key_points": [
+     "Any linear two-terminal circuit is equivalent to a single voltage source Vth in series with Rth",
+     "It is also equivalent to a current source In in parallel with Rth",
+     "In equals Vth divided by Rth"
+    ],
+    "source_ref": "Lecture 10: Thevenin and Norton equivalents · Lecture 10: Thevenin and Norton equivalents"
+   },
+   {
+    "topic": "Finding Vth, In, and Rth",
+    "key_points": [
+     "Vth is the open-circuit voltage across the terminals with the load removed",
+     "In is the short-circuit current with the terminals shorted",
+     "Rth with independent sources is found by turning off every source and computing the resistance seen from the terminals"
+    ],
+    "source_ref": "Lecture 10: Thevenin and Norton equivalents · Finding Vth"
+   },
+   {
+    "topic": "Maximum power transfer",
+    "key_points": [
+     "A load receives maximum power when RL equals Rth",
+     "The maximum power received is Vth squared divided by four Rth",
+     "Efficiency is only 50 percent at maximum power transfer because half the power is lost in Rth"
+    ],
+    "source_ref": "Lecture 10: Thevenin and Norton equivalents · Maximum power transfer"
+   },
+   {
+    "topic": "Source transformation",
+    "key_points": [
+     "A voltage source Vs in series with R is interchangeable with a current source Vs over R in parallel with R",
+     "This is useful for simplifying a circuit step by step before applying node analysis"
+    ],
+    "source_ref": "Lecture 10: Thevenin and Norton equivalents · Source transformation"
+   }
+  ]
+ },
+ "ece-l12": {
+  "hash": "1l7mlua",
+  "concepts": [
+   {
+    "topic": "Capacitor basics",
+    "key_points": [
+     "The current-voltage relationship is i = C dv/dt.",
+     "Voltage across a capacitor cannot change instantly because that would require infinite current.",
+     "At DC steady state a capacitor acts as an open circuit.",
+     "Energy stored in a capacitor is (1/2) C v^2."
+    ],
+    "source_ref": "Lecture 12: RC circuits and time constants · Capacitor basics"
+   },
+   {
+    "topic": "RC Discharging",
+    "key_points": [
+     "A capacitor charged to V0 connected across a resistor discharges according to v(t) = V0 e^(-t/tau).",
+     "The time constant is defined as tau = RC.",
+     "After one time constant the voltage is 37% of V0, and after five time constants it is under 1%."
+    ],
+    "source_ref": "Lecture 12: RC circuits and time constants · Discharging"
+   },
+   {
+    "topic": "General first-order solution",
+    "key_points": [
+     "The general formula for any RC or RL circuit is x(t) = x_final + (x_initial - x_final) e^(-t/tau).",
+     "You must find the initial value just after the switch, where capacitor voltage is continuous.",
+     "You must find the final value, treating the capacitor as an open circuit.",
+     "The time constant is calculated as tau = R_th C using the Thevenin resistance seen by the capacitor."
+    ],
+    "source_ref": "Lecture 12: RC circuits and time constants · Charging"
+   },
+   {
+    "topic": "Inductors",
+    "key_points": [
+     "Inductors are the dual of capacitors with the relationship v = L di/dt.",
+     "Current through an inductor cannot change instantly.",
+     "At DC steady state an inductor acts as a short circuit.",
+     "The time constant for an inductor circuit is tau = L / R_th and stored energy is (1/2) L i^2."
+    ],
+    "source_ref": "Lecture 12: RC circuits and time constants · Inductors are the dual"
+   }
+  ]
+ },
+ "ece-l8": {
+  "hash": "xfaxgj",
+  "concepts": [
+   {
+    "topic": "Node Voltage Analysis Procedure",
+    "key_points": [
+     "Pick one node as the reference ground at 0 V.",
+     "Label the remaining unknown node voltages.",
+     "Write Kirchhoff's current law at each non-reference node.",
+     "Solve the resulting linear equations."
+    ],
+    "source_ref": "Lecture 8: Node voltage analysis · Procedure"
+   },
+   {
+    "topic": "Voltage Sources",
+    "key_points": [
+     "A voltage source between a node and ground fixes that node's voltage and removes one unknown.",
+     "A voltage source between two non-reference nodes forms a supernode.",
+     "Write one KCL equation for the supernode pair plus the constraint equation."
+    ],
+    "source_ref": "Lecture 8: Node voltage analysis · Voltage sources"
+   },
+   {
+    "topic": "Dependent Sources",
+    "key_points": [
+     "Write the controlling quantity in terms of node voltages first.",
+     "Substitute the controlling quantity into the equations.",
+     "The resulting equations remain linear."
+    ],
+    "source_ref": "Lecture 8: Node voltage analysis · Dependent sources"
+   },
+   {
+    "topic": "Checks",
+    "key_points": [
+     "Current through each resistor should satisfy Ohm's law using the solved voltages.",
+     "Currents at every node should sum to zero.",
+     "Power delivered by sources must equal power absorbed by resistors."
+    ],
+    "source_ref": "Lecture 8: Node voltage analysis · Checks"
+   }
+  ]
+ },
+ "ece-lab5": {
+  "hash": "87oa0h",
+  "concepts": [
+   {
+    "topic": "Ideal op-amp rules",
+    "key_points": [
+     "No current flows into the input terminals.",
+     "With negative feedback, the two input voltages are equal.",
+     "Everything in this lab follows from these two rules plus KCL at the inverting input."
+    ],
+    "source_ref": "Lab 5 handout: Op-amp amplifiers · Ideal op-amp rules"
+   },
+   {
+    "topic": "Inverting amplifier",
+    "key_points": [
+     "Input goes through R1 to the inverting terminal with Rf from output to inverting terminal.",
+     "The non-inverting terminal is grounded.",
+     "Gain is calculated as -Rf / R1."
+    ],
+    "source_ref": "Lab 5 handout: Op-amp amplifiers · Inverting amplifier"
+   },
+   {
+    "topic": "Non-inverting amplifier",
+    "key_points": [
+     "Input goes directly to the non-inverting terminal.",
+     "Gain is calculated as 1 + Rf / R1.",
+     "Input resistance is very high, making this preferred for weak sources."
+    ],
+    "source_ref": "Lab 5 handout: Op-amp amplifiers · Non-inverting amplifier"
+   },
+   {
+    "topic": "Saturation",
+    "key_points": [
+     "The output cannot exceed the supply rails.",
+     "With plus or minus 15 V supplies, the rails are about plus or minus 13.5 V.",
+     "Increasing input amplitude causes the output to clip flat."
+    ],
+    "source_ref": "Lab 5 handout: Op-amp amplifiers · Saturation"
+   }
+  ]
+ },
+ "ece-mid": {
+  "hash": "2q5n2v",
+  "concepts": [
+   {
+    "topic": "Node Voltage and Mesh Current Analysis",
+    "key_points": [
+     "Includes supernodes and dependent sources.",
+     "Partial credit is given for a correct setup including a chosen and labeled reference node.",
+     "KCL equations must be written correctly for partial credit even if algebra fails."
+    ],
+    "source_ref": "Midterm review sheet · Coverage and Format"
+   },
+   {
+    "topic": "Network Theorems and Equivalents",
+    "key_points": [
+     "Covers Thevenin and Norton equivalents.",
+     "Includes source transformation and superposition.",
+     "Applies the maximum power transfer formula."
+    ],
+    "source_ref": "Midterm review sheet · Coverage"
+   },
+   {
+    "topic": "First-Order RC and RL Transients",
+    "key_points": [
+     "Uses the universal first-order solution equation.",
+     "Time constant tau is calculated as RC for RC circuits and L/R for RL circuits.",
+     "Involves capacitors and inductors."
+    ],
+    "source_ref": "Midterm review sheet · Coverage and Provided"
+   }
+  ]
+ },
+ "ma-l10": {
+  "hash": "1oaf1f",
+  "concepts": [
+   {
+    "topic": "Integration by Parts Formula and Choosing u",
+    "key_points": [
+     "The formula is derived from the product rule as integral of u dv = u v - integral of v du",
+     "Choose u as the factor that gets simpler when differentiated",
+     "Use the LIATE priority list where earlier items make better choices for u"
+    ],
+    "source_ref": "Lecture 10: Integration by parts · Lecture 10: Integration by parts (section 7.1)"
+   },
+   {
+    "topic": "Repeated Integration by Parts",
+    "key_points": [
+     "Some integrals require applying parts twice, such as x^2 sin x",
+     "The tabular method uses alternating signs with derivatives in one column and integrals in the other",
+     "Sign mistakes in the second round are the most common error"
+    ],
+    "source_ref": "Lecture 10: Integration by parts · Integrals that need parts twice"
+   },
+   {
+    "topic": "Integrals that Return to Themselves",
+    "key_points": [
+     "Applying parts twice to e^x cos x makes the original integral reappear on the right side",
+     "Move the recurring integral to the left side and divide by 2",
+     "The same trick can be used for e^x sin x and sec^3 x"
+    ],
+    "source_ref": "Lecture 10: Integration by parts · Integrals that return to themselves"
+   },
+   {
+    "topic": "Sneaky Single-Factor Cases",
+    "key_points": [
+     "The integral of ln x uses u = ln x and dv = dx",
+     "The integral of arctan x results in x arctan x - (1/2) ln(1 + x^2) + C"
+    ],
+    "source_ref": "Lecture 10: Integration by parts · Sneaky single-factor cases"
+   }
+  ]
+ },
+ "ma-l13": {
+  "hash": "1ryuq82",
+  "concepts": [
+   {
+    "topic": "Trigonometric substitution",
+    "key_points": [
+     "Use x = a sin t for sqrt(a^2 - x^2), x = a tan t for sqrt(a^2 + x^2), and x = a sec t for sqrt(x^2 - a^2).",
+     "The root collapses using standard trig identities like 1 - sin^2 = cos^2.",
+     "Draw a right triangle at the end to convert the trig functions back to the variable x."
+    ],
+    "source_ref": "Lecture 13: Trig substitution and partial fractions · Lecture 13: Trigonometric substitution and partial fractions (sections 7.3-7.4)"
+   },
+   {
+    "topic": "Partial fractions decomposition",
+    "key_points": [
+     "Decompose a proper rational function P(x)/Q(x) where the degree of P is less than the degree of Q.",
+     "Factor the denominator Q completely into linear and irreducible quadratic factors.",
+     "Assign terms like A / (x - a) for distinct linear factors and (Ax + B) / (x^2 + bx + c) for irreducible quadratics."
+    ],
+    "source_ref": "Lecture 13: Trig substitution and partial fractions · Lecture 13: Trigonometric substitution and partial fractions (sections 7.3-7.4)"
+   },
+   {
+    "topic": "Finding constants in partial fractions",
+    "key_points": [
+     "Multiply through by the common denominator Q(x).",
+     "Plug in the roots to find constants quickly using the cover-up method for distinct linear factors.",
+     "Alternatively, match coefficients of powers of x to solve for the unknown constants."
+    ],
+    "source_ref": "Lecture 13: Trig substitution and partial fractions · Lecture 13: Trigonometric substitution and partial fractions (sections 7.3-7.4)"
+   }
+  ]
+ },
+ "ma-l16": {
+  "hash": "16zrrx6",
+  "concepts": [
+   {
+    "topic": "Type 1: infinite interval",
+    "key_points": [
+     "Defined as the limit of a definite integral as the upper limit goes to infinity.",
+     "The integral converges if the limit exists and is finite, and diverges otherwise.",
+     "The integral of 1/x^p converges exactly when p > 1."
+    ],
+    "source_ref": "Lecture 16: Improper integrals · Type 1: infinite interval"
+   },
+   {
+    "topic": "Type 2: infinite discontinuity",
+    "key_points": [
+     "Occurs when f blows up at an endpoint, requiring a one-sided limit.",
+     "The integral of 1/x^p converges exactly when p < 1, which is the opposite of type 1.",
+     "A discontinuity in the middle of the interval must be split into two integrals, and both must converge."
+    ],
+    "source_ref": "Lecture 16: Improper integrals · Type 2: infinite discontinuity"
+   },
+   {
+    "topic": "Common trap",
+    "key_points": [
+     "Failing to check for discontinuities inside the interval leads to incorrect results like negative values.",
+     "Always check for discontinuities inside the interval before integrating."
+    ],
+    "source_ref": "Lecture 16: Improper integrals · Common trap"
+   },
+   {
+    "topic": "Comparison test",
+    "key_points": [
+     "If 0 <= f(x) <= g(x) and the integral of g converges, the integral of f also converges.",
+     "If the integral of f diverges, the integral of g also diverges.",
+     "Used when you cannot find an antiderivative."
+    ],
+    "source_ref": "Lecture 16: Improper integrals · Comparison test"
+   }
+  ]
+ },
+ "ma-q3": {
+  "hash": "13t4bjp",
+  "concepts": [
+   {
+    "topic": "Improper Integral with Infinite Limit",
+    "key_points": [
+     "Use partial fractions to split the integrand into 1/x - 1/(x + 1).",
+     "Evaluate the antiderivative as ln(x / (x + 1)).",
+     "Take the limit as the upper bound goes to infinity to find the value ln 2."
+    ],
+    "source_ref": "Quiz 3 solutions · Problem 1"
+   },
+   {
+    "topic": "Improper Integral with Discontinuity",
+    "key_points": [
+     "Recognize that the integrand is undefined at x = 1 inside the interval from 0 to 2.",
+     "Split the integral at the point of discontinuity x = 1.",
+     "Show that the limit diverges to infinity, and avoid integrating straight through."
+    ],
+    "source_ref": "Quiz 3 solutions · Problem 2"
+   },
+   {
+    "topic": "Comparison Test for Integrals",
+    "key_points": [
+     "Use the bound 1 <= 2 + sin x <= 3 to bound the numerator.",
+     "Compare the integrand to 3/x^2.",
+     "Conclude convergence using the p-test with p = 2."
+    ],
+    "source_ref": "Quiz 3 solutions · Problem 3"
+   }
+  ]
+ },
+ "ma-test2": {
+  "hash": "rodzft",
+  "concepts": [
+   {
+    "topic": "Improper integrals",
+    "key_points": [
+     "Write the limit before evaluating the integral.",
+     "State whether the integral converges or diverges.",
+     "Know the p-test for both types and the comparison test."
+    ],
+    "source_ref": "Test 2 review: sequences and series · Improper integrals (7.8)"
+   },
+   {
+    "topic": "Arc length and Surface area",
+    "key_points": [
+     "Arc length L is the integral of sqrt(1 + (dy/dx)^2) dx.",
+     "Set up and simplify under the root before integrating so the root collapses.",
+     "Surface area of revolution S about the x-axis is the integral of 2 pi y sqrt(1 + (dy/dx)^2) dx."
+    ],
+    "source_ref": "Test 2 review: sequences and series · Arc length (8.1)"
+   },
+   {
+    "topic": "Sequences",
+    "key_points": [
+     "A sequence converges if the limit of a_n exists.",
+     "Use L'Hopital on the related function, the squeeze theorem, and the fact that r^n goes to 0 when |r| < 1.",
+     "A bounded monotonic sequence converges."
+    ],
+    "source_ref": "Test 2 review: sequences and series · Sequences (11.1)"
+   },
+   {
+    "topic": "Series",
+    "key_points": [
+     "A series converges if its partial sums converge.",
+     "Geometric series sum of a r^n converges to a / (1 - r) when |r| < 1 and diverges otherwise.",
+     "If a_n does not go to 0, the divergence test shows the series diverges."
+    ],
+    "source_ref": "Test 2 review: sequences and series · Series (11.2)"
+   },
+   {
+    "topic": "Integral test and Comparison tests",
+    "key_points": [
+     "For positive, continuous, decreasing terms, the series and the integral converge or diverge together.",
+     "A p-series of the sum of 1/n^p converges exactly when p > 1.",
+     "The limit comparison test states that if a_n / b_n has a positive finite limit, both series behave the same way."
+    ],
+    "source_ref": "Test 2 review: sequences and series · Integral test (11.3)"
+   }
+  ]
+ },
+ "py-l11": {
+  "hash": "s1rskd",
+  "concepts": [
+   {
+    "topic": "Newton's Laws of Motion",
+    "key_points": [
+     "First law: an object with zero net force moves at constant velocity or stays at rest.",
+     "Second law: net force equals mass times acceleration, applied one axis at a time.",
+     "Third law: forces come in equal and opposite pairs acting on different objects."
+    ],
+    "source_ref": "Lecture 11: Newton's laws and free-body diagrams · Lecture 11: Newton's laws and free-body diagrams"
+   },
+   {
+    "topic": "Free-Body Diagram Procedure",
+    "key_points": [
+     "Isolate one object and draw every real force acting on it.",
+     "Do not draw ma or velocity as forces.",
+     "Choose axes, usually with one axis along the acceleration, and write the sum of forces for each axis."
+    ],
+    "source_ref": "Lecture 11: Newton's laws and free-body diagrams · Free-body diagram procedure."
+   },
+   {
+    "topic": "Incline Example",
+    "key_points": [
+     "For a block on a frictionless incline, set axes along and perpendicular to the surface.",
+     "The component of weight down the slope drives the acceleration.",
+     "The normal force is less than mg."
+    ],
+    "source_ref": "Lecture 11: Newton's laws and free-body diagrams · Incline example."
+   },
+   {
+    "topic": "Connected Objects",
+    "key_points": [
+     "Draw separate diagrams for each object tied by a rope.",
+     "The tension has the same magnitude on both masses connected by a massless rope and frictionless pulley.",
+     "Add the equations of motion for both objects to solve for acceleration and tension."
+    ],
+    "source_ref": "Lecture 11: Newton's laws and free-body diagrams · Connected objects."
+   },
+   {
+    "topic": "Apparent Weight",
+    "key_points": [
+     "In an elevator accelerating upward, the scale reads m(g + a).",
+     "In an elevator accelerating downward, the scale reads m(g - a).",
+     "Apparent weight is zero in free fall."
+    ],
+    "source_ref": "Lecture 11: Newton's laws and free-body diagrams · Apparent weight."
+   }
+  ]
+ },
+ "py-l14": {
+  "hash": "1po05lr",
+  "concepts": [
+   {
+    "topic": "Work done by a constant force",
+    "key_points": [
+     "Calculated using W = F d cos(theta) where theta is the angle between the force and displacement.",
+     "Work is a scalar measured in joules.",
+     "A force perpendicular to the motion does no work while a force opposing motion does negative work."
+    ],
+    "source_ref": "Lecture 14: Work and kinetic energy · Lecture 14: Work and kinetic energy (chapter 9)"
+   },
+   {
+    "topic": "Kinetic energy and the work-energy theorem",
+    "key_points": [
+     "Kinetic energy is defined as K = (1/2) m v^2.",
+     "The net work done on an object equals its change in kinetic energy.",
+     "It provides the fastest route to a speed when the path is messy but forces are known."
+    ],
+    "source_ref": "Lecture 14: Work and kinetic energy · Lecture 14: Work and kinetic energy (chapter 9)"
+   },
+   {
+    "topic": "Variable force and springs",
+    "key_points": [
+     "Work by a variable force is the integral of F(x) dx or the area under the force-position graph.",
+     "For a spring where F = -k x, the work done by the spring from x1 to x2 is (1/2) k x1^2 - (1/2) k x2^2.",
+     "Stretching a spring from rest to x requires (1/2) k x^2 of work by you."
+    ],
+    "source_ref": "Lecture 14: Work and kinetic energy · Lecture 14: Work and kinetic energy (chapter 9)"
+   },
+   {
+    "topic": "Power",
+    "key_points": [
+     "Power is the rate of doing work expressed as P = W / t.",
+     "It can also be calculated as P = F v for a force along the velocity.",
+     "Power is measured in units of watts."
+    ],
+    "source_ref": "Lecture 14: Work and kinetic energy · Lecture 14: Work and kinetic energy (chapter 9)"
+   }
+  ]
+ },
+ "st-formula": {
+  "hash": "v16qsf",
+  "concepts": [
+   {
+    "topic": "Descriptive statistics",
+    "key_points": [
+     "Mean is calculated as the sum of x over n.",
+     "Variance uses n minus 1 in the denominator.",
+     "Outliers are defined as values below Q1 minus 1.5 IQR or above Q3 plus 1.5 IQR."
+    ],
+    "source_ref": "Midterm formula sheet · Descriptive statistics"
+   },
+   {
+    "topic": "Probability",
+    "key_points": [
+     "The addition rule is P(A or B) = P(A) + P(B) - P(A and B).",
+     "The multiplication rule for independent events is P(A and B) = P(A) P(B).",
+     "Conditional probability is calculated as P(A and B) divided by P(B)."
+    ],
+    "source_ref": "Midterm formula sheet · Probability"
+   },
+   {
+    "topic": "Random variables",
+    "key_points": [
+     "Expected value is the sum of x times P(x).",
+     "Binomial mean is n p and standard deviation is the square root of n p (1 - p)."
+    ],
+    "source_ref": "Midterm formula sheet · Random variables"
+   },
+   {
+    "topic": "Confidence interval for a mean",
+    "key_points": [
+     "The formula is x-bar plus or minus t* times s over the square root of n.",
+     "Degrees of freedom is n minus 1."
+    ],
+    "source_ref": "Midterm formula sheet · Confidence interval for a mean"
+   }
+  ]
+ },
+ "st-l11": {
+  "hash": "19ps1u0",
+  "concepts": [
+   {
+    "topic": "The t-distribution vs. the z-distribution",
+    "key_points": [
+     "Replacing the population standard deviation with the sample standard deviation adds uncertainty.",
+     "The t-distribution is bell-shaped but has heavier tails than the normal distribution.",
+     "As degrees of freedom increase, the t-distribution approaches the normal distribution."
+    ],
+    "source_ref": "Lecture 11: Confidence intervals for a mean · Why t instead of z"
+   },
+   {
+    "topic": "Conditions for a Mean Confidence Interval",
+    "key_points": [
+     "Requires a random sample or a reasonable argument for representativeness.",
+     "Requires independence, meaning the sample must be under 10% of the population.",
+     "Requires normality, meaning the population is roughly normal or the sample size is at least 30 without extreme outliers."
+    ],
+    "source_ref": "Lecture 11: Confidence intervals for a mean · Conditions"
+   },
+   {
+    "topic": "Interpreting Confidence Intervals",
+    "key_points": [
+     "A 95% confidence interval means the method captures the true mean in 95% of samples.",
+     "It does not mean there is a 95% probability that the mean lies within a specific calculated interval.",
+     "The interval says nothing about individual observations."
+    ],
+    "source_ref": "Lecture 11: Confidence intervals for a mean · Interpretation"
+   },
+   {
+    "topic": "Margin of Error Dynamics",
+    "key_points": [
+     "The margin of error shrinks with a larger sample size by the square root of n.",
+     "To halve the margin of error, the sample size must be quadrupled.",
+     "Increasing the confidence level from 95% to 99% makes the interval wider."
+    ],
+    "source_ref": "Lecture 11: Confidence intervals for a mean · Margin of error"
+   }
+  ]
+ },
+ "st-l7": {
+  "hash": "sqoqty",
+  "concepts": [
+   {
+    "topic": "Sampling Distributions",
+    "key_points": [
+     "A statistic like the sample mean changes from sample to sample.",
+     "The sampling distribution is the distribution of a statistic over all possible samples of size n.",
+     "It helps determine how far a sample mean is likely to be from the population mean."
+    ],
+    "source_ref": "Lecture 7: Sampling distributions and the Central Limit Theorem · Lecture 7: Sampling distributions and the Central Limit Theorem"
+   },
+   {
+    "topic": "Properties of the Sample Mean",
+    "key_points": [
+     "The mean of the sampling distribution of the sample mean equals the population mean.",
+     "The standard error is the standard deviation of the sample mean, calculated as sigma divided by the square root of n.",
+     "Larger sample sizes produce less variable sample means, where quadrupling the sample size halves the standard error."
+    ],
+    "source_ref": "Lecture 7: Sampling distributions and the Central Limit Theorem · Facts about the sample mean"
+   },
+   {
+    "topic": "Central Limit Theorem",
+    "key_points": [
+     "For a large enough sample, the sampling distribution of the sample mean is approximately normal.",
+     "This approximation holds regardless of the shape of the population distribution.",
+     "If the population is already normal, the sample mean is exactly normal for any sample size.",
+     "Skewed populations require larger sample sizes to achieve normality."
+    ],
+    "source_ref": "Lecture 7: Sampling distributions and the Central Limit Theorem · Central Limit Theorem"
+   },
+   {
+    "topic": "Practical Importance of the CLT",
+    "key_points": [
+     "Confidence intervals and tests for a mean rely on the normal or t shape guaranteed by the CLT.",
+     "These statistical methods are not trustworthy when the sample size is small and the population is not normal.",
+     "Simulations show that histograms of sample means become narrower and more bell-shaped as sample size increases, even if a single sample remains skewed."
+    ],
+    "source_ref": "Lecture 7: Sampling distributions and the Central Limit Theorem · Why it matters"
+   }
+  ]
+ },
+ "st-l9": {
+  "hash": "jrhii1",
+  "concepts": [
+   {
+    "topic": "Pooled t test",
+    "key_points": [
+     "Assumes that the two populations have the same variance.",
+     "Uses a pooled variance formula with n1+n2-2 degrees of freedom.",
+     "Recommended when sample standard deviations are within a factor of about 2 of each other."
+    ],
+    "source_ref": "Lecture 9: Two-sample t tests (pooled vs. Welch) · Pooled t test"
+   },
+   {
+    "topic": "Welch t test",
+    "key_points": [
+     "Does not assume equal variances between the two populations.",
+     "Degrees of freedom are computed using the Welch-Satterthwaite formula and are usually not a whole number.",
+     "It is the default test in R's t.test() and loses very little power when variances are actually equal."
+    ],
+    "source_ref": "Lecture 9: Two-sample t tests (pooled vs. Welch) · Welch t test"
+   },
+   {
+    "topic": "Conditions for Two-Sample t Tests",
+    "key_points": [
+     "Requires independent random samples.",
+     "Requires either normal populations or sample sizes large enough for the CLT (about 30 each).",
+     "Boxplots should be used to check the data for strong skew and outliers."
+    ],
+    "source_ref": "Lecture 9: Two-sample t tests (pooled vs. Welch) · Conditions for both"
+   },
+   {
+    "topic": "Reading R Output",
+    "key_points": [
+     "Using var.equal = TRUE in t.test() runs the pooled test, while omitting it runs the Welch test.",
+     "Important values to report include the t statistic, degrees of freedom, p-value, and confidence interval.",
+     "The confidence interval is highly important because it shows how big the difference plausibly is."
+    ],
+    "source_ref": "Lecture 9: Two-sample t tests (pooled vs. Welch) · Reading R output"
+   }
+  ]
+ },
+ "st-lab3": {
+  "hash": "1sc0182",
+  "concepts": [
+   {
+    "topic": "Looking Before Testing",
+    "key_points": [
+     "Use histograms, boxplots, and QQ plots to check the data before running tests.",
+     "Points near the line on the QQ plot suggest approximate normality.",
+     "Mild skew is fine with n above 30 per group."
+    ],
+    "source_ref": "R Lab 3 handout: t.test() and checking assumptions · Step 1, look before testing"
+   },
+   {
+    "topic": "One-Sample Test",
+    "key_points": [
+     "Test if the mean sleep is different from 7 hours using t.test(d$hours, mu = 7).",
+     "Read off the t statistic, degrees of freedom, p-value, and 95% confidence interval."
+    ],
+    "source_ref": "R Lab 3 handout: t.test() and checking assumptions · Step 2, one-sample test"
+   },
+   {
+    "topic": "Two-Sample Test",
+    "key_points": [
+     "Run t.test(hours ~ group, data = d) which uses Welch by default.",
+     "Add var.equal = TRUE to run the pooled test.",
+     "Comparing the two outputs shows differing degrees of freedom with usually agreeing conclusions."
+    ],
+    "source_ref": "R Lab 3 handout: t.test() and checking assumptions · Step 3, two-sample test"
+   },
+   {
+    "topic": "Effect Size and Write-Up",
+    "key_points": [
+     "The confidence interval for the difference in means is the most useful number to report.",
+     "A proper write-up is two or three sentences covering what was compared, the test used, the estimate with its interval, and the plain conclusion."
+    ],
+    "source_ref": "R Lab 3 handout: t.test() and checking assumptions · Step 4 and Step 5"
+   }
+  ]
+ }
+}

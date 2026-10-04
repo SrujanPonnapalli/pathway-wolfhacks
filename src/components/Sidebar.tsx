@@ -25,7 +25,7 @@ const NAV: NavLink[] = [
   { href: "/insights", label: "Insights", icon: BarChart3 },
   { href: "/inbox", label: "Inbox", icon: Mail },
   { href: "/viva", label: "Viva", icon: VivaIcon },
-  { href: "/device", label: "Device", icon: MonitorSmartphone },
+  { href: "/device", label: "Beacon", icon: MonitorSmartphone },
 ];
 const EXTRA: NavLink = { href: "/buddies", label: "Buddies", icon: Users };
 

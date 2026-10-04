@@ -4,7 +4,10 @@ import { Bone, Gate } from "@/components/ui";
 import { CameraAwareness, Device, WakeWord } from "./Device";
 import { Stage } from "./Stage";
 
-export const metadata: Metadata = { title: "Pathway Device" };
+export const metadata: Metadata = {
+  title: "Pathway Beacon",
+  description: "Your desk companion for a clearer next step. See your course status, keep your study plan in view, and talk to Viva.",
+};
 
 // Kiosk viewport: lock zoom so a double-tap or pinch on the touchscreen can't
 // rescale the layout; the page is designed at 1024×600 and the Stage scales that
@@ -35,7 +38,7 @@ export default function Page() {
 // The kiosk's own layout while it loads: Viva on the left, the five tiles on the right.
 function DeviceSkeleton() {
   return (
-    <main className="flex h-full w-full flex-col bg-polar" aria-busy="true" aria-label="Loading">
+    <main className="flex h-full w-full flex-col bg-polar" aria-busy="true" aria-label="Loading Pathway Beacon">
       <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
         <Bone className="h-8 w-32 rounded-xl" />
         <Bone className="h-11 w-28" />

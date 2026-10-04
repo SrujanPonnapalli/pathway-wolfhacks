@@ -1,6 +1,6 @@
 "use client";
 
-// /device — the Raspberry Pi kiosk: a desk-companion screen for a 7" touchscreen
+// /device — Pathway Beacon: a desk-companion screen for a 7" Raspberry Pi touchscreen
 // (designed at 1024×600 landscape and scaled to the real screen by Stage.tsx, fullscreen,
 // no browser chrome). No app chrome either (see components/Chrome). Left = the assistant:
 // Viva's face, her read of the route, live captions, and the Talk button — the same voice
@@ -488,6 +488,15 @@ export function CameraAwareness() {
   );
 }
 
+function BeaconWordmark() {
+  return (
+    <div className="flex items-center gap-3">
+      <Wordmark />
+      <span className="border-l-2 border-line pl-3 text-lg font-extrabold tracking-tight text-teal">Beacon</span>
+    </div>
+  );
+}
+
 export function Device() {
   const { courses, profile, state, now, vivaThinking } = usePathway();
   const { voice } = useViva();
@@ -499,7 +508,7 @@ export function Device() {
     return (
       <main className="grid h-full w-full place-items-center overflow-hidden bg-polar p-6">
         <div className="panel max-w-md p-8 text-center">
-          <div className="flex justify-center"><Wordmark /></div>
+          <div className="flex justify-center"><BeaconWordmark /></div>
           <p className="mt-4 text-lg font-bold text-muted">No courses yet. Add one on the Home page first.</p>
         </div>
       </main>
@@ -565,7 +574,7 @@ export function Device() {
       className="flex h-full w-full touch-manipulation select-none flex-col overflow-hidden overscroll-none bg-polar pointer-coarse:cursor-none [-webkit-tap-highlight-color:transparent]"
     >
       <header className="flex items-center justify-between px-5 pb-3 pt-3.5">
-        <Wordmark />
+        <BeaconWordmark />
         <button
           onClick={() => nextCourse.slug !== c.slug && router.replace(`/device?course=${nextCourse.slug}`, { scroll: false })}
           aria-label={`Showing ${c.code}. Switch course.`}

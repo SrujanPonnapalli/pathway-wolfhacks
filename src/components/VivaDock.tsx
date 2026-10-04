@@ -30,7 +30,13 @@ const Ctx = createContext<VivaCtx | null>(null);
 const SPEED_KEY = "pathway:viva-speed";
 
 export function VivaProvider({ children }: { children: ReactNode }) {
-  const { profile, coachTurn, addTurn } = usePathway();
+  const { profile, coachTurn, addTurn, state, markGreeted } = usePathway();
+  // Viva introduces herself once per Reset (the flag rides in the profile's extras, so /demo, the demo
+  // account and Beacon agree); after that, opening voice goes straight to listening.
+  const greetedRef = useRef(!!state.greeted);
+  useEffect(() => {
+    greetedRef.current = !!state.greeted; // false again after a Reset
+  }, [state.greeted]);
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("chat");
@@ -53,7 +59,12 @@ export function VivaProvider({ children }: { children: ReactNode }) {
 
   const lastExtras = useRef<{ receipts?: string[]; email?: { to: string; subject: string; body: string } } | undefined>(undefined);
   const voice = useVoiceSession({
-    greeting: () => VIVA.greeting(profile?.sample ? profile.name : undefined),
+    greeting: () => {
+      if (greetedRef.current) return null;
+      greetedRef.current = true;
+      markGreeted();
+      return VIVA.greeting(profile?.sample ? profile.name : undefined);
+    },
     reply: async (q) => {
       const r = await coachTurn(q, "voice");
       if (r.navigate) router.push(r.navigate);

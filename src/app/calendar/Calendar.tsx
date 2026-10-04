@@ -9,7 +9,9 @@
 // Enter opens the details sheet, which can move it by date, time and length without dragging.
 
 import { useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as RPointerEvent } from "react";
-import { Check, Link2, Trash2, X } from "lucide-react";
+import { ArrowUp, Check, Link2, Trash2, X } from "lucide-react";
+import { ThinkingOrb } from "thinking-orbs";
+import { VivaGlyph } from "@/components/Viva";
 import { PageHeader, SectionHeading } from "@/components/ui";
 import { DEMO_PROFILE } from "@/lib/demo";
 import { localIso, mondayOf, type CalEvent } from "@/lib/schedule";
@@ -349,7 +351,7 @@ export function Calendar() {
         })}
       </section>
 
-      {open && <Details ev={open} onClose={() => setOpen(null)} onMove={moveEvent} onRemove={removeEvent} googleOn={googleOn} />}
+      {open && <Details key={open.id} ev={open} onClose={() => setOpen(null)} onMove={moveEvent} onRemove={removeEvent} googleOn={googleOn} />}
 
       <p className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs font-bold text-muted">
         {(["class", "work", "study", "exam", "other"] as const).map((k) => (
@@ -397,6 +399,7 @@ function Details({ ev, onClose, onMove, onRemove, googleOn }: { ev: CalEvent; on
           <X size={18} />
         </button>
       </div>
+      <EventViva ev={ev} fixed={fixed} onDone={onClose} />
       {fixed ? (
         <p className="mt-3 text-xs text-muted">Classes and exams come from Moodle; move your own blocks around them.</p>
       ) : (
@@ -441,6 +444,106 @@ function Details({ ev, onClose, onMove, onRemove, googleOn }: { ev: CalEvent; on
         </button>
       </div>
       <p className="mt-2 text-xs text-muted">{googleOn ? "Changes go to Google Calendar too." : "Drag on the grid works too."}</p>
+    </div>
+  );
+}
+
+const VIVA_ASKS = { move: "Find a better time for this.", why: "Why is this on my week, and what should I do in it?" };
+
+/**
+ * Viva on one event, inside the details sheet. The context line is instant (the decision tree's status for
+ * the event's course, no model). Asking runs Viva's usual agent call with its full context; a proposed move
+ * is checked here (this event, same week ahead, no clashes) and only happens when the student approves it.
+ */
+function EventViva({ ev, fixed, onDone }: { ev: CalEvent; fixed: boolean; onDone: () => void }) {
+  const { courses, events, now, askAboutEvent, applyProposal } = usePathway();
+  const c = courses.find((x) => x.slug === ev.course);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [answer, setAnswer] = useState<{ text: string; move?: { start: string; end: string; action: Parameters<typeof applyProposal>[0][number] }; note?: string } | null>(null);
+
+  // Typed questions only get a proposed move when they ask for one.
+  const ask = async (question: string, wantsMove = /\b(move|resched\w*|another time|better time|earlier|later|after|before|swap|shift|push)\b/i.test(question)) => {
+    if (!question.trim() || busy) return;
+    setBusy(true);
+    setAnswer(null);
+    try {
+      const r = await askAboutEvent(ev, question.trim(), wantsMove);
+      const a = r.proposed[0];
+      let move, note;
+      if (a?.start && a.end) {
+        // The browser has the final say: the slot must be ahead of now and clear of every other event.
+        const [s0, e0] = [new Date(a.start).getTime(), new Date(a.end).getTime()];
+        const clash = events.find((e) => e.id !== ev.id && new Date(e.start).getTime() < e0 && new Date(e.end).getTime() > s0);
+        if (s0 < now.getTime()) note = "Viva picked a time that has already passed, so nothing was proposed.";
+        else if (clash) note = `Viva's time overlaps "${clash.title}", so nothing was proposed. Try asking again.`;
+        else move = { start: a.start, end: a.end, action: a };
+      }
+      setAnswer({ text: r.text, move, note });
+      setQ("");
+    } catch (e) {
+      setAnswer({ text: "", note: (e as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-xl bg-sky-soft/60 p-3">
+      <p className="flex items-center gap-2 text-xs font-bold text-muted">
+        <VivaGlyph size={18} className="shrink-0 text-sky" />
+        {c ? `${c.code} is ${c.result.atRisk ? "worth a check-in" : "on track"} · ${c.exam.title} in ${c.daysToExam} ${c.daysToExam === 1 ? "day" : "days"}` : "Ask Viva about this"}
+        {ev.source === "pathway" && c?.rec ? " · part of its study plan" : ""}
+      </p>
+      {!answer && !busy && (
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {!fixed && (
+            <button onClick={() => void ask(VIVA_ASKS.move, true)} className="rounded-full border-2 border-sky/30 bg-white px-3 py-1 text-xs font-extrabold text-sky hover:border-sky">
+              Find a better time
+            </button>
+          )}
+          <button onClick={() => void ask(VIVA_ASKS.why, false)} className="rounded-full border-2 border-sky/30 bg-white px-3 py-1 text-xs font-extrabold text-sky hover:border-sky">
+            Why is this here?
+          </button>
+        </div>
+      )}
+      {busy && (
+        <p className="mt-2 flex items-center gap-2 text-sm font-bold text-muted" aria-live="polite">
+          <ThinkingOrb state="solving" size={20} theme="light" color="#1a6fd1" aria-hidden /> Viva is looking at your week…
+        </p>
+      )}
+      {answer && (
+        <div className="mt-2" aria-live="polite">
+          {/* A rejected proposal's explanation would describe a move that isn't on offer: show only the note then. */}
+          {answer.text && !answer.note && <p className="text-sm font-semibold leading-relaxed">{answer.text}</p>}
+          {answer.note && <p className="mt-1 text-xs font-bold text-sun-ink">{answer.note}</p>}
+          {answer.move && (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                onClick={async () => {
+                  setBusy(true);
+                  await applyProposal([answer.move!.action]);
+                  setBusy(false);
+                  onDone();
+                }}
+                className="btn btn-sky min-h-9 px-3 text-xs"
+              >
+                <Check size={14} strokeWidth={3} aria-hidden /> Move to {new Date(answer.move.start).toLocaleDateString("en-US", { weekday: "short" })} {fmtTime(answer.move.start)}–{fmtTime(answer.move.end)}
+              </button>
+              <button onClick={() => setAnswer(null)} className="text-xs font-bold text-muted underline underline-offset-4 hover:text-ink">
+                Not now
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      <form onSubmit={(e) => (e.preventDefault(), void ask(q))} className="mt-2 flex items-center gap-2 rounded-xl border-2 border-line bg-white p-1 pl-3 focus-within:border-sky">
+        <label htmlFor={`ask-${ev.id}`} className="sr-only">Ask Viva about {ev.title}</label>
+        <input id={`ask-${ev.id}`} value={q} onChange={(e) => setQ(e.target.value)} placeholder={fixed ? "Ask Viva about this…" : "Ask Viva, e.g. move it after lunch"} className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none" />
+        <button disabled={busy || !q.trim()} aria-label="Ask Viva" className="btn btn-sky min-h-8 px-2">
+          <ArrowUp size={14} strokeWidth={3} aria-hidden />
+        </button>
+      </form>
     </div>
   );
 }

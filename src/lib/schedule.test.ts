@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { blocksAsEvents, demoWeek, freeSlot, sourceEvents, suggest, type CalEvent } from "./schedule.ts";
+import { blocksAsEvents, demoWeek, freeSlot, slotsFor, sourceEvents, suggest, type CalEvent } from "./schedule.ts";
 import { planBlocks } from "./plan.ts";
 import { localIso, toLocal, toUtc } from "./time.ts";
 
@@ -58,4 +58,19 @@ test("freeSlot skips what's taken and keeps the form", () => {
   const busy: CalEvent[] = [{ id: "c", title: "Lecture", start: "2026-10-06T09:00:00", end: "2026-10-06T10:00:00", kind: "class", source: "demo" }];
   const slot = freeSlot(busy, new Date("2026-10-06T00:00:00"), 50, 9, 21);
   assert.equal(slot?.start, "2026-10-06T10:00:00");
+});
+
+test("slotsFor: same-length free slots ahead of now, never overlapping, ignoring the event itself", () => {
+  const now = new Date("2026-10-06T13:20:00");
+  const ev: CalEvent = { id: "b1", title: "Study block", start: "2026-10-06T16:00:00", end: "2026-10-06T16:50:00", kind: "study", source: "pathway" };
+  const lecture: CalEvent = { id: "c1", title: "MA 241 lecture", start: "2026-10-07T09:00:00", end: "2026-10-07T10:15:00", kind: "class", source: "demo" };
+  const slots = slotsFor([ev, lecture], ev, now, 2);
+  assert.ok(slots.length > 0);
+  for (const s of slots) {
+    assert.ok(new Date(s.start) > now, `${s.start} is in the past`);
+    assert.equal((new Date(s.end).getTime() - new Date(s.start).getTime()) / 60_000, 50);
+    assert.ok(!(s.start < lecture.end && s.end > lecture.start), `${s.start} overlaps the lecture`);
+    assert.notEqual(s.start, ev.start);
+  }
+  assert.ok(slots.some((s) => s.start.startsWith("2026-10-07T10:30")), "first free morning slot after the lecture");
 });

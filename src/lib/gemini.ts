@@ -34,14 +34,18 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** generateContent with retry on 429/503 and a model fallback chain. Every call goes through here. */
 export async function generate(args: GenArgs, tier: "fast" | "heavy" = "heavy") {
   const primary = tier === "fast" ? FAST_MODEL : HEAVY_MODEL;
-  const models = [primary, ...FALLBACK_MODELS.filter((m) => m !== primary)];
+  // Documents fall back to the bigger 3.5 first (reads PDFs well, ~2 s); chat falls back to it too
+  // because it is still fast enough. One try per model: the chain itself is the retry.
+  const chain = tier === "fast" ? [primary, "gemini-3.5-flash", ...FALLBACK_MODELS] : [primary, "gemini-3.5-flash", ...FALLBACK_MODELS];
+  const models = [...new Set(chain)];
   let lastErr: unknown;
   for (const model of models) {
-    // fast tier: one try per model, no sleeps; the chain itself is the retry
-    const attempts = tier === "fast" ? 1 : 2;
+    const attempts = 1;
+    // A model that hangs under load is worse than a fallback: cap each attempt and move down the chain.
+    const timeoutMs = tier === "fast" ? 15_000 : 25_000;
     for (let attempt = 0; attempt < attempts; attempt++) {
       try {
-        return await ai().models.generateContent({ ...args, model });
+        return await ai().models.generateContent({ ...args, config: { ...args.config, abortSignal: AbortSignal.timeout(timeoutMs) }, model });
       } catch (e) {
         lastErr = e;
         const status = (e as { status?: number }).status ?? 0;
@@ -55,7 +59,7 @@ export async function generate(args: GenArgs, tier: "fast" | "heavy" = "heavy") 
             lastErr = e2;
           }
         }
-        const transient = status === 429 || status === 503 || /high demand|UNAVAILABLE|RESOURCE_EXHAUSTED|quota/i.test((e as Error).message ?? "");
+        const transient = status === 429 || status === 503 || /high demand|UNAVAILABLE|RESOURCE_EXHAUSTED|quota|abort|timeout/i.test(`${(e as Error).name} ${(e as Error).message ?? ""}`);
         if (!transient) throw e;
         if (attempt < attempts - 1) await sleep(500);
       }

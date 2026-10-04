@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   const sql = db();
   if (!sql) return noDb();
   const id = new URL(req.url).searchParams.get("profile_id");
-  if (!(await profileExists(sql, id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
 
   const [counts, checkins, blocks, todos] = await Promise.all([
     sql`SELECT course_slug, kind, count(*)::int AS n FROM events
@@ -35,7 +35,7 @@ export async function DELETE(req: Request) {
   const sql = db();
   if (!sql) return noDb();
   const id = new URL(req.url).searchParams.get("profile_id");
-  if (!(await profileExists(sql, id))) return bad("unknown profile_id");
+  if (!(await profileExists(sql, id, req))) return bad("unknown profile_id");
   await sql.begin(async (tx) => {
     await tx`DELETE FROM events WHERE profile_id = ${id} AND source <> 'seed'`;
     await tx`DELETE FROM study_blocks WHERE profile_id = ${id}`;

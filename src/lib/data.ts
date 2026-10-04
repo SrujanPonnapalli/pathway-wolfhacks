@@ -66,7 +66,7 @@ export const sync = {
   blocks: (profile_id: string, blocks: RemoteState["blocks"]) => send("/api/blocks", "POST", { profile_id, blocks }),
   blockDone: (profile_id: string, id: string, done: boolean) => send("/api/blocks", "PATCH", { profile_id, id, done }),
   todo: (profile_id: string, id: string, done: boolean) => send("/api/todos", "PATCH", { profile_id, id, done }),
-  addJudgeCourse: () => send("/api/courses", "POST", { profile_id: "judge" }),
+  addJudgeCourse: (profile_id: string) => send("/api/courses", "POST", { profile_id }),
   reset: (profile_id: string) => (live ? fetch(`/api/state?profile_id=${encodeURIComponent(profile_id)}`, { method: "DELETE" }).catch(() => undefined) : Promise.resolve(undefined)),
 };
 

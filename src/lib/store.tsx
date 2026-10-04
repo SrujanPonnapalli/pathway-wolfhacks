@@ -238,13 +238,14 @@ function useStore() {
   const [googleOn, setGoogleOn] = useState(false);
   const [googleWho, setGoogleWho] = useState<{ email: string; name: string } | null>(null);
   const [googleShared, setGoogleShared] = useState(false);
+  const isAccount = !!profile?.account;
   useEffect(() => {
-    gcal.init().then(async (on) => {
+    gcal.init(isAccount).then(async (on) => {
       setGoogleOn(on);
       setGoogleShared(gcal.isShared());
-      if (on) setGoogleWho(await gcal.whoAmI().catch(() => null));
+      setGoogleWho(on ? await gcal.whoAmI().catch(() => null) : null);
     });
-  }, []);
+  }, [isAccount]);
   const monday = useMemo(() => new Date(demo.now.getFullYear(), demo.now.getMonth(), demo.now.getDate() - ((demo.now.getDay() + 6) % 7)), []);
 
   const localEvents = useMemo<CalEvent[]>(() => {
@@ -551,6 +552,16 @@ function useStore() {
     toast,
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
+    /** After Google sign-in or sign-out: the visible profiles change, so reload them and pick one. */
+    reloadProfiles: async (select?: string, forget?: string) => {
+      const p = await getProfiles();
+      setProfiles(p);
+      setSaved((v) => {
+        const by = { ...v.by };
+        if (forget) delete by[forget]; // a deleted account leaves nothing behind on this device either
+        return { ...v, by, profile: select ?? (p.some((x) => x.id === v.profile) ? v.profile : p[0]?.id) };
+      });
+    },
     reset: async () => {
       setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
@@ -591,7 +602,7 @@ function useStore() {
     addJudgeCourse: async () => {
       update((st) => (st.added.length ? st : { ...st, added: [demo.judgeCourse], addedClasses: [demo.judgeClass] }));
       say("BIO 181 added from your syllabus.");
-      await sync.addJudgeCourse();
+      await sync.addJudgeCourse(profile.id);
       if (isLive()) setProfiles(await getProfiles());
     },
     events,

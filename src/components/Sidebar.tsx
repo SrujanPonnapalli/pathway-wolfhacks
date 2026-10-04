@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ComponentType } from "react";
 import { BarChart3, BookOpen, CalendarDays, House, Mail, RotateCcw, Users } from "lucide-react";
+import { AccountMenu } from "@/components/Account";
 import { LiquidSelect } from "@/components/LiquidSelect";
 import { VivaGlyph } from "@/components/Viva";
 import { VivaCard } from "@/components/VivaDock";
@@ -41,7 +42,7 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
   return (
     <div className={compact ? "flex items-center gap-2" : "space-y-2"}>
       <label className={compact ? "sr-only" : "block px-1 text-sm font-bold text-muted"} htmlFor={compact ? "who-m" : "who"}>
-        Demo profile
+        Profile
       </label>
       <select
         id={compact ? "who-m" : "who"}
@@ -51,7 +52,7 @@ function ProfileSwitcher({ compact = false }: { compact?: boolean }) {
       >
         {profiles.map((p) => (
           <option key={p.id} value={p.id}>
-            {p.sample ? `${p.name} (sample)` : "You (judge, live)"}
+            {p.account ? `${p.name} (you)` : p.sample ? `${p.name} (sample)` : "You (judge, live)"}
           </option>
         ))}
       </select>
@@ -95,8 +96,9 @@ export function Sidebar() {
     <>
       <header className="flex items-center justify-between gap-3 border-b-2 border-line px-4 py-3 md:hidden">
         <Wordmark />
-        <div className="max-w-[55%]">
+        <div className="flex max-w-[60%] items-center gap-2">
           <ProfileSwitcher compact />
+          <AccountMenu />
         </div>
       </header>
       <nav

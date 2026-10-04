@@ -5,8 +5,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BookMarked, Check, Copy, Mail } from "lucide-react";
-import type { Citation, EmailDraft } from "@/lib/viva";
+import { useRouter } from "next/navigation";
+import { usePathway } from "@/lib/store";
+import { BookMarked, CalendarClock, Check, Copy, Mail } from "lucide-react";
+import type { Citation, EmailDraft, Proposal } from "@/lib/viva";
 
 export function Receipts({ items }: { items?: string[] }) {
   if (!items?.length) return null;
@@ -57,13 +59,18 @@ export function Citations({ items }: { items?: Citation[] }) {
   const [open, setOpen] = useState<string | null>(null);
   if (!items?.length) return null;
   const shown = items.find((c) => c.id === open);
+  // Two facts can share a title (a midterm's weight and its date): then say where each came from.
+  const label = (c: Citation) => {
+    const base = c.title.length > 32 ? `${c.title.slice(0, 32)}…` : c.title;
+    return items.filter((x) => x.title === c.title).length > 1 && c.locator ? `${base} · ${c.locator.replace(/^.*?·\s*/, "")}` : base;
+  };
   return (
     <div className="mt-2" aria-label="Sources Viva used">
       <ul className="flex flex-wrap gap-1.5">
         {items.map((c) => (
           <li key={c.id}>
             <button onClick={() => setOpen(open === c.id ? null : c.id)} aria-expanded={open === c.id} className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-bold ${open === c.id ? "border-sky bg-white text-sky" : "border-sky/30 bg-white/70 text-sky hover:border-sky"}`}>
-              <BookMarked size={12} aria-hidden /> {c.title.length > 32 ? `${c.title.slice(0, 32)}…` : c.title}
+              <BookMarked size={12} aria-hidden /> {label(c)}
             </button>
           </li>
         ))}
@@ -81,6 +88,51 @@ export function Citations({ items }: { items?: Citation[] }) {
               </>
             )}
           </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * A change Viva wants to make, waiting for the student: exactly what will happen, then Approve or Not now. Saying
+ * or typing "yes" approves it too. Calendar changes open the Week once they're made, so the student sees them.
+ */
+export function ProposalCard({ proposal }: { proposal?: Proposal }) {
+  const { approveProposal, dismissProposal } = usePathway();
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  if (!proposal) return null;
+  const pending = proposal.status === "pending";
+  return (
+    <div className={`mt-2 rounded-xl border-2 p-2.5 ${pending ? "border-sky/40 bg-white" : "border-line bg-white/60"}`} aria-label={pending ? "Viva wants to make these changes" : undefined}>
+      <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-muted">
+        <CalendarClock size={13} className="text-sky" aria-hidden />
+        {pending ? (proposal.calendar ? "Calendar changes, waiting for you" : "Waiting for you") : proposal.status === "approved" ? "Approved" : "Not made"}
+      </p>
+      <ul className={`mt-1.5 space-y-1 text-sm font-bold ${pending ? "text-ink" : "text-muted line-through decoration-line"}`}>
+        {proposal.items.map((it, i) => (
+          <li key={i}>{it}</li>
+        ))}
+      </ul>
+      {pending && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            disabled={busy}
+            onClick={async () => {
+              setBusy(true);
+              const to = await approveProposal(proposal.id);
+              setBusy(false);
+              if (to) router.push(to);
+            }}
+            className="btn btn-sky min-h-9 px-3 text-xs"
+          >
+            <Check size={14} strokeWidth={3} aria-hidden /> {busy ? "Working…" : "Approve"}
+          </button>
+          <button disabled={busy} onClick={() => dismissProposal(proposal.id)} className="text-xs font-bold text-muted underline underline-offset-4 hover:text-ink">
+            Not now
+          </button>
+          <span className="text-xs text-muted">or just say “yes”</span>
         </div>
       )}
     </div>

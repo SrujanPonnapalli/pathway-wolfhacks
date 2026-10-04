@@ -77,6 +77,7 @@ export function coachContext(input: {
   inbox?: { from: string; subject: string; course: string; snippet: string }[];
   week?: { title: string; start: string; end: string; kind: string }[];
   suggestions?: { title: string; why: string }[];
+  profileId?: string;
 }): CoachContext {
   // Kiosk camera's latest structured observation, when one exists. Read at send time so
   // /device and /viva share the same facts; null when no camera has run in this tab.
@@ -104,8 +105,21 @@ export function coachContext(input: {
     inbox: input.inbox ?? [],
     week: input.week ?? [],
     suggestions: input.suggestions ?? [],
+    focusTimer: input.profileId ? focusTimerFor(input.profileId, input.courses) : null,
     deviceContext: dc,
   };
+}
+
+/** The focus timer as Viva should know it, read from what StudyTimer keeps for this profile (null when idle). */
+function focusTimerFor(profileId: string, courses: CourseView[]): CoachContext["focusTimer"] {
+  try {
+    const t = JSON.parse(localStorage.getItem(`pathway:focus-timer:${profileId}`) ?? "null");
+    if (!t || (t.status !== "running" && t.status !== "paused" && t.status !== "done")) return null;
+    const left = t.status === "running" ? Math.max(0, Math.ceil((t.endsAt - Date.now()) / 1000)) : t.left;
+    return { status: t.status, course: courses.find((c) => c.slug === t.course)?.code ?? "", minutesLeft: Math.ceil(left / 60) };
+  } catch {
+    return null;
+  }
 }
 
 /** Turn an analyze result into the compact Source the coach reads. */

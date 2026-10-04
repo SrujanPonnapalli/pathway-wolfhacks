@@ -9,7 +9,7 @@ import { demo, getExtras, getProfiles, getState, getTree, isLive, sync, type Ext
 import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type Citation, type EmailDraft, type Reply } from "./viva";
+import { sampleChatSessions, soften, vivaReply, type Action, type ChatMessage, type ChatSession, type Citation, type EmailDraft, type Proposal as VivaProposal, type Reply } from "./viva";
 import { askAgent, askCoach, coachContext } from "./api";
 import type { AgentAction } from "./intel/agent";
 import { forgetBrief } from "./inboxBrief";
@@ -131,9 +131,14 @@ function mergeExtras(id: string, st: PState, x: Extras): PState {
   }
   const sessions = new Map<string, ChatSession>();
   for (const c of (x.chatSessions as ChatSession[] | undefined) ?? []) if (c && typeof c.id === "string") sessions.set(c.id, c);
+  // Same conversation on two devices: the longer one wins (a conversation only grows), newest on a tie. Not
+  // newest first: seeded sample chats carry demo-clock dates in the future, and an untouched seed copy from
+  // another device would otherwise beat (and wipe) a real conversation held under the same id.
   for (const c of st.chatSessions ?? []) {
     const o = sessions.get(c.id);
-    if (!o || (o.updatedAt ?? "") <= (c.updatedAt ?? "")) sessions.set(c.id, c);
+    const mine = c.messages?.length ?? 0;
+    const theirs = o?.messages?.length ?? 0;
+    if (!o || mine > theirs || (mine === theirs && (o.updatedAt ?? "") <= (c.updatedAt ?? ""))) sessions.set(c.id, c);
   }
   const chatSessions = [...sessions.values()].sort((a, b) => (b.updatedAt ?? "").localeCompare(a.updatedAt ?? ""));
   const union = (a: string[] | undefined, b: unknown) => [...new Set([...(a ?? []), ...((Array.isArray(b) ? b : []) as string[])])];
@@ -303,6 +308,28 @@ function useStore() {
       hydrateKnowledge(activeId);
       hydrateExtras(activeId);
     }
+  }, [activeId, hydrate, hydrateKnowledge, hydrateExtras]);
+  // Offline (the first load couldn't reach the server: a wifi blip, the database waking up): keep trying,
+  // every 20 s and whenever the window comes back to the front. Once it answers, reload this profile's
+  // activity and synced state so saving resumes, instead of staying silently local for the whole session.
+  useEffect(() => {
+    let live = true;
+    const retry = async () => {
+      if (isLive() || !activeId) return;
+      const p = await getProfiles().catch(() => null);
+      if (!live || !p || !isLive()) return;
+      setProfiles(p);
+      hydrate(activeId);
+      hydrateKnowledge(activeId);
+      hydrateExtras(activeId);
+    };
+    const id = window.setInterval(retry, 20_000);
+    window.addEventListener("focus", retry);
+    return () => {
+      live = false;
+      clearInterval(id);
+      window.removeEventListener("focus", retry);
+    };
   }, [activeId, hydrate, hydrateKnowledge, hydrateExtras]);
   const extrasKey = activeId ? JSON.stringify(pickExtras({ ...empty(activeId), ...(saved.by[activeId] ?? {}) })) : "";
   useEffect(() => {
@@ -1256,6 +1283,21 @@ function useStore() {
             receipts.push(suggestions.length ? `Approved ${suggestions.length} suggestion${suggestions.length === 1 ? "" : "s"}` : "No suggestions were waiting");
             break;
           }
+          case "start_timer": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            // The timer lives in the app shell (src/components/StudyTimer.tsx), which listens for this.
+            window.dispatchEvent(new CustomEvent("pathway:start-timer", { detail: { course: slug } }));
+            receipts.push(`Started a 25-minute ${courses.find((c) => c.slug === slug)?.code} focus timer`);
+            break;
+          }
+          case "start_teach": {
+            const slug = slugOf(a.course);
+            if (!slug) break;
+            navigate = `/viva?mode=teach&course=${slug}${a.title ? `&ask=${encodeURIComponent(a.title)}` : ""}`;
+            receipts.push(`Opened Teach${a.title ? ` for “${a.title}”` : ""} in ${courses.find((c) => c.slug === slug)?.code}`);
+            break;
+          }
           case "start_quiz": {
             const slug = slugOf(a.course);
             if (!slug) break;
@@ -1342,18 +1384,100 @@ function useStore() {
     return { receipts, links, email, navigate };
   };
 
-  // Voice confirmation, off unless NEXT_PUBLIC_VIVA_CONFIRM=1: with it on, calendar-writing actions
-  // on voice turns are held as a spoken proposal ("three blocks, Tue/Thu/Sat — want me to go
-  // ahead?") until the student says yes or no. Off, Viva does what it was asked the moment it was
-  // asked, in chat and in voice alike, and says what it did. The Week page's approve/dismiss is untouched.
-  const VOICE_CONFIRM = process.env.NEXT_PUBLIC_VIVA_CONFIRM === "1";
-  const pendingActions = useRef<AgentAction[] | null>(null);
-  const MUTATING = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
-  const CONFIRM = /\b(yes|yeah|yep|sure|ok|okay|go ahead|do it|approve|confirm|sounds good|please)\b/i;
+  // Approval. Viva never changes the calendar on her own say-so: every calendar change comes back as a proposal
+  // that lists exactly what will happen, and runs only when the student approves it (the card's button in chat,
+  // or "yes" typed or said). Study tools the student asked for run at once; ones Viva offers wait for a yes too.
+  // Approving runs the held actions directly (no second model call) and, for calendar changes, opens the Week.
+  const CALENDAR = new Set<AgentAction["type"]>(["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "make_it_real", "approve_suggestion", "dismiss_suggestion", "approve_all"]);
+  const TOOLS = new Set<AgentAction["type"]>(["start_timer", "start_quiz", "start_teach"]);
+  // The student explicitly asking for a tool, in their own words: then it starts without a second question.
+  const ASKED: Partial<Record<AgentAction["type"], RegExp>> = {
+    start_timer: /\b(start|begin|set|run|kick off|launch)\b.*\b(timer|pomodoro|focus|study session|session)\b|\b(timer|pomodoro)\b.*\b(start|now|please)\b/i,
+    start_quiz: /\b(quiz me|give me a quiz|start a quiz|open (a |the )?(quiz|flashcards?|deck)|flashcards?|make (me )?a deck)\b/i,
+    start_teach: /\b(let me (teach|explain)|i('| wi)ll (teach|explain)|teach (you|viva)|start teach|feynman)\b/i,
+  };
+  const CONFIRM = /^\s*(yes|yeah|yep|yup|sure|ok|okay|go ahead|do it|approve|confirm|sounds good|please|y)\b/i;
+  const DECLINE = /^\s*(no|nope|nah|not now|cancel|don'?t|stop|never ?mind|skip)\b/i;
+
+  /** What a held action will do, in plain words, with real titles and times. */
+  const describe = (actions: AgentAction[]): string[] => {
+    const titleFor = (id?: string) => events.find((e) => e.id === id)?.title ?? "that event";
+    const startOf = (id?: string) => events.find((e) => e.id === id)?.start;
+    const codeFor = (slug?: string) => courses.find((c) => c.slug === slugOf(slug))?.code ?? slug ?? "the course";
+    const span = (st?: string, en?: string) => (st ? `${when(toLocal(st))}${en ? `–${fmtTime(toLocal(en))}` : ""}` : "");
+    return actions.flatMap((a): string[] => {
+      switch (a.type) {
+        case "add_event":
+          return [`Add “${a.title}” ${span(a.start, a.end)}${a.repeat && a.repeat !== "none" ? `, repeating ${a.repeat}${a.until ? ` until ${fmtDay(a.until)}` : ""}` : ""}`];
+        case "move_event":
+          return [`Move “${titleFor(a.id)}”${startOf(a.id) ? ` from ${when(startOf(a.id)!)}` : ""} to ${span(a.start, a.end)}`];
+        case "resize_event":
+          return [`Make “${titleFor(a.id)}” end at ${a.end ? fmtTime(toLocal(a.end)) : "a new time"}`];
+        case "rename_event":
+          return [`Rename “${titleFor(a.id)}” to “${a.title}”`];
+        case "remove_event":
+          return [`Remove “${titleFor(a.id)}”${startOf(a.id) ? ` (${when(startOf(a.id)!)})` : ""}`];
+        case "clear_range":
+          return [`Clear ${a.kind === "all" ? "your events" : "study blocks"} ${span(a.start, a.end)}`];
+        case "make_it_real": {
+          const c = courses.find((x) => x.slug === slugOf(a.course));
+          if (!c?.rec) return [`Add the study plan for ${codeFor(a.course)}`];
+          return planBlocks(c, c.rec.moves, demo.now).map((b) => `Add “${b.title}” ${when(b.at)}`);
+        }
+        case "approve_suggestion":
+          return [`Approve: ${suggestions.find((x) => x.id === a.id)?.title ?? "the suggestion"}`];
+        case "dismiss_suggestion":
+          return [`Set aside: ${suggestions.find((x) => x.id === a.id)?.title ?? "the suggestion"}`];
+        case "approve_all":
+          return [`Approve all ${suggestions.length} suggested change${suggestions.length === 1 ? "" : "s"}`];
+        case "start_timer":
+          return [`Start a 25-minute ${codeFor(a.course)} focus timer`];
+        case "start_quiz":
+          return [`Open ${a.tool === "flashcards" ? "flashcards" : "a quiz"} for ${codeFor(a.course)}${a.title ? ` from “${a.title}”` : ""}`];
+        case "start_teach":
+          return [`Teach Viva${a.title ? ` “${a.title}”` : ""} in ${codeFor(a.course)} (explain it in your own words)`];
+        default:
+          return [a.type.replace(/_/g, " ")];
+      }
+    });
+  };
+
+  /** The latest proposal still waiting in this conversation, if any. */
+  const pendingProposal = (): VivaProposal | null => {
+    for (let i = s.chat.length - 1; i >= 0; i--) {
+      const p = s.chat[i].proposal;
+      if (p) return p.status === "pending" ? p : null;
+    }
+    return null;
+  };
+  const setProposalStatus = (id: string, status: VivaProposal["status"]) =>
+    update((st) => ({
+      ...st,
+      chatSessions: (st.chatSessions ?? []).map((c) => ({ ...c, messages: c.messages.map((m) => (m.proposal?.id === id ? { ...m, proposal: { ...m.proposal, status } } : m)) })),
+      chat: (st.chat ?? []).map((m) => (m.proposal?.id === id ? { ...m, proposal: { ...m.proposal, status } } : m)),
+    }));
+  /** Run an approved proposal. Calendar changes then open the Week (not on Beacon, which stays put). */
+  const runProposal = async (p: VivaProposal) => {
+    setProposalStatus(p.id, "approved");
+    const done = await execute(p.actions as AgentAction[]);
+    const page = typeof window !== "undefined" ? window.location.pathname : "/";
+    const toWeek = p.calendar && !page.startsWith("/device") && !page.startsWith("/calendar");
+    return { ...done, navigate: toWeek ? "/calendar" : page.startsWith("/device") ? undefined : done.navigate };
+  };
 
   // act=false is for proactive turns (device events): Viva may speak but never executes
   // actions unprompted — nothing changes without the student asking.
-  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[]; proposed?: AgentAction[] }> => {
+  const coachTurn = async (text: string, channel: "chat" | "voice" = "chat", act = true): Promise<Reply & { via: "gemini" | "local"; receipts?: string[]; email?: EmailDraft; navigate?: string; citations?: Citation[]; proposed?: AgentAction[]; proposal?: VivaProposal }> => {
+    // A yes or a no to the waiting proposal is answered here, at once: it runs exactly what was shown.
+    const waitingNow = act ? pendingProposal() : null;
+    if (waitingNow && CONFIRM.test(text)) {
+      const done = await runProposal(waitingNow);
+      return { text: done.receipts.length ? "Done." : "That didn't go through.", actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate };
+    }
+    if (waitingNow && DECLINE.test(text)) {
+      setProposalStatus(waitingNow.id, "declined");
+      return { text: "Okay, I won't change anything.", actions: [], via: "gemini" };
+    }
     try {
       const ctx = coachContext({
         now: demo.now,
@@ -1365,6 +1489,7 @@ function useStore() {
         inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
         week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
         suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
+        profileId: profile.id,
       });
       const page = typeof window !== "undefined" ? window.location.pathname + window.location.search : "/";
       const pageCourse = courses.find((c) => page.includes(`course=${c.slug}`))?.code;
@@ -1373,13 +1498,10 @@ function useStore() {
       const pack = compileContext(s.knowledge, scopeFor(text, pageCourse, courses.map((c) => c.code), s.chat.slice(-4).map((m) => m.text)), 6000, demo.now);
       // Voice appends the student's turn before calling this; don't send it twice.
       const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
-      // If last turn ended on a spoken proposal, this message is the student's verdict:
-      // show the agent exactly what was on the table so it can re-emit or drop it.
-      const held = pendingActions.current;
-      pendingActions.current = null;
-      const message = held?.length
-        ? `${text}\n\n[Earlier you proposed these calendar changes and asked the student to confirm: ${JSON.stringify(held)}. If the student just agreed, return the same actions again so they run; if they declined, acknowledge briefly and return no actions.]`
-        : text;
+      // A proposal is waiting and the student answered something else: it's set aside, and Viva hears what it was.
+      const waiting = act ? pendingProposal() : null;
+      if (waiting) setProposalStatus(waiting.id, "declined");
+      const message = waiting ? `${text}\n\n[You had proposed: ${waiting.items.join("; ")}. The student didn't approve it and said the above instead; treat this as a new request.]` : text;
       const r = await askAgent(
         message,
         {
@@ -1402,35 +1524,25 @@ function useStore() {
       );
       setUsage((u) => ({ input: u.input + r.usage.input, output: u.output + r.usage.output, turns: u.turns + 1 }));
       console.info(`[viva] ${r.specialist} answered in ${r.ms}ms, ${r.usage.input}+${r.usage.output} tokens, ${r.actions.length} action(s)`);
-      let actions = r.actions;
+      // A study block for a class must carry its course (blocks without one can't be saved to the database, so
+      // they'd silently stay on this device). If the model left it out, take it from the student's own words.
+      const named = courses.find((c) => new RegExp(`\\b${c.code.replace(" ", "\\s*")}\\b`, "i").test(text) || text.toLowerCase().includes(c.name.toLowerCase()));
+      let actions = r.actions.map((a) => (a.type === "add_event" && !a.course && named && (a.kind ?? "study") === "study" ? { ...a, course: named.slug } : a));
       let spoken = r.say;
       if (page.startsWith("/device")) actions = actions.filter((a) => a.type !== "navigate"); // the kiosk stays put — Viva speaks instead of moving you
-      if (act && channel === "voice" && VOICE_CONFIRM) {
-        const mut = actions.filter((a) => MUTATING.has(a.type));
-        if (!mut.length && held?.length && CONFIRM.test(text)) {
-          actions = held; // agent confirmed in words but dropped the actions — run the held proposal
-        } else if (!held && mut.length) {
-          // First proposal on this voice session: hold the calendar writes and say it as a
-          // proposal — never reuse `say`, which claims it already happened.
-          pendingActions.current = mut;
-          actions = actions.filter((a) => !MUTATING.has(a.type));
-          const titleFor = (id?: string) => events.find((e) => e.id === id)?.title ?? "that event";
-          const sugFor = (id?: string) => suggestions.find((x) => x.id === id)?.title ?? "the suggestion";
-          const codeFor = (slug?: string) => courses.find((c) => c.slug === slug)?.code ?? slug ?? "the course";
-          const bits = mut.map((a) => {
-            if (a.type === "add_event") return `add "${a.title}"${a.start ? ` ${fmtDay(a.start)} ${fmtTime(a.start)}` : ""}`;
-            if (a.type === "move_event") return `move "${titleFor(a.id)}"`;
-            if (a.type === "resize_event") return `change the length of "${titleFor(a.id)}"`;
-            if (a.type === "rename_event") return `rename "${titleFor(a.id)}"`;
-            if (a.type === "remove_event") return `remove "${titleFor(a.id)}"`;
-            if (a.type === "clear_range") return `clear ${a.start ? `${fmtDay(a.start)} ${fmtTime(a.start)} to ${fmtTime(a.end ?? a.start)}` : "that stretch"}`;
-            if (a.type === "approve_all") return "approve every pending suggestion";
-            if (a.type === "make_it_real") return `add the study plan for ${codeFor(a.course)}`;
-            if (a.type === "approve_suggestion") return `approve "${sugFor(a.id)}"`;
-            if (a.type === "dismiss_suggestion") return `set aside "${sugFor(a.id)}"`;
-            return a.type;
-          });
-          spoken = `I can ${bits.join(" and ")} — want me to go ahead?`;
+      // Calendar changes, and tools Viva is offering (not ones the student asked for), wait for approval.
+      let proposal: VivaProposal | undefined;
+      if (act) {
+        // "Asked for it" is decided by the student's own words too, not only the model's flag.
+        const asked = (a: AgentAction) => a.asked === true || ASKED[a.type]?.test(text) === true;
+        // A plain "yes" with no card waiting means the student just agreed to what Viva proposed in words (the model
+        // sometimes waits for that yes before returning the actions): run them rather than asking a second time.
+        const affirmed = CONFIRM.test(text);
+        const held = affirmed ? [] : actions.filter((a) => CALENDAR.has(a.type) || (TOOLS.has(a.type) && !asked(a)));
+        if (held.length) {
+          actions = actions.filter((a) => !held.includes(a));
+          proposal = { id: `p-${Date.now()}`, items: describe(held), actions: held, status: "pending", calendar: held.some((a) => CALENDAR.has(a.type)) };
+          if (!/\?\s*$/.test(spoken.trim())) spoken = `${spoken.trim()} ${channel === "voice" ? "Want me to go ahead?" : "Want me to?"}`.trim();
         }
       }
       const done = act ? await execute(actions) : { receipts: [] as string[], links: [] as Action[], email: undefined as EmailDraft | undefined, navigate: undefined as string | undefined };
@@ -1443,7 +1555,7 @@ function useStore() {
       const byId = new Map(s.knowledge.nodes.map((n) => [n.id, n]));
       const citations = (r.used ?? []).map((id) => byId.get(id)).filter((n): n is KbNode => !!n).map((n) => ({ id: n.id, title: n.title, quote: n.quote, locator: n.locator, course: n.course }));
       const say = spoken.trim() || (done.receipts.length ? "Done." : "I don't have that.");
-      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: done.navigate, citations, proposed: act ? undefined : actions };
+      return { text: soften(say), actions: done.links, via: "gemini", receipts: done.receipts, email: done.email, navigate: page.startsWith("/device") ? undefined : act && actions.some((a) => CALENDAR.has(a.type)) && !page.startsWith("/calendar") ? "/calendar" : done.navigate, citations, proposed: act ? undefined : actions, proposal };
     } catch (e) {
       console.warn("[viva] /api/agent unavailable, using the local fallback brain:", (e as Error).message);
       return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
@@ -1457,9 +1569,19 @@ function useStore() {
     setVivaThinking(true);
     const r = await coachTurn(text, "chat");
     setVivaThinking(false);
-    base.addTurn({ role: "viva", text: r.text, actions: r.actions, receipts: r.receipts, email: r.email, citations: r.citations });
+    base.addTurn({ role: "viva", text: r.text, actions: r.actions, receipts: r.receipts, email: r.email, citations: r.citations, proposal: r.proposal });
     return r;
   };
+
+  /** The proposal card's buttons. Approve returns where to go next (the Week, for calendar changes). */
+  const approveProposal = async (id: string) => {
+    const p = s.chat.find((m) => m.proposal?.id === id)?.proposal;
+    if (!p || p.status !== "pending") return undefined;
+    const done = await runProposal(p);
+    base.addTurn({ role: "viva", text: done.receipts.length ? "Done." : "That didn't go through.", receipts: done.receipts, actions: done.links, email: done.email });
+    return done.navigate;
+  };
+  const dismissProposal = (id: string) => setProposalStatus(id, "declined");
 
   // Viva about one calendar event (the Week page's details sheet): the agent's usual context and one
   // call, nothing executed. What it proposes comes back for the student to approve with applyProposal.
@@ -1485,7 +1607,7 @@ function useStore() {
   };
   const applyProposal = (actions: AgentAction[]) => execute(actions);
 
-  return { ...base, coachTurn, ask, usage, askAboutEvent, applyProposal };
+  return { ...base, coachTurn, ask, usage, askAboutEvent, applyProposal, approveProposal, dismissProposal };
 }
 
 const Ctx = createContext<ReturnType<typeof useStore> | null>(null);

@@ -32,14 +32,27 @@ const localize = (p: Profile): Profile => ({
   todos: p.todos.map((t) => (t.due ? { ...t, due: toLocal(t.due) } : t)),
 });
 
+const PROFILES_CACHE = "pathway:profiles-cache";
+
 export async function getProfiles(): Promise<Profile[]> {
   try {
     const p = await api<Profile[]>("/api/profiles");
     live = true; // an empty list is a real answer: not signed in and not in demo mode
+    try {
+      localStorage.setItem(PROFILES_CACHE, JSON.stringify(p));
+    } catch {}
     return p.map(localize);
   } catch {}
   live = false;
-  return (isDemo() ? PROFILES.filter((p) => p.id === DEMO_PROFILE) : []).map(localize); // offline: the demo student, still only in demo mode
+  if (isDemo()) return PROFILES.filter((p) => p.id === DEMO_PROFILE).map(localize); // offline: the demo student, still only in demo mode
+  // Unreachable (a wifi blip, the database waking up) is not the same as signed out: keep the profiles this
+  // device last saw, so a signed-in student isn't sent to the front door by a network hiccup.
+  try {
+    const cached = JSON.parse(localStorage.getItem(PROFILES_CACHE) ?? "[]") as Profile[];
+    return Array.isArray(cached) ? cached.map(localize) : [];
+  } catch {
+    return [];
+  }
 }
 
 export async function getState(profileId: string): Promise<RemoteState | null> {

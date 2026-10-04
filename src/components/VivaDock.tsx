@@ -10,9 +10,9 @@ import { createContext, useContext, useEffect, useRef, useState, type FormEvent,
 import { ArrowUp, FastForward, Mic, PhoneOff, Settings2, X } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import { VivaAvatar, VivaGlyph } from "@/components/Viva";
-import { Citations, EmailCard, Receipts } from "@/components/VivaBits";
+import { Citations, EmailCard, ProposalCard, Receipts } from "@/components/VivaBits";
 import { usePathway } from "@/lib/store";
-import { VIVA, type Citation } from "@/lib/viva";
+import { VIVA, type Citation, type Proposal } from "@/lib/viva";
 import { useVoiceSession } from "@/lib/voice";
 
 type View = "chat" | "voice" | "settings";
@@ -57,7 +57,7 @@ export function VivaProvider({ children }: { children: ReactNode }) {
     } catch {}
   };
 
-  const lastExtras = useRef<{ receipts?: string[]; email?: { to: string; subject: string; body: string } } | undefined>(undefined);
+  const lastExtras = useRef<{ receipts?: string[]; email?: { to: string; subject: string; body: string }; proposal?: Proposal } | undefined>(undefined);
   const voice = useVoiceSession({
     greeting: () => {
       if (greetedRef.current) return null;
@@ -68,7 +68,7 @@ export function VivaProvider({ children }: { children: ReactNode }) {
     reply: async (q) => {
       const r = await coachTurn(q, "voice");
       if (r.navigate) router.push(r.navigate);
-      lastExtras.current = { receipts: r.receipts, email: r.email };
+      lastExtras.current = { receipts: r.receipts, email: r.email, proposal: r.proposal };
       return r.text;
     },
     onTurn: (who, text) => {
@@ -195,7 +195,7 @@ export function VivaDock() {
             <ol className="space-y-3 text-sm" aria-live="polite">
               {state.chat.length === 0 && <Bubble who="viva" text={VIVA.greeting(profile.sample ? profile.name : undefined)} />}
               {state.chat.map((m, i) => (
-                <Bubble key={i} who={m.role} text={m.text} receipts={m.receipts} email={m.email} actions={m.actions} citations={m.citations} />
+                <Bubble key={i} who={m.role} text={m.text} receipts={m.receipts} email={m.email} actions={m.actions} citations={m.citations} proposal={m.proposal} />
               ))}
               {vivaThinking && (
                 <li className="flex items-center gap-2 font-bold text-muted">
@@ -310,12 +310,13 @@ export function VivaDock() {
   );
 }
 
-function Bubble({ who, text, receipts, email, actions, citations }: { who: "you" | "viva"; text: string; receipts?: string[]; email?: { to: string; subject: string; body: string }; actions?: { label: string; href: string }[]; citations?: Citation[] }) {
+function Bubble({ who, text, receipts, email, actions, citations, proposal }: { who: "you" | "viva"; text: string; receipts?: string[]; email?: { to: string; subject: string; body: string }; actions?: { label: string; href: string }[]; citations?: Citation[]; proposal?: Proposal }) {
   if (who === "you") return <li className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-teal-soft px-3 py-2 text-teal-lip">{text}</li>;
   return (
     <li className="max-w-[92%] rounded-2xl rounded-tl-md border-2 border-sky/25 bg-sky-soft px-3 py-2">
       <p className="whitespace-pre-wrap">{text}</p>
       <Receipts items={receipts} />
+      <ProposalCard proposal={proposal} />
       <Citations items={citations} />
       <EmailCard email={email} />
       {actions && actions.length > 0 && (

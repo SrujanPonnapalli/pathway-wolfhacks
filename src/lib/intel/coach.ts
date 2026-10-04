@@ -36,6 +36,7 @@ export type CoachContext = {
   inbox?: { from: string; subject: string; course: string; snippet: string }[];
   week?: { title: string; start: string; end: string; kind: string }[]; // this week's calendar
   suggestions?: { title: string; why: string }[]; // pending schedule changes awaiting approval
+  focusTimer?: { status: "running" | "paused" | "done"; course: string; minutesLeft: number } | null; // Study's 25-minute timer
   // Structured scene facts from the kiosk camera, when it has seen anything. Observed
   // facts only — the vision layer never infers anything about the person.
   deviceContext?: {
@@ -112,6 +113,10 @@ export function renderContext(ctx: CoachContext): string {
   if (ctx.inbox?.length) L.push(`inbox: ${ctx.inbox.map((m) => `${m.course} from ${m.from}: "${m.subject}" ${m.snippet}`).join(" | ")}`);
   if (ctx.week?.length) L.push(`calendar this week: ${ctx.week.map((e) => `${e.title} ${e.start.slice(5, 16).replace("T", " ")}-${e.end.slice(11, 16)} [${e.kind}]`).join("; ")}`);
   if (ctx.suggestions?.length) L.push(`pending schedule suggestions (student must approve on the Week page): ${ctx.suggestions.map((x) => `${x.title} (${x.why})`).join("; ")}`);
+  if (ctx.focusTimer) {
+    const f = ctx.focusTimer;
+    L.push(`focus timer (25-minute session): ${f.status === "done" ? "just finished" : `${f.status}, ${f.minutesLeft} min left`}${f.course ? ` for ${f.course}` : ""}`);
+  }
   if (ctx.deviceContext) {
     const d = ctx.deviceContext;
     L.push(

@@ -27,7 +27,12 @@ export type EmailDraft = { to: string; subject: string; body: string };
 /** A fact Viva relied on, shown as a chip under the reply with its source sentence. */
 export type Citation = { id: string; title: string; quote?: string; locator?: string; course: string };
 /** One chat turn. Viva's turns can carry receipts (what she just did), an email draft, and citations. */
-export type ChatMessage = { role: "you" | "viva"; text: string; actions?: Action[]; receipts?: string[]; email?: EmailDraft; citations?: Citation[] };
+/**
+ * Changes Viva wants to make, waiting for the student: calendar edits always, and study tools Viva offered on
+ * its own. `items` say exactly what will happen; `actions` are what runs on approval (by button, or "yes").
+ */
+export type Proposal = { id: string; items: string[]; actions: { type: string; [k: string]: unknown }[]; status: "pending" | "approved" | "declined"; calendar: boolean };
+export type ChatMessage = { role: "you" | "viva"; text: string; actions?: Action[]; receipts?: string[]; email?: EmailDraft; citations?: Citation[]; proposal?: Proposal };
 export type Reply = { text: string; actions: Action[] };
 
 type Course = {

@@ -8,11 +8,11 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { BarChart3, BookOpen, Check, ChevronDown, Compass, Eye, FastForward, Flag, Mic, PhoneOff, Route as RouteIcon, TriangleAlert } from "lucide-react";
+import { BarChart3, BookOpen, Check, ChevronDown, Compass, Eye, FastForward, Flag, Mic, PhoneOff, Route as RouteIcon } from "lucide-react";
 import { VoiceBeam } from "voice-glow";
 import { Wordmark } from "@/components/Sidebar";
 import { VivaAvatar } from "@/components/Viva";
-import { BeaconTimer } from "@/components/StudyTimer";
+import { BeaconTimer, useStudyTimer } from "@/components/StudyTimer";
 import { useViva } from "@/components/VivaDock";
 import { deviceContext, onVisionEvents, reportObservation } from "@/lib/awareness";
 import { goalText } from "@/lib/features";
@@ -23,21 +23,19 @@ import { VIVA } from "@/lib/viva";
 
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
-// The model knows two outcomes; the kiosk words them as a route. REROUTING = worth a
-// check-in but a recovery block is already on the calendar; OFF TRACK = high risk and
-// no plan yet; DRIFTING = worth a check-in and no plan yet.
-type RouteStatus = "ON TRACK" | "DRIFTING" | "OFF TRACK" | "REROUTING";
+// The model knows two outcomes, and Beacon says them in the app's words ("on track", "worth a check-in"),
+// as a route: REROUTING = worth a check-in with a recovery block already on the calendar; CHECK-IN = worth a
+// check-in, plan not made yet. Never "off track" or "drifting": the app doesn't use alarm language anywhere.
+type RouteStatus = "ON TRACK" | "CHECK-IN" | "REROUTING";
 
 const routeStatus = (c: CourseView, hasPlan: boolean): RouteStatus => {
   if (!c.result.atRisk) return "ON TRACK";
-  if (hasPlan) return "REROUTING";
-  return c.result.pRisk >= 0.75 ? "OFF TRACK" : "DRIFTING";
+  return hasPlan ? "REROUTING" : "CHECK-IN";
 };
 
 const statusTone: Record<RouteStatus, string> = {
   "ON TRACK": "text-teal",
-  DRIFTING: "text-sun-ink",
-  "OFF TRACK": "text-sun-ink",
+  "CHECK-IN": "text-sun-ink",
   REROUTING: "text-sky",
 };
 
@@ -54,17 +52,16 @@ const VOICE_LABEL: Record<string, string> = {
 // Viva's headline under the face: short, calm, never alarming.
 const vivaLine: Record<RouteStatus, { line: string; sub: string }> = {
   "ON TRACK": { line: "You're on track.", sub: "Keep the streak going." },
-  DRIFTING: { line: "You're drifting a little.", sub: "Let's get you back on track." },
-  "OFF TRACK": { line: "You've gone off route.", sub: "The next step leads back." },
+  "CHECK-IN": { line: "Worth a check-in.", sub: "Your next step is ready." },
   REROUTING: { line: "Rerouting you.", sub: "Your new plan is on the week." },
 };
 
 function RouteMark({ status }: { status: RouteStatus }) {
   const s = 26;
-  if (status === "DRIFTING")
+  if (status === "CHECK-IN")
     return <span className="shrink-0 rounded-full border-sun bg-sun-soft" style={{ width: s, height: s, borderWidth: 6 }} aria-hidden />;
-  const Icon = status === "ON TRACK" ? Check : status === "REROUTING" ? RouteIcon : TriangleAlert;
-  const face = status === "ON TRACK" ? "bg-teal text-white" : status === "REROUTING" ? "bg-sky text-white" : "bg-sun text-sun-ink";
+  const Icon = status === "ON TRACK" ? Check : RouteIcon;
+  const face = status === "ON TRACK" ? "bg-teal text-white" : "bg-sky text-white";
   return (
     <span className={`grid shrink-0 place-items-center rounded-full ${face}`} style={{ width: s, height: s }} aria-hidden>
       <Icon size={15} strokeWidth={3.2} />
@@ -116,18 +113,19 @@ function visionEvents(prev: Observation | null, cur: Observation): VisionEvent[]
 // Proactive ambient lines: device-awareness transitions -> at most one spoken Viva line.
 // The sentence itself always comes from the shared Gemini brain — nothing here is canned,
 // and proactive turns never execute actions or touch risk.
-// NOTE: still in relaxed debug tuning — 10 s cooldowns and no study-block gate — because
-// on the kiosk no block lands inside the demo-clock window. Restore 5 min / 2 min and the
-// block requirement once real blocks line up.
-const PROACTIVE_COOLDOWN_MS = 10_000;
-const ABSENCE_MS = 10_000;
+// Demo-friendly timing (a short step-away is enough to see it), but every prompt states what actually
+// happened: how long the student has been away, and whether a study block or the focus timer is running.
+// Real-world tuning would be minutes, not seconds.
+const PROACTIVE_COOLDOWN_MS = 60_000;
+const ABSENCE_MS = 20_000;
 
 function useProactiveViva() {
-  const { state, coachTurn, now } = usePathway();
+  const { state, coachTurn, now, courses } = usePathway();
   const { voice } = useViva();
-  const deps = useRef({ blocks: state.blocks, coachTurn, voice, now });
+  const timer = useStudyTimer();
+  const deps = useRef({ blocks: state.blocks, coachTurn, voice, now, timer, courses });
   useEffect(() => {
-    deps.current = { blocks: state.blocks, coachTurn, voice, now };
+    deps.current = { blocks: state.blocks, coachTurn, voice, now, timer, courses };
   });
   const awayTimer = useRef(0);
   const lastSpoke = useRef(0);
@@ -146,6 +144,17 @@ function useProactiveViva() {
         const end = start + (b.minutes ?? 50) * 60_000;
         return loose ? t >= start - 10 * 60_000 && t <= end + 15 * 60_000 : t >= start && t <= end;
       });
+    };
+    // What's really going on, said plainly to Gemini: a block in progress (or about to be), the focus timer.
+    const situation = (loose: boolean) => {
+      const block = relevantBlock(loose);
+      const t = deps.current.timer;
+      const code = deps.current.courses.find((c) => c.slug === t.course)?.code ?? "a course";
+      const parts = [
+        block ? `study block "${block.title}" at ${new Date(block.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} is in progress or about to be` : "no study block is in progress",
+        t.status === "running" ? `their ${code} focus timer is running with ${Math.ceil(t.left / 60)} minutes left` : t.status === "paused" ? `their ${code} focus timer is paused` : "no focus timer is running",
+      ];
+      return parts.join("; ");
     };
     const intervene = async (event: string, prompt: string) => {
       if (busy.current) return log(event, "skipped: an intervention is already in flight");
@@ -176,13 +185,13 @@ function useProactiveViva() {
             log(ev, `proactive trigger${block ? ` during "${block.title}"` : ""}`);
             intervene(
               ev,
-              "[Device camera event: the student just returned to the desk after being away.] In one short warm sentence, welcome them back; if a study block is active or just ended, say how much time is left in it (from the calendar). No actions, no follow-up question.",
+              `[Device camera event: the student just returned to the desk after being away. Right now: ${situation(true)}.] In one short warm sentence, welcome them back; mention the block or the focus timer only if one is running, using exactly the facts given. No actions, no follow-up question.`,
             );
           }
         } else if (ev === "PERSON_LEFT_DESK") {
           if (cooldownLeft() > 0) log(ev, `skipped: cooldown (${Math.ceil(cooldownLeft() / 1000)}s left)`);
           else {
-            log(ev, "pending: absence timer started (10s, debug)");
+            log(ev, `pending: absence timer started (${ABSENCE_MS / 1000}s)`);
             clearTimeout(awayTimer.current);
             awayTimer.current = window.setTimeout(() => {
               if (deviceContext()?.personPresent) log(ev, "skipped: student already back");
@@ -191,7 +200,7 @@ function useProactiveViva() {
                 log(ev, "intervention: still away");
                 intervene(
                   ev,
-                  "[Device camera event: the student has been away from the desk for over two minutes during an active study block.] In one short gentle sentence, check in and offer to pause or adjust the rest of tonight's plan. No guilt, no actions.",
+                  `[Device camera event: the student stepped away from the desk about ${ABSENCE_MS / 1000} seconds ago. Right now: ${situation(false)}.] In one short gentle sentence, check in; if the focus timer is running, offer to pause it, otherwise offer to adjust the plan only if a study block is in progress. Use only the facts given. No guilt, no actions.`,
                 );
               }
             }, ABSENCE_MS);
@@ -674,13 +683,14 @@ export function Device() {
             <p className="mt-0.5 truncate text-sm font-bold text-muted">{c.result.atRisk ? "Worth a check-in" : "On track"}</p>
           </Card>
 
-          <Card icon={TriangleAlert} label="Risk" tone={tone}>
+          {/* The model's leaf rate, said the way Viva says it: of similar students in the data, how many struggled. */}
+          <Card icon={BarChart3} label="Similar students" tone={tone}>
             <p className={`mt-1 text-3xl font-black leading-none tabular-nums ${tone}`}>
               {risk}
               <span className="text-lg">%</span>
             </p>
             <p className="mt-1 truncate text-sm font-bold text-muted">
-              {c.exam.title} in {c.daysToExam}d
+              struggled · {c.exam.title} in {c.daysToExam}d
             </p>
           </Card>
 

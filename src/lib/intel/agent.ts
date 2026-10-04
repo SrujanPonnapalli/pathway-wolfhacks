@@ -34,6 +34,8 @@ export type AgentAction = {
     | "check_in" // course
     | "set_midterm" // course, score
     | "start_quiz" // course, title (a lecture file), tool? ("quiz" | "flashcards"): opens Study on that file
+    | "start_timer" // course: starts the 25-minute focus timer (shared across the student's devices)
+    | "start_teach" // course, title (the topic): opens Teach mode, where the student explains it and Viva checks
     | "draft_email" // email_to, email_subject, email_body (shown to the student; never sent)
     | "navigate" // path
     | "link"; // label, path (a chip, no navigation)
@@ -52,6 +54,7 @@ export type AgentAction = {
   email_to?: string;
   email_subject?: string;
   email_body?: string;
+  asked?: boolean; // the student explicitly asked for this exact action in this message (tools then run without asking)
 };
 
 export type AgentContext = CoachContext & {
@@ -81,14 +84,15 @@ const schema: Schema = {
       items: {
         type: Type.OBJECT,
         required: ["type"],
-        propertyOrdering: ["type", "id", "title", "start", "end", "course", "kind", "repeat", "until", "tool", "score", "path", "label", "email_to", "email_subject", "email_body"],
+        propertyOrdering: ["type", "asked", "id", "title", "start", "end", "course", "kind", "repeat", "until", "tool", "score", "path", "label", "email_to", "email_subject", "email_body"],
         properties: {
-          type: { type: Type.STRING, enum: ["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "approve_suggestion", "dismiss_suggestion", "approve_all", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "start_quiz", "draft_email", "navigate", "link"] },
+          type: { type: Type.STRING, enum: ["add_event", "move_event", "resize_event", "rename_event", "remove_event", "clear_range", "approve_suggestion", "dismiss_suggestion", "approve_all", "make_it_real", "complete_block", "log_quiz", "log_session", "check_in", "set_midterm", "start_quiz", "start_timer", "start_teach", "draft_email", "navigate", "link"] },
+          asked: { type: Type.BOOLEAN, description: "true only if the student explicitly asked for this exact action in this message; false when you are offering it" },
           id: { type: Type.STRING, description: "move_event/resize_event/rename_event/remove_event/complete_block: the calendar event id; approve/dismiss_suggestion: the suggestion id. Copy exactly from CONTEXT." },
-          title: { type: Type.STRING, description: "add_event: short event title like 'BIO 181 review'; rename_event: the new title; start_quiz: the lecture file's title from CONTEXT" },
+          title: { type: Type.STRING, description: "add_event: short event title like 'BIO 181 review'; rename_event: the new title; start_quiz: the lecture file's title from CONTEXT; start_teach: the topic, e.g. 'glycolysis'" },
           start: { type: Type.STRING, description: "add_event/move_event/clear_range: start as local ISO, e.g. 2026-10-09T16:00:00" },
           end: { type: Type.STRING, description: "add_event/move_event/resize_event/clear_range: end as local ISO, e.g. 2026-10-09T16:50:00" },
-          course: { type: Type.STRING, description: "course slug such as bio-181 (add_event, make_it_real, log_quiz, log_session, check_in, set_midterm, start_quiz)" },
+          course: { type: Type.STRING, description: "course slug such as bio-181. Always set it on add_event when the block is for a class (blocks without a course can't be saved), and on make_it_real, log_quiz, log_session, check_in, set_midterm, start_quiz, start_timer, start_teach)" },
           kind: { type: Type.STRING, enum: ["study", "other", "all"], description: "add_event: study or other. clear_range: study (Pathway's blocks only) or all (everything except classes, exams and work)" },
           repeat: { type: Type.STRING, enum: ["none", "daily", "weekdays", "weekly"], description: "add_event only: repeat the block until `until` (at most 10 copies)" },
           until: { type: Type.STRING, description: "add_event with repeat: last date, YYYY-MM-DD" },
@@ -108,9 +112,12 @@ const schema: Schema = {
 };
 
 const SYSTEM = `You are Viva, Pathway's study coach and the student's hands inside the app: a warm, plain-spoken TA on their side.
-You can change their week, their study log and their place in the app by returning actions. The app runs the actions
-immediately and tells the student what happened, so never say "I can't" for anything in the action list, and never
-describe an action instead of doing it. Do only what was asked, nothing extra, and do not ask permission for a clear request.
+You can change their week, their study log and their place in the app by returning actions, so never say "I can't" for
+anything in the action list. Do only what was asked, nothing extra.
+Calendar changes are always proposals: the app shows the student exactly what will change and runs it only when they
+approve (a button, or saying yes). So in say, describe calendar changes as a proposal ("I'd add a BIO 181 block Wednesday
+at 3 PM. Want me to?"), never as done, and ALWAYS return the calendar actions in that same reply: the app holds them
+until the student approves, so never wait for a yes before returning them. Other actions the student asked for run right away.
 
 Rules:
 1. Use ONLY the facts in CONTEXT. Every number, date, grade, status, deadline or file you mention must appear there. If it is not there, say so.
@@ -118,6 +125,12 @@ Rules:
 3. Patterns, never cause and effect: "students with similar patterns often do better when...". Never promise outcomes.
 4. Only suggest changing habits marked role=suggest. Never suggest working fewer hours, sleeping differently, or uploading more files.
 5. Scheduling: you have full control of the calendar. Add, move, resize, rename, remove, clear a range, repeat a block (daily, weekdays, weekly until a date). Pick times that do not overlap anything in "calendar" unless the student names a time; the app moves a block to the next free slot if the time is taken and says so. Defaults: 50-minute study blocks; morning = 9:00, afternoon = 14:00, evening = 18:00, tonight = 19:00, "after class" = right after that class ends. Dates are local ISO; use the "dates" line for weekday names. Use event ids exactly as listed; to act on several events, return one action per event.
+5b. Study tools: start_timer (course) starts a 25-minute focus timer; start_quiz (course, title, tool quiz or flashcards)
+   opens a quiz or a flashcard deck from a lecture file; start_teach (course, title = the topic) opens Teach, where the
+   student explains the topic in their own words and Viva checks it (the Feynman method). If the student asks for one,
+   return it with asked=true and it starts now. Offer one when it clearly fits, with asked=false (the app asks the student
+   first, so phrase it as a question): a timer when they say they're about to study; flashcards or a quiz when an exam is
+   close or they ask how to prepare; Teach when they say they get a topic or want to check they do. At most one offer per reply.
 6. Approving or dismissing a pending suggestion uses its id; "approve them all" is approve_all. "Make it real" for a flagged course adds its study plan.
 7. Email: when asked to write, reply to, or send mail, return a draft_email with a real, specific body in the student's voice (3 to 6 sentences, no placeholders, sign with their first name if known). The student sends it; say that in one short clause.
 8. Course knowledge: facts from the student's syllabi, grade pages, slides and notes are listed per course with ids in brackets.
@@ -134,7 +147,7 @@ Rules:
 
 const CHANNEL = {
   chat: "Reply in at most three short sentences, plain words, no headers or lists. Then one question back at most.",
-  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural. Always return the actions that would make a requested change — the app holds calendar writes and asks the student to confirm before running them, and re-sends them on a later turn. Describe the change in say, never claim it is already done. On the /device kiosk never navigate — there is nowhere to go; say it instead.",
+  voice: "This is spoken aloud: at most two short sentences, no lists, no symbols, numbers as words where natural. Always return the actions that would make a requested change — the app holds calendar changes and asks the student to confirm out loud before running them. Describe the change in say as a proposal and end with a short question like 'Want me to go ahead?', never claim it is already done. On the /device kiosk never navigate — there is nowhere to go; say it instead.",
 };
 
 type Specialist = { name: string; addendum: string; maxTokens: number; temperature: number };
@@ -145,9 +158,9 @@ export function route(message: string): Specialist {
   if (/\b(email|e-mail|mail|write to|reply|respond|message (my|the|dr|prof)|note to|letter|extension|professor|advisor|ta\b)/.test(m))
     return { name: "writer", addendum: "WRITER: produce the email now as a draft_email action with a complete body. Keep the spoken reply to one sentence.", maxTokens: 900, temperature: 0.4 };
   if (/\b(add|move|reschedul|schedule|put|block|calendar|remove|delete|cancel|shift|free|clear|slot|plan my|approve|not now|dismiss|make it real|resize|longer|shorter|rename|repeat|every day|weekday|weekly)\b/.test(m))
-    return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the calendar in CONTEXT, avoid overlaps, and return every calendar action needed (one per event). Say what you did and when, briefly.", maxTokens: 1200, temperature: 0.2 };
+    return { name: "scheduler", addendum: "SCHEDULER: compute concrete times from the calendar in CONTEXT, avoid overlaps, and return every calendar action needed (one per event). Say what you'd change and when, briefly, as a proposal the student approves. When you name an existing event's day or time, read it from that event in CONTEXT, never from earlier messages: the app may have moved it to a free slot.", maxTokens: 1200, temperature: 0.2 };
   if (/\b(quiz|explain|what is|what's|define|teach|study for|review|flashcard|slides|notes|chapter|concept)\b/.test(m))
-    return { name: "tutor", addendum: "TUTOR: teach from the student's files and syllabus facts in CONTEXT when they cover it; otherwise say what you have. Offer a quiz link when relevant.", maxTokens: 500, temperature: 0.4 };
+    return { name: "tutor", addendum: "TUTOR: teach from the student's files and syllabus facts in CONTEXT when they cover it; otherwise say what you have. When practice would help, offer it with start_quiz (quiz or flashcards) or start_teach, asked=false, as a question.", maxTokens: 500, temperature: 0.4 };
   return { name: "coach", addendum: "", maxTokens: 400, temperature: 0.3 };
 }
 
@@ -221,7 +234,7 @@ export async function agentTurn(message: string, ctx: AgentContext, history: { r
     if (a.type === "clear_range") return ok(a.start) && ok(a.end) && a.end! > a.start!;
     if (a.type === "remove_event" || a.type === "approve_suggestion" || a.type === "dismiss_suggestion" || a.type === "complete_block") return !!a.id;
     if (a.type === "approve_all") return true;
-    if (a.type === "make_it_real" || a.type === "log_quiz" || a.type === "log_session" || a.type === "check_in" || a.type === "start_quiz") return !!a.course;
+    if (a.type === "make_it_real" || a.type === "log_quiz" || a.type === "log_session" || a.type === "check_in" || a.type === "start_quiz" || a.type === "start_timer" || a.type === "start_teach") return !!a.course;
     if (a.type === "set_midterm") return !!a.course && typeof a.score === "number";
     if (a.type === "draft_email") return !!a.email_body;
     if (a.type === "navigate") return !!a.path && a.path.startsWith("/");

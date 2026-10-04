@@ -121,6 +121,17 @@ function TimerFor({ profileId, children }: { profileId: string; children: ReactN
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t.status, t.endsAt, t.course, t.by]);
 
+  // Viva's start_timer (src/lib/store.tsx execute) asks for a session for a course.
+  const startRef = useRef<(course: string) => void>(() => {});
+  useEffect(() => {
+    const on = (e: Event) => {
+      const course = (e as CustomEvent<{ course: string }>).detail?.course;
+      if (course) startRef.current(course);
+    };
+    window.addEventListener("pathway:start-timer", on);
+    return () => window.removeEventListener("pathway:start-timer", on);
+  }, []);
+
   // eslint-disable-next-line react-hooks/purity -- the running timer reads the clock on purpose; it re-renders every second
   const left = t.status === "running" ? Math.max(0, Math.ceil((t.endsAt - Date.now()) / 1000)) : t.left;
   const value: TimerCtx = {
@@ -137,6 +148,9 @@ function TimerFor({ profileId, children }: { profileId: string; children: ReactN
       logRef.current(course);
     },
   };
+  useEffect(() => {
+    startRef.current = value.start;
+  });
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

@@ -30,8 +30,8 @@ export function Insights() {
       <PageHeader title="Insights" lead="Why each class has its status, what would help, and how sure the model is." />
 
       <div className="-mx-1 mb-8 overflow-x-auto px-1 pb-2">
-      <LiquidSelect active={c.slug} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="inline-flex rounded-2xl border-2 border-line bg-polar p-1">
-      <div role="tablist" aria-label="Courses" className="flex gap-1">
+      <LiquidSelect active={c.slug} fill="#ddf4ef" shadow="inset 0 0 0 2px rgba(10,127,114,0.35), inset 0 -4px 0 rgba(10,127,114,0.25)" className="inline-flex items-center rounded-2xl border-2 border-line bg-polar p-1">
+      <div role="tablist" aria-label="Courses" className="flex items-center gap-1">
         {courses.map((x) => (
           <button
             key={x.slug}

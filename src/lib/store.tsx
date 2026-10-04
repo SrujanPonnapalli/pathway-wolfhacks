@@ -9,7 +9,7 @@ import { demo, getProfiles, getState, getTree, isLive, sync, type Horizon } from
 import { ACTIONABLE, meta, moveText, reasonFor as reasonForSteps } from "./features";
 import type { ClassSeed, CourseSeed, Profile } from "./mock";
 import { explain, predict, recourse, type Features, type Tree } from "./tree";
-import { soften, vivaReply, type Action } from "./viva";
+import { sampleChatSessions, soften, vivaReply, type Action, type ChatSession, type Reply } from "./viva";
 import { askCoach, coachContext } from "./api";
 import type { Source } from "./intel/coach";
 import { inboxFor } from "./inbox";
@@ -18,6 +18,7 @@ import { blocksAsEvents, demoWeek, sourceEvents, suggest, type CalEvent, type Su
 import type { Proposal } from "./intel/planner";
 
 export type ChatMsg = { role: "you" | "viva"; text: string; actions?: Action[] };
+export type { ChatSession };
 export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
@@ -29,6 +30,8 @@ type PState = {
   done: Record<string, boolean>;
   checkedIn: Record<string, boolean>;
   chat: ChatMsg[];
+  chatSessions: ChatSession[];
+  activeChatId: string;
   sources: Source[]; // dropped files, parsed by Gemini, kept on this device
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
   dismissed: string[]; // suggestion ids the student said "not now" to
@@ -38,7 +41,35 @@ type PState = {
 type Saved = { profile: string; by: Record<string, PState> };
 
 const KEY = "pathway:v1";
-const empty = (): PState => ({ added: [], addedClasses: [], deltas: {}, midterm: {}, blocks: [], done: {}, checkedIn: {}, chat: [], sources: [], moved: {}, dismissed: [], gids: {}, removed: [] });
+const empty = (profileId: string = "maya"): PState => {
+  const seedSessions = sampleChatSessions(profileId);
+  const activeId = `chat-new-${profileId}`;
+  const newChat: ChatSession = {
+    id: activeId,
+    title: "New conversation",
+    createdAt: demo.now.toISOString(),
+    updatedAt: demo.now.toISOString(),
+    messages: [],
+  };
+  const sessions = [newChat, ...seedSessions];
+  return {
+    added: [],
+    addedClasses: [],
+    deltas: {},
+    midterm: {},
+    blocks: [],
+    done: {},
+    checkedIn: {},
+    chat: [],
+    chatSessions: sessions,
+    activeChatId: activeId,
+    sources: [],
+    moved: {},
+    dismissed: [],
+    gids: {},
+    removed: [],
+  };
+};
 const SCHEDULED_CLASSES = 20; // class meetings so far; one check-in moves attendance by ~1/21
 
 export function featuresFor(c: CourseSeed, s: PState): Features {
@@ -110,7 +141,7 @@ function useStore() {
     getState(id).then((r) => {
       if (!r) return;
       setSaved((v) => {
-        const cur = v.by[id] ?? empty();
+        const cur = v.by[id] ?? empty(id);
         return { ...v, by: { ...v.by, [id]: { ...cur, deltas: r.deltas, checkedIn: r.checkedIn, blocks: r.blocks, done: r.done, added: [], addedClasses: [] } } };
       });
     });
@@ -122,7 +153,45 @@ function useStore() {
 
   const profile = profiles.find((p) => p.id === saved.profile) ?? profiles[0];
   // Older saved state (or a database row) may lack newer fields; merge over a blank state. Memoized so `courses` is stable.
-  const s = useMemo<PState>(() => ({ ...empty(), ...((profile && saved.by[profile.id]) ?? {}) }), [profile, saved]);
+  const s = useMemo<PState>(() => {
+    const raw = (profile && saved.by[profile.id]) ?? {};
+    const base = empty(profile?.id ?? "maya");
+
+    let sessions: ChatSession[] = raw.chatSessions && raw.chatSessions.length > 0 ? raw.chatSessions : [];
+    let activeChatId: string = raw.activeChatId ?? "";
+
+    if (sessions.length === 0) {
+      if (raw.chat && raw.chat.length > 0) {
+        const legacy: ChatSession = {
+          id: `chat-legacy-${profile?.id ?? "default"}`,
+          title: raw.chat.find((m: ChatMsg) => m.role === "you")?.text.slice(0, 36) || "Previous check-in",
+          createdAt: demo.now.toISOString(),
+          updatedAt: demo.now.toISOString(),
+          messages: raw.chat,
+        };
+        sessions = [legacy, ...base.chatSessions.filter((x) => x.id !== legacy.id)];
+        activeChatId = legacy.id;
+      } else {
+        sessions = base.chatSessions;
+        activeChatId = sessions[0]?.id ?? `chat-new-${profile?.id ?? "default"}`;
+      }
+    }
+
+    if (!activeChatId || !sessions.some((x) => x.id === activeChatId)) {
+      activeChatId = sessions[0]?.id ?? `chat-new-${profile?.id ?? "default"}`;
+    }
+
+    const activeSession = sessions.find((x) => x.id === activeChatId);
+    const activeMessages = activeSession?.messages ?? (raw.chat ?? []);
+
+    return {
+      ...base,
+      ...raw,
+      chatSessions: sessions,
+      activeChatId,
+      chat: activeMessages,
+    };
+  }, [profile, saved]);
 
   const view = useCallback(
     (c: CourseSeed, st: PState): CourseView | null => {
@@ -270,7 +339,7 @@ function useStore() {
 
   const say = (text: string) => setToast({ id: Date.now(), text });
   const update = (fn: (st: PState) => PState) =>
-    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(), ...(v.by[profile.id] ?? {}) }) } }));
+    profile && setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: fn({ ...empty(profile.id), ...(v.by[profile.id] ?? {}) }) } }));
 
   const [notices, setNotices] = useState<{ id: number; text: string }[]>([]);
   const prevGoogle = useRef<Map<string, CalEvent> | null>(null);
@@ -435,6 +504,35 @@ function useStore() {
     say(`${label}.${moved}${flip}`);
   };
 
+  // One Gemini-backed coaching turn, shared by chat and voice so they can't diverge: same
+  // context (courses, to-dos, blocks, sources, inbox, week, suggestions), same history, same
+  // answer. The local mock replies only when /api/coach can't be reached, and the console
+  // says which brain answered.
+  const coachTurn = async (text: string): Promise<Reply & { via: "gemini" | "local" }> => {
+    try {
+      const ctx = coachContext({
+        now: demo.now,
+        studentName: profile?.sample ? profile.name ?? "" : "",
+        courses,
+        todos: profile?.todos ?? [],
+        blocks: s.blocks,
+        sources: s.sources,
+        inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
+        week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
+        suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
+      });
+      // Voice appends the student's turn before calling this; don't send it twice.
+      const history = s.chat[s.chat.length - 1]?.role === "you" && s.chat[s.chat.length - 1].text === text ? s.chat.slice(0, -1) : s.chat;
+      const r = await askCoach(text, ctx, history);
+      if (!r.text.trim()) throw new Error("empty reply");
+      console.info(`[viva] Gemini answered in ${r.ms}ms${r.filtered ? " (filtered)" : ""}`);
+      return { text: soften(r.text), actions: [], via: "gemini" };
+    } catch (e) {
+      console.warn("[viva] /api/coach unavailable, using the local fallback brain:", (e as Error).message);
+      return { ...vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }), via: "local" };
+    }
+  };
+
   return {
     ready: !!trees && !!profile,
     error,
@@ -447,7 +545,7 @@ function useStore() {
     dismissToast: () => setToast(undefined),
     setProfile: (id: string) => setSaved((v) => ({ ...v, profile: id })),
     reset: async () => {
-      setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty() } }));
+      setSaved((v) => ({ ...v, by: { ...v.by, [profile.id]: empty(profile.id) } }));
       await sync.reset(profile.id);
       if (isLive()) {
         setProfiles(await getProfiles());
@@ -578,36 +676,151 @@ function useStore() {
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
     vivaThinking,
+    coachTurn,
+    chatSessions: s.chatSessions,
+    activeChatId: s.activeChatId,
+    activeChat: s.chatSessions.find((x) => x.id === s.activeChatId) ?? s.chatSessions[0],
+    startNewChat: () => {
+      const newId = `chat-${Date.now()}`;
+      const newSession: ChatSession = {
+        id: newId,
+        title: "New conversation",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        messages: [],
+      };
+      update((st) => ({
+        ...st,
+        chatSessions: [newSession, ...(st.chatSessions ?? [])],
+        activeChatId: newId,
+        chat: [],
+      }));
+      return newId;
+    },
+    selectChat: (id: string) => {
+      update((st) => {
+        const target = st.chatSessions?.find((x) => x.id === id);
+        if (!target) return st;
+        return {
+          ...st,
+          activeChatId: id,
+          chat: target.messages,
+        };
+      });
+    },
+    deleteChat: (id: string) => {
+      update((st) => {
+        const current = st.chatSessions ?? [];
+        const nextSessions = current.filter((x) => x.id !== id);
+        let nextActiveId = st.activeChatId;
+        let nextMessages = st.chat;
+
+        if (st.activeChatId === id) {
+          if (nextSessions.length > 0) {
+            nextActiveId = nextSessions[0].id;
+            nextMessages = nextSessions[0].messages;
+          } else {
+            const freshId = `chat-${Date.now()}`;
+            const freshSession: ChatSession = {
+              id: freshId,
+              title: "New conversation",
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+              messages: [],
+            };
+            nextSessions.push(freshSession);
+            nextActiveId = freshId;
+            nextMessages = [];
+          }
+        }
+
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: nextActiveId,
+          chat: nextMessages,
+        };
+      });
+      say("Conversation deleted.");
+    },
     reply: (text: string) => vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses }),
-    addTurn: (m: ChatMsg) => update((st) => ({ ...st, chat: [...st.chat, m] })),
-    // Chat mode: show the question, "think" briefly, then answer. TODO: POST /api/coach.
-    // Chat mode: show the question, ask Gemini (POST /api/coach, tools over the numbers already on this
-    // device), keep the mock's action chips. If Gemini is unreachable, fall back to the mock brain so the
-    // page never goes silent.
+    addTurn: (m: ChatMsg) =>
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId) ?? {
+          id: activeId,
+          title: "New conversation",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+        };
+        const nextMessages = [...active.messages, m];
+        const nextTitle =
+          active.title === "New conversation" && m.role === "you"
+            ? (m.text.slice(0, 36) + (m.text.length > 36 ? "…" : ""))
+            : active.title;
+        const updatedSession: ChatSession = { ...active, title: nextTitle, updatedAt: new Date().toISOString(), messages: nextMessages };
+        const nextSessions = sessions.some((s) => s.id === activeId)
+          ? sessions.map((s) => (s.id === activeId ? updatedSession : s))
+          : [updatedSession, ...sessions];
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: activeId,
+          chat: nextMessages,
+        };
+      }),
+    // Chat mode: show the question, run the shared Gemini coach, then append Viva's turn.
+    // If the coach route is down the local fallback answers so the page never goes silent.
     ask: async (text: string) => {
       const local = vivaReply(text, { name: profile?.sample ? profile.name : undefined, courses });
-      update((st) => ({ ...st, chat: [...st.chat, { role: "you", text }] }));
+      const userMsg: ChatMsg = { role: "you", text };
+
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId) ?? {
+          id: activeId,
+          title: "New conversation",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          messages: [],
+        };
+        const nextMessages = [...active.messages, userMsg];
+        const nextTitle =
+          active.title === "New conversation"
+            ? (text.slice(0, 36) + (text.length > 36 ? "…" : ""))
+            : active.title;
+        const updatedSession: ChatSession = { ...active, title: nextTitle, updatedAt: new Date().toISOString(), messages: nextMessages };
+        const nextSessions = sessions.some((s) => s.id === activeId)
+          ? sessions.map((s) => (s.id === activeId ? updatedSession : s))
+          : [updatedSession, ...sessions];
+        return {
+          ...st,
+          chatSessions: nextSessions,
+          activeChatId: activeId,
+          chat: nextMessages,
+        };
+      });
+
       setVivaThinking(true);
-      let answer = local.text;
-      try {
-        const ctx = coachContext({
-          now: demo.now,
-          studentName: profile?.sample ? profile.name ?? "" : "",
-          courses,
-          todos: profile?.todos ?? [],
-          blocks: s.blocks,
-          sources: s.sources,
-          inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
-          week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
-          suggestions: suggestions.map((x) => ({ title: x.title, why: x.why })),
-        });
-        const r = await askCoach(text, ctx, s.chat);
-        if (r.text.trim()) answer = soften(r.text);
-      } catch (e) {
-        console.warn("coach unavailable, using local reply:", (e as Error).message);
-      }
+      const r = await coachTurn(text);
       setVivaThinking(false);
-      update((st) => ({ ...st, chat: [...st.chat, { role: "viva", text: answer, actions: local.actions }] }));
+      const vivaMsg: ChatMsg = { role: "viva", text: r.text, actions: local.actions };
+      update((st) => {
+        const sessions = st.chatSessions ?? [];
+        const activeId = st.activeChatId || sessions[0]?.id || `chat-${Date.now()}`;
+        const active = sessions.find((s) => s.id === activeId);
+        if (!active) return { ...st, chat: [...st.chat, vivaMsg] };
+        const nextMessages = [...active.messages, vivaMsg];
+        const updatedSession: ChatSession = { ...active, updatedAt: new Date().toISOString(), messages: nextMessages };
+        return {
+          ...st,
+          chatSessions: sessions.map((s) => (s.id === activeId ? updatedSession : s)),
+          chat: nextMessages,
+        };
+      });
     },
   };
 }

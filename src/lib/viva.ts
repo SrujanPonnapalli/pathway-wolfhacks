@@ -7,8 +7,9 @@
 // - Honest about limits: patterns, not verdicts; "I could be wrong".
 // - Loves turning advice into a time on the calendar.
 //
-// This file is the mock brain. TODO: replace vivaReply() with POST /api/coach (Gemini with tools:
-// explain_path, recourse, make_plan, quiz_me) and keep soften() on whatever comes back.
+// This file is the fallback brain. Chat and voice both answer through POST /api/coach (Gemini)
+// via the shared coachTurn() in src/lib/store.tsx; vivaReply() runs only when that route is
+// unreachable, so one canned reply beats silence. soften() still applies to whatever comes back.
 import { goalText, meta, sentence } from "./features.ts";
 
 export const VIVA = {
@@ -100,4 +101,117 @@ export function vivaReply(input: string, ctx: { name?: string; courses: Course[]
   return out(
     "I only see your study numbers and the model, so I might be missing context. Try asking what to focus on, why a class has its status, or to plan your week.",
   );
+}
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: { role: "you" | "viva"; text: string; actions?: Action[] }[];
+};
+
+export function sampleChatSessions(profileId: string = "maya"): ChatSession[] {
+  if (profileId === "maya") {
+    return [
+      {
+        id: "session-maya-bio-checkin",
+        title: "Why is BIO 181 worth a check-in?",
+        createdAt: "2026-10-05T14:15:00.000Z",
+        updatedAt: "2026-10-05T14:18:20.000Z",
+        messages: [
+          { role: "you", text: "Why is BIO 181 worth a check-in?" },
+          {
+            role: "viva",
+            text: "BIO 181 is worth a check-in because attendance is under 72% and exam prep starts 2 days out. That's what 84 similar students had in common, so I could be wrong about you. Want to see the full path?",
+            actions: [{ label: "See BIO 181 path", href: "/insights?course=bio-181" }],
+          },
+          { role: "you", text: "What's the best way to get back on track?" },
+          {
+            role: "viva",
+            text: "The biggest lever is bumping practice quizzes to 3 and starting review 5 days out. Logging one 5-minute quiz today shifts your projected standing. Want me to plan that?",
+            actions: [
+              { label: "Open the plan", href: "/insights?course=bio-181" },
+              { label: "Take a 5-min quiz", href: "/study?tool=quiz&course=bio-181" },
+            ],
+          },
+        ],
+      },
+      {
+        id: "session-maya-weekly-plan",
+        title: "Weekly study schedule & focus",
+        createdAt: "2026-10-03T10:00:00.000Z",
+        updatedAt: "2026-10-03T10:05:40.000Z",
+        messages: [
+          { role: "you", text: "What should I focus on this week?" },
+          {
+            role: "viva",
+            text: "I'd start with BIO 181: attendance is under 72% and your Midterm 1 is in 13 days. Students with a similar pattern often get back on track with 3 practice quizzes. Want me to plan that?",
+            actions: [{ label: "See BIO 181 path", href: "/insights?course=bio-181" }],
+          },
+          { role: "you", text: "Plan my week" },
+          {
+            role: "viva",
+            text: "Let's put it on the calendar. For BIO 181, the smallest change is taking 3 practice quizzes. Press Make it real and I'll add up to 3 study blocks before your Midterm 1.",
+            actions: [{ label: "Open the plan", href: "/insights?course=bio-181" }],
+          },
+        ],
+      },
+    ];
+  }
+
+  if (profileId === "jordan") {
+    return [
+      {
+        id: "session-jordan-ece",
+        title: "ECE 200 lab & problem set strategy",
+        createdAt: "2026-10-04T16:00:00.000Z",
+        updatedAt: "2026-10-04T16:04:10.000Z",
+        messages: [
+          { role: "you", text: "How am I doing in ECE 200?" },
+          {
+            role: "viva",
+            text: "ECE 200 is worth a check-in: late-night study is at 41% and your problem set 5 is due Wednesday. Shifting prep 2 days earlier is linked to much lower exam stress. Want to see the full path?",
+            actions: [{ label: "See ECE 200 path", href: "/insights?course=ece-200" }],
+          },
+        ],
+      },
+    ];
+  }
+
+  if (profileId === "priya") {
+    return [
+      {
+        id: "session-priya-chem",
+        title: "CH 101 Exam 1 review plan",
+        createdAt: "2026-10-04T09:30:00.000Z",
+        updatedAt: "2026-10-04T09:33:00.000Z",
+        messages: [
+          { role: "you", text: "What should I focus on for CH 101?" },
+          {
+            role: "viva",
+            text: "You have a 9-day streak going! CH 101 Exam 1 is on Wednesday morning. Review Chapter 4 flashcards today to lock in your standing.",
+            actions: [{ label: "Review Flashcards", href: "/study?tool=flashcards&course=ch-101" }],
+          },
+        ],
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "session-judge-intro",
+      title: "How Pathway & Viva work together",
+      createdAt: "2026-10-05T08:00:00.000Z",
+      updatedAt: "2026-10-05T08:02:15.000Z",
+      messages: [
+        { role: "you", text: "How does the model calculate my standing?" },
+        {
+          role: "viva",
+          text: "The decision tree evaluates your study numbers directly on your device. Every status comes with its exact branch path and the cheapest actionable change to stay on track.",
+          actions: [{ label: "Check Insights", href: "/insights" }],
+        },
+      ],
+    },
+  ];
 }

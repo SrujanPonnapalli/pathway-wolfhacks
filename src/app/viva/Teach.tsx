@@ -18,6 +18,7 @@ import { teachConcepts, teachFeedback, teachStart } from "@/lib/api";
 import { prebuiltConcepts } from "@/lib/knowledge/teachConcepts";
 import type { Concept } from "@/lib/intel/study";
 import { docsFor } from "@/lib/knowledge/sample";
+import { openMic } from "@/lib/mic";
 import { usePathway, type ChatMsg } from "@/lib/store";
 import {
   MAX_ROUNDS,
@@ -109,12 +110,8 @@ function useDictation(onText: (text: string) => void, beforeStart: () => void) {
     if (phase !== "idle") return;
     setErr("");
     beforeStart();
-    let stream: MediaStream;
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-    } catch {
-      return setErr("Your microphone is off, so type it instead.");
-    }
+    const stream = await openMic();
+    if (!stream) return setErr("Your microphone is off, so type it instead.");
     const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm"].find((t) => MediaRecorder.isTypeSupported(t));
     const r = new MediaRecorder(stream, type ? { mimeType: type } : undefined);
     const chunks: Blob[] = [];

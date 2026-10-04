@@ -7,6 +7,7 @@
 // no voice service → captions with simulated speech. The page reads { state, input, output, caption }.
 import { useEffect, useRef, useState } from "react";
 import type { OrbState } from "orb-ui";
+import { openMic } from "@/lib/mic";
 
 export type Caption = { who: "you" | "viva"; text: string } | null;
 type Who = "you" | "viva";
@@ -73,6 +74,9 @@ export function useVoiceSession(opts: {
       const output =
         s !== "speaking" ? 0 : fakeOut.current ? Math.abs(Math.sin(((now() - t0) / 1000) * 9)) * (0.4 + Math.random() * 0.6) : level(outAn.current, buf.current);
       setLevels({ input, output });
+      // micOn mirrors the real track, not a flag set when the stream opened:
+      // a track that dies mid-session flips the UI back to "microphone is off".
+      setMicOn(stream.current?.getAudioTracks()[0]?.readyState === "live");
     }, 50);
     return () => clearInterval(id);
   }, [state]);
@@ -240,14 +244,14 @@ export function useVoiceSession(opts: {
       ctx.current ??= new AudioContext();
       await ctx.current.resume().catch(() => {});
       buf.current ??= new Float32Array(1024);
-      try {
-        stream.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream.current = await openMic();
+      if (stream.current) {
         const an = ctx.current.createAnalyser();
         an.fftSize = 1024;
         ctx.current.createMediaStreamSource(stream.current).connect(an);
         micAn.current = an;
         setMicOn(true);
-      } catch {
+      } else {
         setNotice("Microphone is off, so tap a question below to talk with Viva.");
       }
       if (run.current !== id) return;
@@ -263,14 +267,14 @@ export function useVoiceSession(opts: {
       ctx.current ??= new AudioContext();
       await ctx.current.resume().catch(() => {});
       buf.current ??= new Float32Array(1024);
-      try {
-        stream.current = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      stream.current = await openMic();
+      if (stream.current) {
         const an = ctx.current.createAnalyser();
         an.fftSize = 1024;
         ctx.current.createMediaStreamSource(stream.current).connect(an);
         micAn.current = an;
         setMicOn(true);
-      } catch {
+      } else {
         setNotice("Microphone is off, so tap a question below to talk with Viva.");
       }
       if (run.current !== id) return;

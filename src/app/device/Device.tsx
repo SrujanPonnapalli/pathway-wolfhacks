@@ -17,6 +17,7 @@ import { useViva } from "@/components/VivaDock";
 import { deviceContext, onVisionEvents, reportObservation } from "@/lib/awareness";
 import { goalText } from "@/lib/features";
 import type { Observation } from "@/lib/intel/vision";
+import { openMic, useMicStatus } from "@/lib/mic";
 import { planBlocks } from "@/lib/plan";
 import { fmtDay, fmtTime, usePathway, type CourseView } from "@/lib/store";
 import { VIVA } from "@/lib/viva";
@@ -286,10 +287,9 @@ function useWakeWord() {
 
     // Fallback: short mic chunks through the existing ElevenLabs STT route, idle only.
     const startChunks = async () => {
-      try {
-        res.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-      } catch (e) {
-        log(`mic unavailable: ${(e as Error).message}`);
+      res.stream = await openMic();
+      if (!res.stream) {
+        log("mic unavailable");
         return;
       }
       if (!alive()) return stop();
@@ -376,6 +376,7 @@ function useWakeWord() {
 export function WakeWord() {
   const { voice } = useViva();
   useWakeWord();
+  const mic = useMicStatus();
   const label =
     voice.state === "listening"
       ? "Listening…"
@@ -387,12 +388,18 @@ export function WakeWord() {
             ? "Connecting…"
             : 'Say "Hey Viva"';
   return (
-    <div
-      aria-live="polite"
-      className="absolute left-1/2 top-[22px] z-50 flex -translate-x-[calc(100%+3px)] items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-sm"
-    >
-      <Mic size={13} strokeWidth={2.8} aria-hidden className={voice.state === "idle" ? "text-muted" : "text-sky"} />
-      {label}
+    <div className="absolute left-1/2 top-[22px] z-50 flex -translate-x-[calc(100%+3px)] flex-col items-end gap-1.5">
+      <div
+        aria-live="polite"
+        className="flex items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-line bg-white px-3 py-1.5 text-[0.68rem] font-extrabold uppercase tracking-widest shadow-sm"
+      >
+        <Mic size={13} strokeWidth={2.8} aria-hidden className={voice.state === "idle" ? "text-muted" : "text-sky"} />
+        {label}
+      </div>
+      {/* Temporary kiosk debug: which mic the browser actually opened. */}
+      <p aria-live="polite" className="rounded-lg bg-black/70 px-2 py-1 text-[0.6rem] font-bold text-white">
+        MIC: {mic.label ?? "unavailable"}
+      </p>
     </div>
   );
 }

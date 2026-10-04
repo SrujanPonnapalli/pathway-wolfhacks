@@ -68,6 +68,7 @@ export type AgentContext = CoachContext & {
   files: { course: string; title: string; kind: string }[];
   recourse: { course: string; plan: string }[]; // what "make it real" would add, per flagged course
   excerpts?: { course: string; title: string; text: string }[]; // the lecture files this message is about, picked by word overlap (no model call)
+  health?: string; // the Google Fit line (src/lib/health.ts): last night, the week's average, readiness, today's calls
 };
 
 export type AgentReply = { say: string; actions: AgentAction[]; remember: string[]; used: string[]; specialist: string; ms: number; usage: { input: number; output: number } };
@@ -143,7 +144,12 @@ Rules:
 11. The "desk camera" line, when present, reports plainly observed scene facts from the kiosk camera. Use it only for
     presence and schedule relevance (welcome back after a PERSON_RETURNED, note a step-away during a study block,
     acknowledge materials are out). Never infer emotion, stress, focus, tiredness, health, or identity, and never
-    change a status or act on a suggestion because of it.`;
+    change a status or act on a suggestion because of it.
+12. The "Google Fit" line, when present, is the student's own data from their watch, with the app's calls already worked
+    out (rest day, wind-down, a walk). Plan around it: on a rest day propose no lifting and treat the gym block as a walk;
+    with a wind-down call, put nothing after 11 PM; repeat its calls as its calls ("Fit says..."), never as diagnosis.
+    The 7-night sleep average is one of the model's inputs (avg_sleep_hours), so you may say a full night moves that
+    number, under rule 3. Rule 4 still applies to everything the Fit line does not say.`;
 
 const CHANNEL = {
   chat: "Reply in at most three short sentences, plain words, no headers or lists. Then one question back at most.",
@@ -188,6 +194,7 @@ export function renderAgentContext(ctx: AgentContext): string {
   }
   if (ctx.suggestionIds.length) L.push(`pending suggestion ids: ${ctx.suggestionIds.map((x) => `${x.id}=${x.title}`).join("; ")}`);
   if (ctx.recourse.length) L.push(`make-it-real plans: ${ctx.recourse.map((r) => `${r.course}: ${r.plan}`).join(" | ")}`);
+  if (ctx.health) L.push(`Google Fit: ${ctx.health}`);
   return L.join("\n");
 }
 

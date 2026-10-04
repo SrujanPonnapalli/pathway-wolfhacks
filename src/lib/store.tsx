@@ -26,13 +26,15 @@ import { inboxFor } from "./inbox";
 import * as gcal from "./gcal";
 import { blocksAsEvents, demoWeek, freeSlot, localIso, slotsFor, sourceEvents, suggest, toLocal, type CalEvent, type Suggestion } from "./schedule";
 import { pickExcerpts } from "./knowledge/excerpts";
+import { DEMO_PROFILE } from "./demo";
+import { FIT_DEMO, featuresFromHealth, healthLine, healthSlot, type FitSnapshot, type HealthCall } from "./health";
 import { docsFor } from "./knowledge/sample";
 import type { Proposal } from "./intel/planner";
 import ROWS from "./rows.json";
 
 export type ChatMsg = ChatMessage;
 export type { ChatSession };
-export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string; minutes?: number; synced?: boolean /* seen in the database at least once */ };
+export type Block = { id: string; course: string; title: string; at: string; done: boolean; googleId?: string; minutes?: number; synced?: boolean /* seen in the database at least once */; kind?: "study" | "health" /* a health block (walk, wind-down) is on the week but isn't study */ };
 type Deltas = { quizzes: number; checkins: number; sessions: number };
 type PState = {
   added: CourseSeed[];
@@ -49,6 +51,7 @@ type PState = {
   materials: Record<string, StudyMaterial>; // latest slides/notes read per course: Study's quiz and Viva's Teach mode use them
   toReview: ReviewItem[]; // key ideas a Teach session found fuzzy or missing; Study offers a quiz or deck on each
   moved: Record<string, { start: string; end: string }>; // approved moves of demo/Google events
+  renamed: Record<string, string>; // new titles for demo events (a gym block swapped for a walk)
   dismissed: string[]; // suggestion ids the student said "not now" to
   gids: Record<string, string>; // local event id -> Google event id, for everything Pathway wrote to Google
   removed: string[]; // feed events the student deleted in Google Calendar; we stop showing and re-adding them
@@ -87,6 +90,7 @@ const empty = (profileId: string = "maya"): PState => {
     materials: {},
     toReview: [],
     moved: {},
+    renamed: {},
     dismissed: [],
     gids: {},
     removed: [],
@@ -101,13 +105,17 @@ const pickExtras = (st: PState): Extras => ({
   activeChatId: st.activeChatId ?? "",
   dismissed: st.dismissed ?? [],
   moved: st.moved ?? {},
+  renamed: st.renamed ?? {},
   removed: st.removed ?? [],
   notes: st.notes ?? [],
   toReview: st.toReview ?? [],
   materials: st.materials ?? {},
+  healthBlocks: (st.blocks ?? []).filter((b) => b.kind === "health"), // the database keeps study blocks; these ride along here
   greeted: !!st.greeted,
   ...(st.resetAt ? { resetAt: st.resetAt } : {}),
 });
+
+const healthBlocksOf = (x: Extras): Block[] => ((Array.isArray(x.healthBlocks) ? x.healthBlocks : []) as Block[]).filter((b) => b && typeof b.id === "string" && typeof b.at === "string");
 
 /** Server copy into local state: unions and newest-wins, so two devices add to each other. After a Reset this
  *  device hasn't seen, the server copy replaces this device's instead, so nothing Reset cleared comes back. */
@@ -123,8 +131,10 @@ function mergeExtras(id: string, st: PState, x: Extras): PState {
       removed: (x.removed as string[] | undefined) ?? [],
       notes: (x.notes as string[] | undefined) ?? [],
       moved: (x.moved as PState["moved"] | undefined) ?? {},
+      renamed: (x.renamed as PState["renamed"] | undefined) ?? {},
       toReview: (x.toReview as PState["toReview"] | undefined) ?? [],
       materials: (x.materials as PState["materials"] | undefined) ?? {},
+      blocks: [...(st.blocks ?? []).filter((b) => b.kind !== "health"), ...healthBlocksOf(x)],
       greeted: !!x.greeted,
       resetAt: x.resetAt,
     };
@@ -152,8 +162,10 @@ function mergeExtras(id: string, st: PState, x: Extras): PState {
     removed: union(st.removed, x.removed),
     notes: union(st.notes, x.notes),
     moved: { ...((x.moved as PState["moved"] | undefined) ?? {}), ...(st.moved ?? {}) },
+    renamed: { ...((x.renamed as PState["renamed"] | undefined) ?? {}), ...(st.renamed ?? {}) },
     toReview,
     materials: { ...((x.materials as PState["materials"] | undefined) ?? {}), ...(st.materials ?? {}) },
+    blocks: [...(st.blocks ?? []), ...healthBlocksOf(x).filter((b) => !(st.blocks ?? []).some((m) => m.id === b.id))],
     greeted: !!(st.greeted || x.greeted),
     resetAt: st.resetAt ?? (typeof x.resetAt === "string" ? x.resetAt : undefined),
   };
@@ -167,7 +179,7 @@ const YEAR_ORD: Record<string, number> = { Freshman: 1, Sophomore: 2, Junior: 3,
 // The full feature vector the notebook's trees expect: the dataset row behind this course fills in
 // what the profile doesn't set (sleep, quiz average, class year...), the profile's own numbers win,
 // then everything the student did in the app moves the numbers.
-export function featuresFor(c: CourseSeed, s: PState, classYear = ""): Features {
+export function featuresFor(c: CourseSeed, s: PState, classYear = "", health: FitSnapshot | null = null): Features {
   const d = s.deltas[c.slug] ?? { quizzes: 0, checkins: 0, sessions: 0 };
   const rows = ROWS as Record<string, Features>;
   const x: Features = { ...rows._median, ...(rows[c.row] ?? {}), ...c.x };
@@ -190,6 +202,8 @@ export function featuresFor(c: CourseSeed, s: PState, classYear = ""): Features 
   x.study_sessions_logged = (x.study_sessions_logged ?? 0) + d.sessions;
   x.attendance_rate = +(((x.attendance_rate ?? 0) * SCHEDULED_CLASSES + d.checkins) / (SCHEDULED_CLASSES + d.checkins)).toFixed(4);
   if (s.midterm[c.slug] != null) x.midterm_score = s.midterm[c.slug];
+  // Google Fit's week of sleep is the model's sleep (avg_sleep_hours is one of the tree's own inputs).
+  if (health) Object.assign(x, featuresFromHealth(health));
   return x;
 }
 
@@ -412,14 +426,17 @@ function useStore() {
     };
   }, [profile, saved]);
 
+  // Google Fit: the demo profile arrives connected (last night's numbers, src/lib/health.ts); any other
+  // profile has nothing until a real link exists.
+  const health: FitSnapshot | null = profile?.id === DEMO_PROFILE ? FIT_DEMO : null;
   const view = useCallback(
     (c: CourseSeed, st: PState): CourseView | null => {
       if (!trees) return null;
       const horizon: Horizon = st.midterm[c.slug] != null ? "mid" : "early";
-      const x = featuresFor(c, st, profile?.classYear);
+      const x = featuresFor(c, st, profile?.classYear, health);
       return { ...c, x, horizon, tree: trees[horizon], daysToExam: daysBetween(demo.now, new Date(c.exam.date)), ...score(trees[horizon], x) };
     },
-    [trees, profile],
+    [trees, profile, health],
   );
 
   const courses = useMemo(
@@ -460,11 +477,11 @@ function useStore() {
 
   const localEvents = useMemo<CalEvent[]>(() => {
     if (!profile) return [];
-    const demoFeed = demoWeek(demo.now, courses, profile.todos);
+    const demoFeed = demoWeek(demo.now, courses, profile.todos, health?.gym);
     const feed = [...demoFeed, ...sourceEvents(s.sources, courses, demo.now, demoFeed)];
     const base = [...feed, ...blocksAsEvents(s.blocks)].filter((e) => !s.removed.includes(e.id));
-    return base.map((e) => (s.moved[e.id] ? { ...e, ...s.moved[e.id] } : e));
-  }, [profile, courses, s.blocks, s.moved, s.sources, s.removed]);
+    return base.map((e) => ({ ...e, ...(s.moved[e.id] ?? {}), ...(s.renamed[e.id] ? { title: s.renamed[e.id] } : {}) }));
+  }, [profile, courses, s.blocks, s.moved, s.renamed, s.sources, s.removed, health]);
   // What Google adds to the week: the student's own entries (no Pathway tag), plus study blocks
   // Pathway planned for this profile on another device. Copies of what's rendered locally are
   // skipped, and Pathway's copies for other profiles or of things no longer on the week are not
@@ -797,6 +814,21 @@ function useStore() {
     return r.text;
   };
 
+  /** Rename a block Pathway made, or one of the week's own events (gym, club, work). Returns false for classes, exams and Google events, which keep their names. */
+  /** Rename a block Pathway made, or one of the week's own events (gym, club, work). Returns false for classes, exams and Google events, which keep their names. */
+  const renameEvent = (id: string, title: string) => {
+    const gid = gidFor(id);
+    if (s.blocks.some((b) => b.id === id)) {
+      update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === id ? { ...b, title } : b)) }));
+      sync.blockEdit(profile.id, id, { title });
+    } else {
+      const ev = localEvents.find((e) => e.id === id);
+      if (!ev || ev.source !== "demo" || ev.kind === "class" || ev.kind === "exam" || ev.title.startsWith("Due:")) return false;
+      update((st) => ({ ...st, renamed: { ...st.renamed, [id]: title } })); // rides along in profile extras, so every device sees it
+    }
+    if (gid && gcal.isConnected()) gcal.rename(gid, title).catch(() => {});
+    return true;
+  };
   const base = {
     ready: !!trees && !!profile,
     /** Loaded, but no profile to show: not signed in and not in demo mode. The app shows its front door. */
@@ -806,7 +838,8 @@ function useStore() {
     now: demo.now,
     profiles,
     profile,
-    state: { ...s, blocks: allBlocks },
+    // Study blocks only (what counts as effort); health blocks ride beside them.
+    state: { ...s, blocks: allBlocks.filter((b) => b.kind !== "health"), healthBlocks: allBlocks.filter((b) => b.kind === "health") },
     courses,
     toast,
     dismissToast: () => setToast(undefined),
@@ -1016,14 +1049,29 @@ function useStore() {
       say(dated ? `${src.title} filed under ${src.course}: ${dated} dates added to your week${gcal.isConnected() ? " and Google Calendar" : ""}.` : `${src.title} filed under ${src.course}.${rescored || " Viva can use it now."}`);
     },
     removeSource: (i: number) => update((st) => ({ ...st, sources: st.sources.filter((_, j) => j !== i) })),
-    /** Rename a block Pathway made. Returns false for Moodle or Google events, which keep their names. */
-    renameEvent: (id: string, title: string) => {
-      if (!s.blocks.some((b) => b.id === id)) return false;
-      update((st) => ({ ...st, blocks: st.blocks.map((b) => (b.id === id ? { ...b, title } : b)) }));
-      sync.blockEdit(profile.id, id, { title });
-      const gid = gidFor(id);
-      if (gid && gcal.isConnected()) gcal.rename(gid, title).catch(() => {});
-      return true;
+    renameEvent,
+    /** Google Fit, for this profile: last night's numbers and the week's (null until an account is linked). */
+    health,
+    /** Act on one of today's health calls: the gym block becomes a walk, or a wind-down or walk lands on the week. */
+    applyHealthCall: (id: HealthCall["id"]) => {
+      if (!health) return;
+      const dow = (demo.now.getDay() + 6) % 7;
+      if (id === "rest") {
+        const gymId = `demo-gym-${dow}`;
+        const gym = localEvents.find((e) => e.id === gymId);
+        if (!gym) return;
+        if (gym.title.startsWith("Rest day")) return;
+        renameEvent(gymId, "Rest day · 20-min walk");
+        say(`"${gym.title}" is now a rest-day walk${gcal.isConnected() ? ", here and in Google Calendar" : ""}.`);
+        return;
+      }
+      const b: Block =
+        id === "winddown"
+          ? { id: "health-winddown", course: "", title: "Wind down · screens off, lights out 11:30", at: healthSlot(demo.now, 0, 23, 0), done: false, minutes: 30, kind: "health" }
+          : { id: "health-walk", course: "", title: "Walk · 20 min (cardio)", at: healthSlot(demo.now, 1, 8, 0), done: false, minutes: 20, kind: "health" };
+      if (s.blocks.some((x) => x.id === b.id)) return;
+      update((st) => ({ ...st, blocks: [...st.blocks.filter((x) => x.id !== b.id), b] })); // extras carry it to other devices; the sync effect writes it to Google
+      say(`"${b.title}" added ${id === "winddown" ? "tonight" : "tomorrow morning"}${gcal.isConnected() ? ", here and in Google Calendar" : ""}.`);
     },
     /** Sync now: re-read the sample Moodle/Gradescope records, the database and Google Calendar. */
     syncNow: async () => {
@@ -1484,7 +1532,7 @@ function useStore() {
         studentName: profile?.sample ? profile.name ?? "" : "",
         courses,
         todos: profile?.todos ?? [],
-        blocks: s.blocks,
+        blocks: s.blocks.filter((b) => b.kind !== "health"),
         sources: [], // the compiled knowledge pack below replaces the raw file dump (half the tokens, and citable)
         inbox: inboxFor(courses.map((c) => c.code)).map((m) => ({ from: m.from, subject: m.subject, course: m.course, snippet: m.snippet })),
         week: events.map((e) => ({ title: e.title, start: e.start, end: e.end, kind: e.kind })),
@@ -1519,6 +1567,7 @@ function useStore() {
           suggestionIds: suggestions.map((x) => ({ id: x.id, title: x.title })),
           files: s.sources.map((x) => ({ course: x.course, title: x.title, kind: x.kind })),
           recourse: courses.filter((c) => c.rec).map((c) => ({ course: c.slug, plan: planBlocks(c, c.rec!.moves, demo.now).map((b) => `${b.title} ${when(b.at)}`).join(", ") })),
+          health: health ? healthLine(health, demo.now) : undefined,
         },
         history.map((h) => ({ role: h.role, text: h.text })),
       );

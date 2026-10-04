@@ -2,9 +2,11 @@
 
 import { AskLine, Files, Greeting, InboxPanel, Onboarding, Route, WeekPanel } from "@/components/home";
 import { useState } from "react";
+import { Health } from "@/components/Health";
 import { PotLine } from "@/components/PotLine";
 import { SemesterSetup, setupKey } from "@/components/SemesterSetup";
 import { Gate } from "@/components/ui";
+import { DEMO_PROFILE } from "@/lib/demo";
 import { usePathway } from "@/lib/store";
 
 export default function Home() {
@@ -24,6 +26,7 @@ function HomeFor() {
 function HomeBody() {
   const { courses, profile } = usePathway();
   // A Google account sets up its real semester (Drive syllabi, calendar) until it says it's done.
+  // The demo account signs in as the demo student, whose semester is already loaded.
   const [setupDone, setSetupDone] = useState(() => {
     try {
       return localStorage.getItem(setupKey(profile.id)) === "done";
@@ -31,7 +34,7 @@ function HomeBody() {
       return false;
     }
   });
-  if (profile.account && (courses.length === 0 || !setupDone))
+  if (profile.account && profile.id !== DEMO_PROFILE && (courses.length === 0 || !setupDone))
     return (
       <main className="px-4 py-6 md:px-10 md:py-10">
         <SemesterSetup
@@ -59,6 +62,7 @@ function HomeBody() {
         <div className="min-w-0">
           <Greeting />
           <div className="mt-8"><Route /></div>
+          <div className="mt-5"><Health /></div>
           <PotLine offer />
           <div className="mt-5"><AskLine /></div>
         </div>

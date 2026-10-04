@@ -48,7 +48,14 @@ const PATTERNS: Record<string, { days: number[]; h: number; m: number; len: numb
   "CH 101": { days: [0, 2, 4], h: 10, m: 40, len: 50, room: "Dabney 220" },
 };
 
-export function demoWeek(now: Date, courses: { slug: string; code: string; exam: { title: string; date: string } }[], todos: { id: string; title: string; due?: string }[] = []): CalEvent[] {
+export type GymSlot = { title: string; weekday: number; hour: number; minute: number; minutes: number }; // weekday 0 = Monday
+
+export function demoWeek(
+  now: Date,
+  courses: { slug: string; code: string; exam: { title: string; date: string } }[],
+  todos: { id: string; title: string; due?: string }[] = [],
+  gym: GymSlot[] | undefined = undefined, // the gym plan Google Fit knows about; without one, Saturday's gym stands in
+): CalEvent[] {
   const mon = mondayOf(now);
   const out: CalEvent[] = [];
   courses.forEach((c, i) => {
@@ -71,7 +78,12 @@ export function demoWeek(now: Date, courses: { slug: string; code: string; exam:
   // the rest of a life
   for (const d of [1, 3]) out.push({ id: `demo-work-${d}`, title: "Work shift", start: iso(at(mon, d, 17)), end: iso(at(mon, d, 21)), kind: "work", source: "demo" });
   out.push({ id: "demo-club", title: "Robotics club", start: iso(at(mon, 2, 18)), end: iso(at(mon, 2, 19, 30)), kind: "other", source: "demo" });
-  out.push({ id: "demo-gym", title: "Gym", start: iso(at(mon, 5, 14)), end: iso(at(mon, 5, 15)), kind: "other", source: "demo" });
+  if (gym?.length)
+    for (const g of gym) {
+      const s = at(mon, g.weekday, g.hour, g.minute);
+      out.push({ id: `demo-gym-${g.weekday}`, title: g.title, start: iso(s), end: iso(new Date(s.getTime() + g.minutes * 60_000)), kind: "other", source: "demo" });
+    }
+  else out.push({ id: "demo-gym", title: "Gym", start: iso(at(mon, 5, 14)), end: iso(at(mon, 5, 15)), kind: "other", source: "demo" });
   return out;
 }
 
@@ -137,8 +149,9 @@ function sameItem(a: CalEvent, b: CalEvent) {
   return key(a.title) === key(b.title);
 }
 
+/** Blocks on the week. Study blocks are study; health blocks (a wind-down, a walk) are "other", so nothing counts them as study time. */
 export function blocksAsEvents(blocks: Block[], minutes = 50): CalEvent[] {
-  return blocks.map((b) => ({ id: b.id, title: b.title, start: iso(new Date(b.at)), end: iso(new Date(new Date(b.at).getTime() + (b.minutes ?? minutes) * 60_000)), kind: "study", course: b.course, source: "pathway" }));
+  return blocks.map((b) => ({ id: b.id, title: b.title, start: iso(new Date(b.at)), end: iso(new Date(new Date(b.at).getTime() + (b.minutes ?? minutes) * 60_000)), kind: b.kind === "health" ? "other" : "study", course: b.course || undefined, source: "pathway" }));
 }
 
 // ---- rules -----------------------------------------------------------------------------------

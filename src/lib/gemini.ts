@@ -138,7 +138,7 @@ export async function generateJSONMeta<T>(opts: { parts: Part[]; schema: Schema;
 }
 
 /** Structured output: the model must return JSON matching `schema`. */
-export async function generateJSON<T>(opts: { parts: Part[]; schema: Schema; system?: string; temperature?: number }): Promise<T> {
+export async function generateJSON<T>(opts: { parts: Part[]; schema: Schema; system?: string; temperature?: number; tier?: "fast" | "heavy" }): Promise<T> {
   return (await generateJSONMeta<T>(opts)).data;
 }
 

@@ -1,5 +1,8 @@
 # Pathway
 
+Pathway is proprietary. See [LICENSE](LICENSE); third-party components remain
+under their own licenses.
+
 **Know your next move.** Pathway brings course activity, uploaded materials, and a student's week into one place. It explains *why* a course may need attention, suggests a concrete next step, and helps put that step on the calendar. Viva, the assistant students can chat or speak with, carries that course context across the app.
 
 This is a hackathon prototype. Its decision trees were trained on synthetic student data, so their predictions are demonstrations of the product, not validated academic outcomes.

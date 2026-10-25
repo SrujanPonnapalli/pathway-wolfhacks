@@ -44,6 +44,16 @@ next-env.d.ts
 # impeccable session state
 .impeccable/questions/
 
+# archive-only working material
+/docs/
+/.impeccable/
+/.claude/
+/scripts/
+/CLAUDE.md
+/AGENTS.md
+/PRODUCT.md
+/Demo_script.md
+
 # python
 .venv/
 __pycache__/
